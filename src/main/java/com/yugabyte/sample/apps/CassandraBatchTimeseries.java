@@ -293,7 +293,7 @@ public class CassandraBatchTimeseries extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample timeseries/IoT app built on batched CQL. The app models few metrics per second. ",
+      "Timeseries/IoT app built that simulates metric data emitted by devices periodically. ",
       "The data is written into the 'batch_ts_metrics_raw' table, which retains data for one day.",
       "Note that the number of metrics written is a lot more than the number of metrics read as ",
       "is typical in such workloads, and the payload size for each write is 100 bytes. Every ",

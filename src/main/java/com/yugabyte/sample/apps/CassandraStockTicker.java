@@ -307,12 +307,11 @@ public class CassandraStockTicker extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample stock ticker app built on CQL. The app models 10,000 stock tickers",
-      "each of which emits quote data every second. The raw data is written into the",
-      "'stock_ticker_raw' table, which retains data for one day. The 'stock_ticker_1min'",
-      "table models downsampled ticker data, is written to once a minute and retains data",
-      "for 60 days. Every read query gets the latest value of the stock symbol from the",
-      "'stock_ticker_raw' table.");
+      "Sample stock ticker app built on CQL. Models stock tickers each of which emits quote data every second.",
+      " The raw data is written into the 'stock_ticker_raw' table, which retains data for one day. ",
+      "The 'stock_ticker_1min' table models downsampled ticker data, is written to once a minute ",
+      "and retains data for 60 days. Every read query gets the latest value of the stock symbol ",
+      "from the 'stock_ticker_raw' table.");
   }
 
   @Override

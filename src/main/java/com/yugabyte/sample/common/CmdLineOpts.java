@@ -628,25 +628,22 @@ public class CmdLineOpts {
         "[RedisHashPipelined] If using zipf distribution to choose value sizes, " +
         "specifies an upper bound on the value sizes.");
 
+    // First check if a "--help" argument is passed with a simple parser. Note that if we add
+    // required args, then the help string would not work. See:
+    // https://stackoverflow.com/questions/36720946/apache-cli-required-options-contradicts-with-help-option
+    // The first function check if help was called with an app name to print details. The second
+    // function just check if help was called without any args to print the overview.
+    parseHelpDetailed(args, options);
+    parseHelpOverview(args, options);
+
+    // Do the actual arg parsing.
     CommandLineParser parser = new BasicParser();
     CommandLine commandLine = null;
 
     try {
       commandLine = parser.parse(options, args);
     } catch (ParseException e) {
-      LOG.error("Error in args, use the --help option to see usage", e);
-      System.exit(0);
-    }
-
-    // Set the appropriate log level.
-    //LogUtil.configureLogLevel(commandLine.hasOption("verbose"));
-
-    if (commandLine.hasOption("help")) {
-      try {
-        printUsage(options, "Usage:");
-      } catch (Exception e) {
-        LOG.error("Hit error parsing command line", e);
-      }
+      LOG.error("Error in args, use the --help option to see usage. Exception:", e);
       System.exit(0);
     }
 
@@ -655,20 +652,83 @@ public class CmdLineOpts {
     return configuration;
   }
 
+  private static void parseHelpOverview(String[] args, Options options) throws Exception {
+    Options helpOptions = new Options();
+    helpOptions.addOption("help", false, "Print help.");
+    CommandLineParser helpParser = new BasicParser();
+    CommandLine helpCommandLine = null;
+    try {
+      helpCommandLine = helpParser.parse(helpOptions, args);
+    } catch (ParseException e) {
+      LOG.error("Error in args, use the --help option to see usage", e);
+      System.exit(0);
+    }
+    if (helpCommandLine.hasOption("help")) {
+      printUsage(options, "Usage:");
+      System.exit(0);
+    }
+  }
+
+  private static void parseHelpDetailed(String[] args, Options options) throws Exception {
+    Options helpOptions = new Options();
+    helpOptions.addOption("help", true, "Print help.");
+    CommandLineParser helpParser = new BasicParser();
+    CommandLine helpCommandLine = null;
+    try {
+      helpCommandLine = helpParser.parse(helpOptions, args);
+    } catch (org.apache.commons.cli.MissingArgumentException e1) {
+      // This is ok since there was no help argument passed.
+      return;
+    }  catch (ParseException e) {
+      LOG.error("Error in args, use the --help option to see usage", e);
+      System.exit(0);
+    }
+    if (helpCommandLine.hasOption("help")) {
+      printUsageDetails(options, "Usage:", helpCommandLine.getOptionValue("help"));
+      System.exit(0);
+    }
+  }
+
   private static void printUsage(Options options, String header) throws Exception {
     StringBuilder footer = new StringBuilder();
 
     footer.append("****************************************************************************\n");
     footer.append("*                                                                          *\n");
-    footer.append("*                     YugaByte Platform Demo App                           *\n");
+    footer.append("*                     YugaByte DB Sample Apps                              *\n");
     footer.append("*                                                                          *\n");
     footer.append("****************************************************************************\n");
     footer.append("\n");
-    footer.append("Use this demo app to try out a variety of workloads against the YugaByte data " +
-                  "platform.\n");
+    footer.append("Use this sample app to try out a variety of workloads against YugaByte DB.\n");
+    footer.append("  Use the --help <app name> option to get more details on how to run it.\n");
     String optsPrefix = "\t\t\t";
     String optsSuffix = " \\\n";
     for (AppName workloadType : AppName.values()) {
+      int port = 0;
+      if (workloadType.toString().startsWith("Cassandra")) port = 9042;
+      else if (workloadType.toString().startsWith("Redis")) port = 6379;
+      AppBase workload = getAppClass(workloadType).newInstance();
+      String formattedName = String.format("%-35s: ", workloadType.toString());
+      footer.append("\n  * " + formattedName);
+      List<String> description = workload.getWorkloadDescription();
+      if (!description.isEmpty()) {
+        footer.append(description.get(0));
+      }
+    }
+    footer.append("\n");
+    System.out.println(footer.toString());
+    System.exit(0);
+  }
+
+    private static void printUsageDetails(Options options, String header, String appName) throws Exception {
+    StringBuilder footer = new StringBuilder();
+
+    footer.append("Usage and options for workload " + appName + " in YugaByte DB Sample Apps.\n");
+    String optsPrefix = "\t\t\t";
+    String optsSuffix = " \\\n";
+    for (AppName workloadType : AppName.values()) {
+      if (!appName.equals(workloadType.toString())) {
+        continue;
+      }
       int port = 0;
       if (workloadType.toString().startsWith("Cassandra")) port = 9042;
       else if (workloadType.toString().startsWith("Redis")) port = 6379;
@@ -697,11 +757,14 @@ public class CmdLineOpts {
       footer.append(optsPrefix + "--workload " + workloadType.toString() + optsSuffix);
       footer.append(optsPrefix + "--nodes 127.0.0.1:" + port);
 
-      footer.append("\n\n\t\tOther options (with default values):\n");
-      for (String line : workload.getExampleUsageOptions()) {
-        footer.append(optsPrefix + "[ ");
-        footer.append(line);
-        footer.append(" ]\n");
+      List<String> usageOptions = workload.getExampleUsageOptions();
+      if (!usageOptions.isEmpty()) {
+        footer.append("\n\n\t\tOther options (with default values):\n");
+        for (String line : usageOptions) {
+          footer.append(optsPrefix + "[ ");
+          footer.append(line);
+          footer.append(" ]\n");
+        }
       }
     }
     footer.append("\n");

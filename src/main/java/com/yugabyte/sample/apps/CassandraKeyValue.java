@@ -78,7 +78,7 @@ public class CassandraKeyValue extends AppBase {
   @Override
   public List<String> getCreateTableStatements() {
     String create_stmt = String.format(
-      "CREATE TABLE IF NOT EXISTS %s (k varchar, v varchar, primary key (k))", getTableName());
+      "CREATE TABLE IF NOT EXISTS %s (k varchar, v blob, primary key (k))", getTableName());
 
     if (appConfig.tableTTLSeconds > 0) {
       create_stmt += " WITH default_time_to_live = " + appConfig.tableTTLSeconds;
@@ -139,31 +139,25 @@ public class CassandraKeyValue extends AppBase {
     }
     // Do the read from Cassandra.
     // Bind the select statement.
-    try {
-      BoundStatement select = getPreparedSelect().bind(key.getKeyWithHashPrefix());
-      ResultSet rs = getCassandraClient().execute(select);
-      List<Row> rows = rs.all();
-      if (rows.size() != 1) {
-        // If TTL is enabled, turn off correctness validation.
-        if (appConfig.tableTTLSeconds <= 0) {
-          LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got " + rows.size());
-        }
-        return 1;
+    BoundStatement select = getPreparedSelect().bind(key.asString());
+    ResultSet rs = getCassandraClient().execute(select);
+    List<Row> rows = rs.all();
+    if (rows.size() != 1) {
+      // If TTL is enabled, turn off correctness validation.
+      if (appConfig.tableTTLSeconds <= 0) {
+        LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got " + rows.size());
       }
-    /*  if (appConfig.valueSize == 0) {
-        ByteBuffer buf = rows.get(0).getBytes(1);
-        String value = new String(buf.array());
-        key.verify(value);
-      } else {
-        ByteBuffer value = rows.get(0).getBytes(1);
-        byte[] bytes = new byte[value.capacity()];
-        value.get(bytes);
-        verifyRandomValue(key, bytes);
-      }
-      */
-    } catch (Exception e) {
-      LOG.fatal("Failed reading value: " + key.getValueStr(), e);
-      return 0;
+      return 1;
+    }
+    if (appConfig.valueSize == 0) {
+      ByteBuffer buf = rows.get(0).getBytes(1);
+      String value = new String(buf.array());
+      key.verify(value);
+    } else {
+      ByteBuffer value = rows.get(0).getBytes(1);
+      byte[] bytes = new byte[value.capacity()];
+      value.get(bytes);
+      verifyRandomValue(key, bytes);
     }
     LOG.debug("Read key: " + key.toString());
     return 1;
@@ -198,10 +192,10 @@ public class CassandraKeyValue extends AppBase {
       BoundStatement insert = null;
       if (appConfig.valueSize == 0) {
         String value = key.getValueStr();
-        insert = getPreparedInsert().bind(key.getKeyWithHashPrefix(), value);
+        insert = getPreparedInsert().bind(key.asString(), ByteBuffer.wrap(value.getBytes()));
       } else {
         byte[] value = getRandomValue(key);
-        insert = getPreparedInsert().bind(key.getKeyWithHashPrefix(), ByteBuffer.wrap(value));
+        insert = getPreparedInsert().bind(key.asString(), ByteBuffer.wrap(value));
       }
       ResultSet resultSet = getCassandraClient().execute(insert);
       LOG.debug("Wrote key: " + key.toString() + ", return code: " + resultSet.toString());
@@ -209,9 +203,8 @@ public class CassandraKeyValue extends AppBase {
       return 1;
     } catch (Exception e) {
       getSimpleLoadGenerator().recordWriteFailure(key);
-      LOG.fatal("Failed writing key: " + key.asString(), e);
+      throw e;
     }
-    return 0;
   }
 
   @Override
@@ -228,10 +221,9 @@ public class CassandraKeyValue extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample key-value app built on Cassandra. The app writes out 1M unique string keys",
-      "each with a string value. There are multiple readers and writers that update these",
-      "keys and read them indefinitely. Note that the number of reads and writes to",
-      "perform can be specified as a parameter.");
+      "Sample key-value app built on Cassandra with concurrent reader and writer threads.",
+      " Each of these threads operates on a single key-value pair. The number of readers ",
+      " and writers, the value size, the number of inserts vs updates are configurable.");
   }
 
   @Override

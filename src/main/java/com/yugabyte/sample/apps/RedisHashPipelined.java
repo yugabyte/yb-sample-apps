@@ -241,7 +241,7 @@ public class RedisHashPipelined extends RedisPipelinedKeyValue {
 
   @Override
   public List<String> getWorkloadDescription() {
-    return Arrays.asList("Sample redis hash-map based app built on RedisPipelined.");
+    return Arrays.asList("Sample redis hash-map based app built on RedisPipelined for batched operations.");
   }
 
   @Override

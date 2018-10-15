@@ -150,11 +150,9 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample key-value app with multi-row transaction built on Cassandra. The app writes",
-      "out 1M unique string keys in pairs, with each pair of keys with the same string",
-      "value written in a transaction. There are multiple readers and writers that update",
-      "these keys and read them in pair indefinitely. Note that the number of reads and ",
-      "writes to perform can be specified as a parameter.");
+      "Key-value app with multi-row transactions. Each write txn inserts a pair of unique string keys with the same value.",
+      " There are multiple readers and writers that update these keys and read them in pair ",
+      "indefinitely. The number of reads and writes to perform can be specified as a parameter.");
   }
 
   @Override

@@ -258,10 +258,9 @@ public class CassandraPersonalization extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample personalization app built on Cassandra. The app writes out unique customer",
-      "ids, each with a set of coupons for different stores. There are multiple readers and",
-      "writers that update these keys and read them indefinitely. Note that the number of",
-      "reads and writes to perform can be specified as a parameter.");
+      "User personalization app. Writes unique customer ids, each with a set of coupons for different stores.",
+      " There are multiple readers and writers that update these keys and read them indefinitely. ",
+      "Note that the number of reads and writes to perform can be specified as a parameter.");
   }
 
   @Override

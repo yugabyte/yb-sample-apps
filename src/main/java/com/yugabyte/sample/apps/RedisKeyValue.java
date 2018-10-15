@@ -107,10 +107,9 @@ public class RedisKeyValue extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample key-value app built on Redis. The app writes out 1M unique string keys each",
-      "with a string value. There are multiple readers and writers that update these keys",
-      "and read them indefinitely. Note that the number of reads and writes to perform",
-      "can be specified as a parameter.");
+      "Sample key-value app built on Redis. The app writes out unique string keys each with a string value.",
+      " There are multiple readers and writers that insert and update these keys.",
+      " The number of reads and writes to perform can be specified as a parameter.");
   }
 
   @Override

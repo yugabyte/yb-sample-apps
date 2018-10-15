@@ -84,7 +84,6 @@ public class CassandraHelloWorld extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "A very simple hello world app built on Cassandra. The app writes one employee row",
-      "into the 'Employee' table");
+      "A very simple app that writes and reads one employee record into an 'Employee' table");
   }
 }

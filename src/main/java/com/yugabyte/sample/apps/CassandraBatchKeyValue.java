@@ -81,10 +81,9 @@ public class CassandraBatchKeyValue extends CassandraKeyValue {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample batch key-value app built on Cassandra. The app writes out 1M unique string",
-      "key in batches, each key with a string value. There are multiple readers and",
-      "writers that update these keys and read them indefinitely. Note that the batch",
-      "size and the number of reads and writes to perform can be specified as parameters.");
+      "Sample batch key-value app built on Cassandra with concurrent reader and writer threads. ",
+      "Note that writes are batched, while reads perform lookups by a single key. The batch size ",
+      "to write and the number of readers and writers  can be specified as parameters.");
   }
 
   @Override

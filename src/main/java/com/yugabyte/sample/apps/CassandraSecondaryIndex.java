@@ -153,12 +153,10 @@ public class CassandraSecondaryIndex extends CassandraKeyValue {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample key-value app built on Cassandra. The app writes out unique string keys",
-      "each with a string value to a YCQL table with an index on the value column.",
-      "There are multiple readers and writers that update these keys and read them",
-      "indefinitely, with the readers query the keys by the associated values that are",
-      "indexed. Note that the number of reads and writes to perform can be specified as",
-      "a parameter.");
+      "Secondary index on key-value YCQL table. Writes unique keys with an index on values. Query keys by values ",
+      "Note that these are strongly consistent, global secondary indexes. Supports a flag to run at",
+      " app enforced consistency level which is ideal for batch loading data. The number of reads ", 
+      "and writes to perform can be specified as a parameter.");
   }
 
   @Override

@@ -172,7 +172,7 @@ public class SqlUpdates extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-        "Sample key-value app built on postgresql. The app writes out unique string keys",
+        "Sample key-value app built on PostgreSQL with concurrent readers and writers. The app updates existing string keys",
         "each with a string value to a postgres table with an index on the value column.",
         "There are multiple readers and writers that update these keys and read them",
         "indefinitely, with the readers query the keys by the associated values that are",

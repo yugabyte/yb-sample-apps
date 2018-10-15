@@ -373,12 +373,11 @@ public class CassandraTimeseries extends AppBase {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Sample timeseries/IoT app built on CQL. The app models 100 users, each of",
-      "whom own 5-10 devices. Each device emits 5-10 metrics per second. The data is",
-      "written into the 'ts_metrics_raw' table, which retains data for one day. Note that",
-      "the number of metrics written is a lot more than the number of metrics read as is",
-      "typical in such workloads, and the payload size for each write is 100 bytes. Every",
-      "read query fetches the last 1-3 hours of metrics for a user's device.");
+      "Sample timeseries/IoT app built on CQL. The app models users with devices, each emitting multiple metrics per second.",
+      "The data is written into the 'ts_metrics_raw' table, which retains data for one day. Note ",
+      "that the number of metrics written is a lot more than the number of metrics read as is",
+      "typical in such workloads, and the payload size for each write is 100 bytes. Every read ",
+      "query fetches the last 1-3 hours of metrics for a user's device.");
   }
 
   @Override

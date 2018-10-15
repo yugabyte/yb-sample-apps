@@ -21,6 +21,7 @@ import redis.clients.jedis.Response;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -210,6 +211,14 @@ public class RedisPipelinedKeyValue extends RedisKeyValue {
       }
     });
     return 1;
+  }
+
+  @Override
+  public List<String> getWorkloadDescription() {
+    return Arrays.asList(
+      "Sample batched key-value app built on Redis. The app reads and writes a batch of key-value pairs.",
+      " There are multiple readers and writers that insert and update these keys. The number of reads",
+      " and writes to perform and the batch size can be specified as a parameter.");
   }
 
   @Override
