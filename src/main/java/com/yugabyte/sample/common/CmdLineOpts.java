@@ -660,8 +660,7 @@ public class CmdLineOpts {
     try {
       helpCommandLine = helpParser.parse(helpOptions, args);
     } catch (ParseException e) {
-      LOG.error("Error in args, use the --help option to see usage", e);
-      System.exit(0);
+      return;
     }
     if (helpCommandLine.hasOption("help")) {
       printUsage(options, "Usage:");
@@ -680,8 +679,7 @@ public class CmdLineOpts {
       // This is ok since there was no help argument passed.
       return;
     }  catch (ParseException e) {
-      LOG.error("Error in args, use the --help option to see usage", e);
-      System.exit(0);
+      return;
     }
     if (helpCommandLine.hasOption("help")) {
       printUsageDetails(options, "Usage:", helpCommandLine.getOptionValue("help"));
@@ -706,6 +704,7 @@ public class CmdLineOpts {
       int port = 0;
       if (workloadType.toString().startsWith("Cassandra")) port = 9042;
       else if (workloadType.toString().startsWith("Redis")) port = 6379;
+      else if (workloadType.toString().startsWith("Sql")) port = 5433;
       AppBase workload = getAppClass(workloadType).newInstance();
       String formattedName = String.format("%-35s: ", workloadType.toString());
       footer.append("\n  * " + formattedName);

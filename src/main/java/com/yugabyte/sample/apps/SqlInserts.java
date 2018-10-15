@@ -68,7 +68,7 @@ public class SqlInserts extends AppBase {
   @Override
   public void dropTable() throws Exception {
     Connection connection = getPostgresConnection();
-    connection.createStatement().execute("DROP TABLE IF EXISTS " + getTableName());
+    connection.createStatement().execute("DROP TABLE " + getTableName());
     LOG.info(String.format("Dropped table: %s", getTableName()));
   }
 
@@ -78,7 +78,7 @@ public class SqlInserts extends AppBase {
 
     // Check if database already exists.
     connection.createStatement().execute(
-      String.format("CREATE DATABASE IF NOT EXISTS %s", postgres_ybdemo_database));
+      String.format("CREATE DATABASE %s", postgres_ybdemo_database));
     connection.close();
 
     // Connect to the new database just created.
@@ -86,7 +86,7 @@ public class SqlInserts extends AppBase {
 
     // Create the table.
     connection.createStatement().executeUpdate(
-        String.format("CREATE TABLE IF NOT EXISTS %s (k varchar PRIMARY KEY, v varchar);",
+        String.format("CREATE TABLE %s (k varchar PRIMARY KEY, v varchar);",
             getTableName()));
     LOG.info(String.format("Created table: %s", getTableName()));
   }

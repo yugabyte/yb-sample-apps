@@ -130,7 +130,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     Class.forName("org.postgresql.Driver");
     ContactPoint contactPoint = getRandomContactPoint();
     Properties props = new Properties();
-    props.setProperty("user", "root");
+    props.setProperty("user", "postgres");
     props.setProperty("sslmode", "disable");
     String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
                                                                     contactPoint.getPort(),
