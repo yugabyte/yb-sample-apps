@@ -86,7 +86,7 @@ public class SqlInserts extends AppBase {
 
     // Create the table.
     connection.createStatement().executeUpdate(
-        String.format("CREATE TABLE %s (k varchar PRIMARY KEY, v varchar);",
+        String.format("CREATE TABLE %s (k text PRIMARY KEY, v text);",
             getTableName()));
     LOG.info(String.format("Created table: %s", getTableName()));
   }
@@ -100,6 +100,9 @@ public class SqlInserts extends AppBase {
     if (preparedSelect == null) {
       preparedSelect = getPostgresConnection(postgres_ybdemo_database).prepareStatement(
           String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
+      // TODO disable server-side prepare until we handle predicate pushdown with bind-vars better.
+      org.postgresql.PGStatement pgstmt = (org.postgresql.PGStatement)preparedSelect;
+      pgstmt.setUseServerPrepare(false);
     }
     return preparedSelect;
   }
@@ -115,21 +118,22 @@ public class SqlInserts extends AppBase {
     try {
       PreparedStatement statement = getPreparedSelect();
       statement.setString(1, key.asString());
-      ResultSet rs = statement.executeQuery();
-      if (!rs.next()) {
-        LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got 0");
-        return 0;
-      }
+      try (ResultSet rs = statement.executeQuery()) {
+        if (!rs.next()) {
+          LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got 0");
+          return 0;
+        }
 
-      if (!key.asString().equals(rs.getString("k"))) {
-        LOG.fatal("Read key: " + key.asString() + ", got " + rs.getString("k"));
-      }
-      LOG.debug("Read key: " + key.toString());
+        if (!key.asString().equals(rs.getString("k"))) {
+          LOG.fatal("Read key: " + key.asString() + ", got " + rs.getString("k"));
+        }
+        LOG.debug("Read key: " + key.toString());
 
-      if (rs.next()) {
-        LOG.fatal("Read key: " + key.asString() +
-            " expected 1 row in result, got more than one");
-        return 0;
+        if (rs.next()) {
+          LOG.fatal("Read key: " + key.asString() +
+                        " expected 1 row in result, got more than one");
+          return 0;
+        }
       }
     } catch (Exception e) {
       LOG.fatal("Failed reading value: " + key.getValueStr(), e);
