@@ -34,8 +34,8 @@ public class SqlInserts extends AppBase {
   static {
     // Disable the read-write percentage.
     appConfig.readIOPSPercentage = -1;
-    // Set the read and write threads to 1 each.
-    appConfig.numReaderThreads = 24;
+    // Set the read and write threads to 2 each.
+    appConfig.numReaderThreads = 2;
     appConfig.numWriterThreads = 2;
     // The number of keys to read.
     appConfig.numKeysToRead = -1;
