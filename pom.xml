@@ -14,6 +14,7 @@
     <maven-dependency-plugin.phase>prepare-package</maven-dependency-plugin.phase>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <skipDockerBuildBuild>false</skipDockerBuildBuild>
   </properties>
 
   <dependencies>
@@ -166,6 +167,7 @@
           <buildArgs>
             <JAR_FILE>${project.artifactId}.jar</JAR_FILE>
           </buildArgs>
+          <skip>${skipDockerBuild}</skip>
         </configuration>
       </plugin>
     </plugins>
