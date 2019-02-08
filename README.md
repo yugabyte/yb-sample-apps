@@ -74,7 +74,7 @@ You need the following to build:
 
 To build, simply run the following:
 ```
-$ mvn -DskipTests package
+$ mvn -DskipTests -DskipDockerBuild package
 ```
 
 You can find the executable one-jar at the following location:
@@ -83,3 +83,7 @@ $ ls target/yb-sample-apps.jar
 target/yb-sample-apps.jar
 ```
 
+To docker image with the package, simply run the following:
+```
+$ mvn package
+```
