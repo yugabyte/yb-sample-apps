@@ -32,6 +32,13 @@ import java.util.stream.Collectors;
 import java.util.zip.Adler32;
 import java.util.zip.Checksum;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import javax.net.ssl.*;
+import java.security.*;
+import java.security.cert.CertificateException;
+
 import com.datastax.driver.core.ConsistencyLevel;
 import org.apache.log4j.Logger;
 
@@ -39,6 +46,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
@@ -179,11 +187,60 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       LOG.info("Connecting to nodes: " + builder.getContactPoints().stream()
               .map(it -> it.toString()).collect(Collectors.joining(",")));
       setupLoadBalancingPolicy(builder);
-      cassandra_cluster =
-          builder.withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
+      if (appConfig.enableSSL) {
+          LOG.info("Attempting SSL connection to this cluster");
+          try {
+              SSLContext context = getSSLContext(appConfig.ssl_truststore,
+                                     appConfig.ssl_truststorepassword,
+                                     appConfig.ssl_keystore,
+                                     appConfig.ssl_keystorepassword);
+
+          LOG.info("Got the SSL context");
+
+          JdkSSLOptions sslOptions = JdkSSLOptions.builder()
+                  .withSSLContext(context)
+                  .build();
+
+          if (appConfig.enableAuth) {
+              LOG.info("Connecting with user: " + appConfig.auth_user);
+              cassandra_cluster =
+                  builder.withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
                  .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
+                 .withCredentials(appConfig.auth_user, appConfig.auth_password)
+                 .withSSL(sslOptions)
                  .build();
-      LOG.debug("Connected to cluster: " + cassandra_cluster.getClusterName());
+           } else {
+              cassandra_cluster =
+                  builder.withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
+                 .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
+                 .withSSL(sslOptions)
+                 .build();
+ 	   }
+
+          } catch (Exception e) {
+	     LOG.fatal("Caught exception on getSSLContext", e);
+          }
+      } else {
+          if (appConfig.enableAuth) {
+              LOG.info("Connecting with user: " + appConfig.auth_user);
+              cassandra_cluster =
+                  builder.withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
+                  .withCredentials(appConfig.auth_user, appConfig.auth_password)
+                  .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
+                  .build();
+          } else {
+              cassandra_cluster =
+                  builder.withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
+                  .withCredentials(appConfig.auth_user, appConfig.auth_password)
+                  .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
+                  .build();
+          }
+      }
+      if (appConfig.enableSSL) {
+          LOG.debug("Connected to cluster w/SSL: " + cassandra_cluster.getClusterName());
+      } else {
+          LOG.debug("Connected to cluster: " + cassandra_cluster.getClusterName());
+      }
     }
     if (cassandra_session == null) {
       LOG.debug("Creating a session...");
@@ -204,6 +261,40 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       builder.withLoadBalancingPolicy(
               new PartitionAwarePolicy());
     }
+  }
+
+  private static SSLContext getSSLContext(String truststorePath,
+                                            String truststorePassword,
+                                            String keystorePath,
+                                            String keystorePassword)
+  throws Exception {
+
+      FileInputStream truststore = null;
+      KeyStore ks = KeyStore.getInstance("jks");
+      SSLContext ctx = SSLContext.getInstance("TLS");
+      try {
+          truststore = new FileInputStream(truststorePath);
+          ks.load(truststore, truststorePassword.toCharArray());
+          TrustManagerFactory tmf =
+               TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+          tmf.init(ks);
+          ctx.init(null, tmf.getTrustManagers(), null);
+      } catch (KeyStoreException kse) {
+          LOG.fatal(kse.getMessage(), kse);
+      } catch (CertificateException e) {
+          LOG.fatal(e.getMessage(), e);
+      } catch (NoSuchAlgorithmException e) {
+          LOG.fatal(e.getMessage(), e);
+      } catch (KeyManagementException e) {
+          LOG.fatal(e.getMessage(), e);
+      } catch (IOException e) {
+          LOG.fatal(e.getMessage(), e);
+      }  finally {
+          if (truststore!=null) {
+             truststore.close();
+          }
+      }
+      return ctx;
   }
 
   /**

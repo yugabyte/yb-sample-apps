@@ -133,7 +133,15 @@ public class AppConfig {
   public long runTimeSeconds = -1;
 
   public String localDc;
+  public boolean enableSSL = false;
+  public String ssl_keystore;
+  public String ssl_truststore;
+  public String ssl_keystorepassword;
+  public String ssl_truststorepassword;
 
+  public boolean enableAuth = false;
+  public String auth_user;
+  public String auth_password;
   // Used by CassandraPersonalization workload.
 
   // Number of stores.

@@ -266,6 +266,70 @@ public class CmdLineOpts {
       }
       AppBase.appConfig.localDc = commandLine.getOptionValue("with_local_dc");
     }
+    if (commandLine.hasOption("auth_user") && commandLine.hasOption("auth_password")) {
+       AppBase.appConfig.enableAuth = true;
+       AppBase.appConfig.auth_user = commandLine.getOptionValue("auth_user");
+       AppBase.appConfig.auth_password = commandLine.getOptionValue("auth_password");
+    }
+    else {
+       AppBase.appConfig.enableAuth = false;
+    }
+    if (commandLine.hasOption("auth_user") && !commandLine.hasOption("auth_password")) {
+       LOG.fatal("--auth_user requires --auth_password to be specified");
+       System.exit(-1);
+    }
+    if (commandLine.hasOption("auth_password") && !commandLine.hasOption("auth_user")) {
+       LOG.fatal("--auth_password requires --auth_user to be specified");
+       System.exit(-1);
+    }
+    if (commandLine.hasOption("enable_ssl")) {
+       AppBase.appConfig.enableSSL = true;
+    }
+    else {
+       AppBase.appConfig.enableSSL = false;
+    }
+    if (AppBase.appConfig.enableSSL && !commandLine.hasOption("ssl_truststore")) {
+       LOG.fatal("--ssl_truststore must be provided with --enableSSL");
+       System.exit(-1);
+    }
+    if (AppBase.appConfig.enableSSL && commandLine.hasOption("ssl_truststore") &&
+        !commandLine.hasOption("ssl_truststorepassword")) {
+        LOG.fatal("--enableSSL and --ssltruststore usually require --ssl_truststorepassword");
+        System.exit(1);
+    }
+    if (AppBase.appConfig.enableSSL && commandLine.hasOption("ssl_keystore") &&
+        !commandLine.hasOption("ssl_keystorepassword")) {
+        LOG.fatal("--enableSSL and --sslkeystore usually require --ssl_keystorepassword");
+        System.exit(-1);
+    }
+    if (commandLine.hasOption("ssl_keystore")) {
+       if (AppBase.appConfig.enableSSL == false) {
+         LOG.fatal("--ssl_keystore must be used with --enableSSL");
+         System.exit(-1);
+       }
+       AppBase.appConfig.ssl_keystore = commandLine.getOptionValue("ssl_keystore");
+    }
+    if (commandLine.hasOption("ssl_truststore")) {
+       if (AppBase.appConfig.enableSSL == false) {
+         LOG.fatal("--ssl_truststore must be used with --enableSSL");
+         System.exit(-1);
+       }
+       AppBase.appConfig.ssl_truststore = commandLine.getOptionValue("ssl_truststore");
+    }
+    if (commandLine.hasOption("ssl_keystorepassword")) {
+       if (AppBase.appConfig.enableSSL == false) {
+         LOG.fatal("--ssl_keystorepassword must be used with --enableSSL");
+         System.exit(-1);
+       }
+       AppBase.appConfig.ssl_keystorepassword = commandLine.getOptionValue("ssl_keystorepassword");
+    }
+    if (commandLine.hasOption("ssl_truststorepassword")) {
+       if (AppBase.appConfig.enableSSL == false) {
+         LOG.fatal("--ssl_truststorepassword must be used with --enableSSL");
+         System.exit(-1);
+       }
+       AppBase.appConfig.ssl_truststorepassword = commandLine.getOptionValue("ssl_truststorepassword");
+    }
     if (commandLine.hasOption("use_redis_cluster")) {
       AppBase.appConfig.useRedisCluster = true;
     }
@@ -556,6 +620,13 @@ public class CmdLineOpts {
                       "[CassandraBatchTimeseries] Time unit delta back from current time unit.");
 
     options.addOption("with_local_dc", true, "Local DC name.");
+    options.addOption("enable_ssl", false, "Enable SSL connections to cluster");
+    options.addOption("ssl_truststore", true, "Path to trust store");
+    options.addOption("ssl_truststorepassword", true, "Password for trust store");
+    options.addOption("ssl_keystore", true, "Path for client keystore");
+    options.addOption("ssl_keystorepassword", true, "Password for keystore");
+    options.addOption("auth_user", true, "Username for authentication");
+    options.addOption("auth_password", true, "Password for authentication");
 
     // Options for CassandraSparkWordCount app.
     options.addOption("wordcount_input_file", true,
