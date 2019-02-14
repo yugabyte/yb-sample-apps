@@ -70,11 +70,10 @@ Usage and options for workload CassandraKeyValue in YugaByte DB Sample Apps.
 
 You need the following to build:
 * Java 1.8 or above
-* Maven version 3.3.9 or above
 
 To build, simply run the following:
 ```
-$ mvn -DskipTests -DskipDockerBuild package
+$ ./mvnw -DskipTests -DskipDockerBuild package
 ```
 
 You can find the executable one-jar at the following location:
@@ -85,5 +84,5 @@ target/yb-sample-apps.jar
 
 To docker image with the package, simply run the following:
 ```
-$ mvn package
+$ ./mvnw package
 ```
