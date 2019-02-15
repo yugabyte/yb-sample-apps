@@ -159,4 +159,6 @@ public class AppConfig {
 
   // Password to connect to the YQL client.
   public String cassandraPassword = null;
+
+  public int concurrentClients = 4;
 }

@@ -67,12 +67,6 @@ public class CassandraBatchTimeseries extends AppBase {
   private static int min_metrics_count = 5;
   // The maximum number of metrics to simulate.
   private static int max_metrics_count = 10;
-  // The shared prepared select statement for fetching the data.
-  private static volatile PreparedStatement preparedSelect;
-  // The shared prepared statement for inserting into the table.
-  private static volatile PreparedStatement preparedInsert;
-  // Lock for initializing prepared statement objects.
-  private static final Object prepareInitLock = new Object();
 
   @Override
   public void initialize(CmdLineOpts configuration) {
@@ -129,50 +123,17 @@ public class CassandraBatchTimeseries extends AppBase {
   }
 
   private PreparedStatement getPreparedInsert()  {
-    if (preparedInsert == null) {
-      synchronized (prepareInitLock) {
-        if (preparedInsert == null) {
-          // Create the prepared statement object.
-          String insert_stmt = String.format("INSERT INTO %s (metric_id, ts, value) VALUES " +
-                                             "(:metric_id, :ts, :value);", getTableName());
-          preparedInsert = getCassandraClient().prepare(insert_stmt);
-        }
-      }
-    }
-    return preparedInsert;
+    return getPreparedInsert(
+        String.format("INSERT INTO %s (metric_id, ts, value) VALUES " +
+                      "(:metric_id, :ts, :value);", getTableName()));
   }
 
   private PreparedStatement getPreparedSelect()  {
-    if (preparedSelect == null) {
-      synchronized (prepareInitLock) {
-        if (preparedSelect == null) {
-          // Create the prepared statement object.
-          String select_stmt = String.format("SELECT * from %s WHERE metric_id = :metricId AND " +
-                                             "ts > :startTs AND ts < :endTs ORDER BY ts DESC " +
-                                             "LIMIT :readBatchSize;", getTableName());
-          preparedSelect = getCassandraClient().prepare(select_stmt);
-        }
-      }
-    }
-    return preparedSelect;
-  }
-
-  @Override
-  public synchronized void resetClients() {
-    synchronized (prepareInitLock) {
-      preparedInsert = null;
-      preparedSelect = null;
-    }
-    super.resetClients();
-  }
-
-  @Override
-  public synchronized void destroyClients() {
-    synchronized (prepareInitLock) {
-      preparedInsert = null;
-      preparedSelect = null;
-    }
-    super.destroyClients();
+    return getPreparedSelect(
+        String.format("SELECT * from %s WHERE metric_id = :metricId AND " +
+                      "ts > :startTs AND ts < :endTs ORDER BY ts DESC " +
+                      "LIMIT :readBatchSize;", getTableName()),
+        false /* localReads */);
   }
 
   @Override
