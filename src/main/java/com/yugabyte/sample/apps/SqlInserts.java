@@ -76,26 +76,9 @@ public class SqlInserts extends AppBase {
   public void createTablesIfNeeded() throws Exception {
     Connection connection = getPostgresConnection();
 
-    // Check if database already exists.
-    ResultSet rs = connection.createStatement().executeQuery(
-        String.format("SELECT datname FROM pg_database WHERE datname='%s'",
-            postgres_ybdemo_database));
-
-    if (!rs.next()) {
-      connection.createStatement().execute(
-          String.format("CREATE DATABASE %s", postgres_ybdemo_database));
-    }
-    connection.close();
-
-    // Connect to the new database just created.
-    connection = getPostgresConnection(postgres_ybdemo_database);
-
-    // Drop the table if exists.
-    connection.createStatement().execute(String.format("DROP TABLE IF EXISTS %s", getTableName()));
-
     // Create the table.
     connection.createStatement().execute(
-        String.format("CREATE TABLE %s (k text PRIMARY KEY, v text);",
+        String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text);",
             getTableName()));
     LOG.info(String.format("Created table: %s", getTableName()));
   }
