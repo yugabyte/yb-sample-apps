@@ -32,6 +32,12 @@ public abstract class CassandraKeyValueBase extends AppBase {
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
   }
 
+  // The shared prepared select statement for fetching the data.
+  private static volatile PreparedStatement preparedSelect;
+
+  // The shared prepared statement for inserting into the table.
+  private static volatile PreparedStatement preparedInsert;
+
   // Lock for initializing prepared statement objects.
   private static final Object prepareInitLock = new Object();
 
@@ -47,10 +53,44 @@ public abstract class CassandraKeyValueBase extends AppBase {
     dropCassandraTable(getTableName());
   }
 
+  protected PreparedStatement getPreparedSelect(String selectStmt, boolean localReads)  {
+    if (preparedSelect == null) {
+      synchronized (prepareInitLock) {
+        if (preparedSelect == null) {
+          // Create the prepared statement object.
+          preparedSelect = getCassandraClient().prepare(selectStmt);
+          if (localReads) {
+            LOG.debug("Doing local reads");
+            preparedSelect.setConsistencyLevel(ConsistencyLevel.ONE);
+          }
+        }
+      }
+    }
+    return preparedSelect;
+  }
+
   protected abstract String getDefaultTableName();
 
   public String getTableName() {
     return appConfig.tableName != null ? appConfig.tableName : getDefaultTableName();
+  }
+
+  @Override
+  public synchronized void resetClients() {
+    synchronized (prepareInitLock) {
+      preparedInsert = null;
+      preparedSelect = null;
+    }
+    super.resetClients();
+  }
+
+  @Override
+  public synchronized void destroyClients() {
+    synchronized (prepareInitLock) {
+      preparedInsert = null;
+      preparedSelect = null;
+    }
+    super.destroyClients();
   }
 
   protected abstract BoundStatement bindSelect(String key);
@@ -86,6 +126,18 @@ public abstract class CassandraKeyValueBase extends AppBase {
     }
     LOG.debug("Read key: " + key.toString());
     return 1;
+  }
+
+  protected PreparedStatement getPreparedInsert(String insertStmt)  {
+    if (preparedInsert == null) {
+      synchronized (prepareInitLock) {
+        if (preparedInsert == null) {
+          // Create the prepared statement object.
+          preparedInsert = getCassandraClient().prepare(insertStmt);
+        }
+      }
+    }
+    return preparedInsert;
   }
 
   protected abstract BoundStatement bindInsert(String key, ByteBuffer value);

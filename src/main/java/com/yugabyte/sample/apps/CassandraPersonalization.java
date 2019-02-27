@@ -58,6 +58,15 @@ public class CassandraPersonalization extends AppBase {
   // The default table name to create and use for CRUD ops.
   private static final String DEFAULT_TABLE_NAME = "coupon_recommendation";
 
+  // The shared prepared select statement for fetching the data.
+  private static volatile PreparedStatement preparedSelect;
+
+  // The shared prepared statement for inserting into the table.
+  private static volatile PreparedStatement preparedInsert;
+
+  // Lock for initializing prepared statement objects.
+  private static final Object prepareInitLock = new Object();
+
   static Random rand = new Random();
 
   Vector<Coupon> coupons;
@@ -124,10 +133,21 @@ public class CassandraPersonalization extends AppBase {
     return appConfig.tableName != null ? appConfig.tableName : DEFAULT_TABLE_NAME;
   }
 
+  protected PreparedStatement getPreparedSelect(String selectStmt)  {
+    if (preparedSelect == null) {
+      synchronized (prepareInitLock) {
+        if (preparedSelect == null) {
+          // Create the prepared statement object.
+          preparedSelect = getCassandraClient().prepare(selectStmt);
+        }
+      }
+    }
+    return preparedSelect;
+  }
+
   private PreparedStatement getPreparedSelect()  {
     return getPreparedSelect(
-      String.format("SELECT * FROM %s WHERE customer_id = ? AND store_id = ?;", getTableName()),
-      false /* localReads */);
+      String.format("SELECT * FROM %s WHERE customer_id = ? AND store_id = ?;", getTableName()));
   }
 
   @Override
@@ -146,6 +166,18 @@ public class CassandraPersonalization extends AppBase {
     List<Row> rows = rs.all();
     LOG.debug("Read coupon count: " + rows.size());
     return 1;
+  }
+
+  protected PreparedStatement getPreparedInsert(String insertStmt)  {
+    if (preparedInsert == null) {
+      synchronized (prepareInitLock) {
+        if (preparedInsert == null) {
+          // Create the prepared statement object.
+          preparedInsert = getCassandraClient().prepare(insertStmt);
+        }
+      }
+    }
+    return preparedInsert;
   }
 
   protected PreparedStatement getPreparedInsert()  {
@@ -192,6 +224,24 @@ public class CassandraPersonalization extends AppBase {
       getSimpleLoadGenerator().recordWriteFailure(key);
       throw e;
     }
+  }
+
+  @Override
+  public synchronized void resetClients() {
+    synchronized (prepareInitLock) {
+      preparedInsert = null;
+      preparedSelect = null;
+    }
+    super.resetClients();
+  }
+
+  @Override
+  public synchronized void destroyClients() {
+    synchronized (prepareInitLock) {
+      preparedInsert = null;
+      preparedSelect = null;
+    }
+    super.destroyClients();
   }
 
   @Override

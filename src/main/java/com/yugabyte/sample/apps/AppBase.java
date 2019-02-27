@@ -36,7 +36,6 @@ import com.datastax.driver.core.ConsistencyLevel;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.SimpleStatement;
@@ -87,13 +86,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   // State variable to track if this workload has finished.
   protected AtomicBoolean hasFinished = new AtomicBoolean(false);
   // The Cassandra client variables.
-  protected class CassandraConnection {
-    public Cluster cluster = null;
-    public Session session = null;
-    public PreparedStatement preparedSelect = null;
-    public PreparedStatement preparedInsert = null;
-  }
-  protected static volatile ArrayList<CassandraConnection> connections = new ArrayList<>();
+  protected static volatile Cluster cassandra_cluster = null;
+  protected static volatile Session cassandra_session = null;
   // The Java redis client.
   private volatile Jedis jedisClient = null;
   private volatile YBJedis ybJedisClient = null;
@@ -123,46 +117,10 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * @return a Cassandra Session object.
    */
   protected Session getCassandraClient() {
-    createCassandraClients(configuration.getContactPoints());
-    return getCassandraConnection().session;
-  }
-
-  protected CassandraConnection getCassandraConnection() {
-    // Return a hashed Session object on every call to spread the distribution of requests.
-    // We need to do something sticky per thread here, beacause each thread will prepare requests
-    // through the returned Session object.
-    int threadId = (int)Thread.currentThread().getId();
-    return connections.get(threadId % appConfig.concurrentClients);
-  }
-
-  protected PreparedStatement getPreparedSelect(String selectStmt, boolean localReads)  {
-    CassandraConnection conn = getCassandraConnection();
-    if (conn.preparedSelect == null) {
-      synchronized (conn) {
-        if (conn.preparedSelect == null) {
-          // Create the prepared statement object.
-          conn.preparedSelect = conn.session.prepare(selectStmt);
-          if (localReads) {
-            LOG.debug("Doing local reads");
-            conn.preparedSelect.setConsistencyLevel(ConsistencyLevel.ONE);
-          }
-        }
-      }
+    if (cassandra_session == null) {
+      createCassandraClient(configuration.getContactPoints());
     }
-    return conn.preparedSelect;
-  }
-
-  protected PreparedStatement getPreparedInsert(String insertStmt)  {
-    CassandraConnection conn = getCassandraConnection();
-    if (conn.preparedInsert == null) {
-      synchronized (conn) {
-        if (conn.preparedInsert == null) {
-          // Create the prepared statement object.
-          conn.preparedInsert = conn.session.prepare(insertStmt);
-        }
-      }
-    }
-    return conn.preparedInsert;
+    return cassandra_session;
   }
 
   protected Connection getPostgresConnection() throws Exception {
@@ -206,22 +164,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * Private method that is thread-safe and creates the Cassandra client. Exactly one calling thread
    * will succeed in creating the client. This method does nothing for the other threads.
    */
-  protected synchronized void createCassandraClients(List<ContactPoint> contactPoints) {
-    // Since this is a sync method, one thread will come in and create the connections, rest will
-    // wait.
-    if (!connections.isEmpty()) {
-      while (connections.size() < appConfig.concurrentClients) {
-        try {
-          this.wait();
-        } catch (java.lang.InterruptedException e) {
-          // Do nothing.
-        }
-      }
-      return;
-    }
-    for (int i = 0; i < appConfig.concurrentClients; ++i) {
-      CassandraConnection conn = new CassandraConnection();
-      Cluster.Builder builder;
+  protected synchronized void createCassandraClient(List<ContactPoint> contactPoints) {
+    Cluster.Builder builder;
+    if (cassandra_cluster == null) {
       if (appConfig.cassandraUsername != null) {
         if (appConfig.cassandraPassword == null) {
           throw new IllegalArgumentException("Password required when providing a username");
@@ -243,20 +188,18 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       }
       LOG.info("Connecting to nodes: " + builder.getContactPoints().stream()
               .map(it -> it.toString()).collect(Collectors.joining(",")));
-      conn.cluster=
+      cassandra_cluster =
           builder.withLoadBalancingPolicy(getLoadBalancingPolicy())
                  .withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
                  .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
                  .build();
-      LOG.debug("Connected to cluster: " + conn.cluster.getClusterName());
-      LOG.debug("Creating a session...");
-      conn.session = conn.cluster.connect();
-      createKeyspace(conn.session, keyspace);
-      // Add to the array of connections.
-      connections.add(conn);
+      LOG.debug("Connected to cluster: " + cassandra_cluster.getClusterName());
     }
-    // Wake up all other threads that were waiting on initialization.
-    this.notifyAll();
+    if (cassandra_session == null) {
+      LOG.debug("Creating a session...");
+      cassandra_session = cassandra_cluster.connect();
+      createKeyspace(cassandra_session, keyspace);
+    }
   }
 
   protected LoadBalancingPolicy getLoadBalancingPolicy() {
@@ -325,7 +268,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     jedisPipeline = null;
     jedisCluster = null;
     redisServerInUse = null;
-    connections = null;
+    cassandra_cluster = null;
+    cassandra_session = null;
   }
 
   Random random = new Random();
@@ -710,12 +654,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   protected synchronized void destroyClients() {
     // Only the main app instance should close the shared Cassandra cluster and session and at the
     // end of the workload.
-    if (mainInstance && connections != null) {
-      for (CassandraConnection conn : connections) {
-        conn.session.close();
-        conn.cluster.close();
-      }
-      connections = null;
+    if (mainInstance && cassandra_session != null) {
+      cassandra_session.close();
+      cassandra_session = null;
+    }
+    if (mainInstance && cassandra_cluster != null) {
+      cassandra_cluster.close();
+      cassandra_cluster = null;
     }
     if (jedisClient != null) {
       jedisClient.close();
