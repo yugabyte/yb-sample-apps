@@ -544,7 +544,8 @@ public class CmdLineOpts {
     options.addOption("yql_password", true,
         "Use authentication with the YQL client using the provided password. " +
             "If this option is set, yql_username option should be used too.");
-    options.addOption("concurrent_clients", true, "How many client connections to establish.");
+    options.addOption("concurrent_clients", true,
+        "The number of client connections to establish to each host in the YugaByte DB cluster.");
 
     // Options for CassandraTimeseries workload.
     options.addOption("num_users", true, "[CassandraTimeseries] The total number of users.");

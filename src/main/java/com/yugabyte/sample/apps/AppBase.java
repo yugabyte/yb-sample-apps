@@ -188,8 +188,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
         builder.addContactPoint(cp.getHost());
       }
-      LOG.info("Connecting to nodes: " + builder.getContactPoints().stream()
-              .map(it -> it.toString()).collect(Collectors.joining(",")));
+      LOG.info("Connecting with " + appConfig.concurrentClients + " clients to nodes: "
+          + builder.getContactPoints()
+              .stream().map(it -> it.toString()).collect(Collectors.joining(",")));
       PoolingOptions poolingOptions = new PoolingOptions();
       poolingOptions
           .setCoreConnectionsPerHost(HostDistance.LOCAL, appConfig.concurrentClients)
