@@ -36,6 +36,8 @@ import com.datastax.driver.core.ConsistencyLevel;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.HostDistance;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.SimpleStatement;
@@ -188,8 +190,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       }
       LOG.info("Connecting to nodes: " + builder.getContactPoints().stream()
               .map(it -> it.toString()).collect(Collectors.joining(",")));
+      PoolingOptions poolingOptions = new PoolingOptions();
+      poolingOptions
+          .setCoreConnectionsPerHost(HostDistance.LOCAL, appConfig.concurrentClients)
+          .setMaxConnectionsPerHost(HostDistance.LOCAL, appConfig.concurrentClients)
+          .setCoreConnectionsPerHost(HostDistance.REMOTE, appConfig.concurrentClients)
+          .setMaxConnectionsPerHost(HostDistance.REMOTE, appConfig.concurrentClients);
       cassandra_cluster =
           builder.withLoadBalancingPolicy(getLoadBalancingPolicy())
+                 .withPoolingOptions(poolingOptions)
                  .withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
                  .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
                  .build();
