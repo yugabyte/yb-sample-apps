@@ -69,9 +69,18 @@
       <version>42.2.2</version>
     </dependency>
   </dependencies>
+  <distributionManagement>
+    <repository>
+      <id>${yugabyte.releases.repository.id}</id>
+      <url>${yugabyte.releases.repository.url}</url>
+    </repository>
+    <snapshotRepository>
+      <id>${yugabyte.snapshots.repository.id}</id>
+      <url>${yugabyte.snapshots.repository.url}</url>
+    </snapshotRepository>
+  </distributionManagement>
 
   <build>
-
     <pluginManagement>
       <plugins>
         <plugin>
