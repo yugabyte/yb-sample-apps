@@ -1,9 +1,9 @@
 # YugaByte DB sample apps
 
 This repository emulates various workloads against YugaByte DB. YugaByte DB is a multi-model database that supports:
-* PostgreSQL (sharded, scale-out SQL)
-* YCQL (Cassandra compatible API with indexes, transactions and the JSONB data type)
-* YEDIS (Redis compatible API with elasticity and persistence).
+* YSQL (Distributed SQL API with joins. Compatible with PostgreSQL)
+* YCQL (Flexible-schema API with indexes, transactions and the JSONB data type. Roots in Cassandra QL)
+* YEDIS (Transactional KV API with elasticity and persistence. Compatible with Redis)
 
 The sample apps here have drivers compatible with the above and emulate a number of workloads.
 
