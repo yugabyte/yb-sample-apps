@@ -166,7 +166,7 @@ public class SimpleLoadGenerator {
       if (retKey == null) {
         try {
           Thread.sleep(1 /* millisecs */);
-        } catch (InterruptedException e) { /*Ignore */ }
+        } catch (InterruptedException e) { /* Ignore */ }
       }
     } while (retKey == null);
 

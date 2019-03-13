@@ -76,10 +76,12 @@ public class SqlInserts extends AppBase {
   public void createTablesIfNeeded() throws Exception {
     Connection connection = getPostgresConnection();
 
-    // Create the table.
+    // (Re)Create the table (every run should start cleanly with an empty table).
     connection.createStatement().execute(
-        String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text);",
-            getTableName()));
+        String.format("DROP TABLE IF EXISTS %s", getTableName()));
+    LOG.info("Dropping any table(s) left from previous runs if any");
+    connection.createStatement().execute(
+        String.format("CREATE TABLE %s (k text PRIMARY KEY, v text)", getTableName()));
     LOG.info(String.format("Created table: %s", getTableName()));
   }
 
@@ -90,11 +92,8 @@ public class SqlInserts extends AppBase {
 
   private PreparedStatement getPreparedSelect() throws Exception {
     if (preparedSelect == null) {
-      preparedSelect = getPostgresConnection(postgres_ybdemo_database).prepareStatement(
+      preparedSelect = getPostgresConnection().prepareStatement(
           String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
-      // TODO disable server-side prepare until we handle predicate pushdown with bind-vars better.
-      org.postgresql.PGStatement pgstmt = (org.postgresql.PGStatement)preparedSelect;
-      pgstmt.setUseServerPrepare(false);
     }
     return preparedSelect;
   }
@@ -112,18 +111,17 @@ public class SqlInserts extends AppBase {
       statement.setString(1, key.asString());
       try (ResultSet rs = statement.executeQuery()) {
         if (!rs.next()) {
-          LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got 0");
+          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got 0");
           return 0;
         }
 
         if (!key.asString().equals(rs.getString("k"))) {
-          LOG.fatal("Read key: " + key.asString() + ", got " + rs.getString("k"));
+          LOG.error("Read key: " + key.asString() + ", got " + rs.getString("k"));
         }
         LOG.debug("Read key: " + key.toString());
 
         if (rs.next()) {
-          LOG.fatal("Read key: " + key.asString() +
-                        " expected 1 row in result, got more than one");
+          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got more");
           return 0;
         }
       }
@@ -136,7 +134,7 @@ public class SqlInserts extends AppBase {
 
   private PreparedStatement getPreparedInsert() throws Exception {
     if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection(postgres_ybdemo_database).prepareStatement(
+      preparedInsert = getPostgresConnection().prepareStatement(
           String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
     }
     return preparedInsert;
@@ -178,7 +176,7 @@ public class SqlInserts extends AppBase {
   }
 
   @Override
-  public List<String> getExampleUsageOptions() {
+  public List<String> getWorkloadOptionalArguments() {
     return Arrays.asList(
         "--num_unique_keys " + appConfig.numUniqueKeysToWrite,
         "--num_reads " + appConfig.numKeysToRead,

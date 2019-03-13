@@ -245,8 +245,8 @@ public class RedisHashPipelined extends RedisPipelinedKeyValue {
   }
 
   @Override
-  public List<String> getExampleUsageOptions() {
-    Vector<String> usage = new Vector<String>(super.getExampleUsageOptions());
+  public List<String> getWorkloadOptionalArguments() {
+    Vector<String> usage = new Vector<String>(super.getWorkloadOptionalArguments());
     usage.add("--num_subkeys_per_key " + appConfig.numSubkeysPerKey);
     usage.add("--num_subkeys_per_write " + appConfig.numSubkeysPerWrite);
     usage.add("--num_subkeys_per_read " + appConfig.numSubkeysPerRead);

@@ -264,7 +264,7 @@ public class CassandraPersonalization extends AppBase {
   }
 
   @Override
-  public List<String> getExampleUsageOptions() {
+  public List<String> getWorkloadOptionalArguments() {
     return Arrays.asList(
       "--num_unique_keys " + appConfig.numUniqueKeysToWrite,
       "--num_reads " + appConfig.numKeysToRead,

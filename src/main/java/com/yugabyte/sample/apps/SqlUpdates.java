@@ -13,11 +13,14 @@
 package com.yugabyte.sample.apps;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import com.yugabyte.sample.common.CmdLineOpts;
 import org.apache.log4j.Logger;
 
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
@@ -35,8 +38,8 @@ public class SqlUpdates extends AppBase {
     // Disable the read-write percentage.
     appConfig.readIOPSPercentage = -1;
     // Set the read and write threads to 1 each.
-    appConfig.numReaderThreads = 24;
-    appConfig.numWriterThreads = 2;
+    appConfig.numReaderThreads = 1;
+    appConfig.numWriterThreads = 1;
     // The number of keys to read.
     appConfig.numKeysToRead = -1;
     // The number of keys to write. This is the combined total number of inserts and updates.
@@ -62,33 +65,32 @@ public class SqlUpdates extends AppBase {
     buffer = new byte[appConfig.valueSize];
   }
 
-  /**
-   * Drop the table created by this app.
-   */
-  @Override
-  public void dropTable() throws Exception {
-    Connection connection = getPostgresConnection();
-    connection.createStatement().execute("DROP TABLE " + getTableName());
-    LOG.info(String.format("Dropped table: %s", getTableName()));
-  }
-
   @Override
   public void createTablesIfNeeded() throws Exception {
+    // Check that (extra_ required options are set (maxWrittenKey and loadTesterUUID) set.
+    if (appConfig.maxWrittenKey <= 0) {
+      LOG.fatal("Workload requires option --max_written_key to be set. \n " +
+                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdates' for more details");
+      System.exit(1);
+    }
+    if (CmdLineOpts.loadTesterUUID == null) {
+      LOG.fatal("Workload requires option --uuid to be set. \n " +
+                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdates' for more details");
+      System.exit(1);
+    }
+
+    // Expecting that the SqlInserts ap was already run and created the table.
+    // This app just reuses the table and updates the values for the existing rows.
     Connection connection = getPostgresConnection();
-
-    // Check if database already exists.
-    connection.createStatement().execute(
-      String.format("CREATE DATABASE %s", postgres_ybdemo_database));
-    connection.close();
-
-    // Connect to the new database just created.
-    connection = getPostgresConnection(postgres_ybdemo_database);
-
-    // Create the table.
-    connection.createStatement().executeUpdate(
-        String.format("CREATE TABLE %s (k varchar PRIMARY KEY, v varchar);",
-            getTableName()));
-    LOG.info(String.format("Created table: %s", getTableName()));
+    DatabaseMetaData dbm = connection.getMetaData();
+    ResultSet tables = dbm.getTables(null, null, getTableName(), null);
+    if (!tables.next()) {
+      LOG.fatal(
+          String.format("Could not find the %s table. Did you run SqlInserts first?" +
+                            "Run 'java -jar yb-sample-apps.jar --help SqlUpdates' for more details",
+                        getTableName()));
+      System.exit(1);
+    }
   }
 
   public String getTableName() {
@@ -98,7 +100,7 @@ public class SqlUpdates extends AppBase {
 
   private PreparedStatement getPreparedSelect() throws Exception {
     if (preparedSelect == null) {
-      preparedSelect = getPostgresConnection(postgres_ybdemo_database).prepareStatement(
+      preparedSelect = getPostgresConnection().prepareStatement(
           String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
     }
     return preparedSelect;
@@ -115,21 +117,21 @@ public class SqlUpdates extends AppBase {
     try {
       PreparedStatement statement = getPreparedSelect();
       statement.setString(1, key.asString());
-      ResultSet rs = statement.executeQuery();
-      if (!rs.next()) {
-        LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got 0");
-        return 0;
-      }
+      try (ResultSet rs = statement.executeQuery()) {
+        if (!rs.next()) {
+          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got 0");
+          return 0;
+        }
 
-      if (!key.asString().equals(rs.getString("k"))) {
-        LOG.fatal("Read key: " + key.asString() + ", got " + rs.getString("k"));
-      }
-      LOG.debug("Read key: " + key.toString());
+        if (!key.asString().equals(rs.getString("k"))) {
+          LOG.error("Read key: " + key.asString() + ", got " + rs.getString("k"));
+        }
+        LOG.debug("Read key: " + key.toString());
 
-      if (rs.next()) {
-        LOG.fatal("Read key: " + key.asString() +
-            " expected 1 row in result, got more than one");
-        return 0;
+        if (rs.next()) {
+          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got more");
+          return 0;
+        }
       }
     } catch (Exception e) {
       LOG.fatal("Failed reading value: " + key.getValueStr(), e);
@@ -140,7 +142,7 @@ public class SqlUpdates extends AppBase {
 
   private PreparedStatement getPreparedUpdate() throws Exception {
     if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection(postgres_ybdemo_database).prepareStatement(
+      preparedInsert = getPostgresConnection().prepareStatement(
           String.format("UPDATE %s SET v=? WHERE k=?;", getTableName()));
     }
     return preparedInsert;
@@ -148,7 +150,8 @@ public class SqlUpdates extends AppBase {
 
   @Override
   public long doWrite(int threadIdx) {
-    Key key = getSimpleLoadGenerator().getKeyToWrite();
+    // Get a key that has already been written (will need to implicitly read it to update).
+    Key key = getSimpleLoadGenerator().getKeyToRead();
     if (key == null) {
       return 0;
     }
@@ -157,33 +160,47 @@ public class SqlUpdates extends AppBase {
     try {
       PreparedStatement statement = getPreparedUpdate();
       // Prefix hashcode to ensure generated keys are random and not sequential.
-      statement.setString(1, key.asString());
-      statement.setString(2, key.getValueStr() + ":" + System.currentTimeMillis());
+      statement.setString(1, key.getValueStr() + ":" + System.currentTimeMillis());
+      statement.setString(2, key.asString());
       result = statement.executeUpdate();
-      LOG.debug("Wrote key: " + key.asString() + ", " + key.getValueStr() + ", return code: " +
-          result);
-      return 1;
     } catch (Exception e) {
       LOG.fatal("Failed writing key: " + key.asString(), e);
     }
-    return 0;
+    return result;
   }
 
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-        "Sample key-value app built on PostgreSQL with concurrent readers and writers. The app updates existing string keys",
-        "each with a string value to a postgres table with an index on the value column.",
+        "Sample key-value app built on PostgreSQL with concurrent readers and writers. ",
+        "The app updates existing string keys loaded by a run of the SqlInserts sample app.",
         "There are multiple readers and writers that update these keys and read them",
         "indefinitely, with the readers query the keys by the associated values that are",
         "indexed. Note that the number of reads and writes to perform can be specified as",
-        "a parameter.");
+        "a parameter.",
+        "It requires two additional options: ",
+        "   1. --max_written_key: set to the max key written by the SqlInserts app run.",
+        "   2. --uuid: set to the uuid to the uuid prefix used by SqlInserts (recommended ",
+        "     to (re)run SqlInserts with the '--uuid' option set, otherwise select from the ",
+        "    " + getTableName() + " table to find out the used uuid.",
+        "Example, run SqlInserts before as follows:",
+        "java -jar yb-sample-apps.jar --workload SqlInserts --nodes 127.0.0.1:5433 \\",
+        "                             --uuid 'ffffffff-ffff-ffff-ffff-ffffffffffff' \\",
+        "                             --num_writes 100000 \\",
+        "                             --num_reads 0"
+        );
   }
 
   @Override
-  public List<String> getExampleUsageOptions() {
+  public List<String> getWorkloadRequiredArguments() {
     return Arrays.asList(
-        "--num_unique_keys " + appConfig.numUniqueKeysToWrite,
+        "--uuid 'ffffffff-ffff-ffff-ffff-ffffffffffff'",
+        "--max_written_key 100000");
+  }
+
+  @Override
+  public List<String> getWorkloadOptionalArguments() {
+    return Arrays.asList(
         "--num_reads " + appConfig.numKeysToRead,
         "--num_writes " + appConfig.numKeysToWrite,
         "--num_threads_read " + appConfig.numReaderThreads,
