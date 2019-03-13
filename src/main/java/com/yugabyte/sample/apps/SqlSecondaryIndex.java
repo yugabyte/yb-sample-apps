@@ -35,8 +35,8 @@ public class SqlSecondaryIndex extends AppBase {
     // Disable the read-write percentage.
     appConfig.readIOPSPercentage = -1;
     // Set the read and write threads to 1 each.
-    appConfig.numReaderThreads = 24;
-    appConfig.numWriterThreads = 2;
+    appConfig.numReaderThreads = 1;
+    appConfig.numWriterThreads = 1;
     // The number of keys to read.
     appConfig.numKeysToRead = -1;
     // The number of keys to write. This is the combined total number of inserts and updates.
@@ -76,18 +76,12 @@ public class SqlSecondaryIndex extends AppBase {
   public void createTablesIfNeeded() throws Exception {
     Connection connection = getPostgresConnection();
 
-    // Check if database already exists.
+    // (Re)Create the table (every run should start cleanly with an empty table).
     connection.createStatement().execute(
-      String.format("CREATE DATABASE IF NOT EXISTS %s", postgres_ybdemo_database));
-    connection.close();
-
-    // Connect to the new database just created.
-    connection = getPostgresConnection(postgres_ybdemo_database);
-
-    // Create the table.
+        String.format("DROP TABLE IF EXISTS %s", getTableName()));
+    LOG.info("Dropping table(s) left from previous runs if any");
     connection.createStatement().executeUpdate(
-        String.format("CREATE TABLE IF NOT EXISTS %s (k varchar PRIMARY KEY, v varchar);",
-            getTableName()));
+        String.format("CREATE TABLE %s (k text PRIMARY KEY, v text);", getTableName()));
     LOG.info(String.format("Created table: %s", getTableName()));
 
     // Create an index on the table.
@@ -104,7 +98,7 @@ public class SqlSecondaryIndex extends AppBase {
 
   private PreparedStatement getPreparedSelect() throws Exception {
     if (preparedSelect == null) {
-      preparedSelect = getPostgresConnection(postgres_ybdemo_database).prepareStatement(
+      preparedSelect = getPostgresConnection().prepareStatement(
           String.format("SELECT k, v FROM %s WHERE v = ?;", getTableName()));
     }
     return preparedSelect;
@@ -121,21 +115,21 @@ public class SqlSecondaryIndex extends AppBase {
     try {
       PreparedStatement statement = getPreparedSelect();
       statement.setString(1, key.getValueStr());
-      ResultSet rs = statement.executeQuery();
-      if (!rs.next()) {
-        LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got 0");
-        return 0;
-      }
+      try (ResultSet rs = statement.executeQuery()) {
+        if (!rs.next()) {
+          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got 0");
+          return 0;
+        }
 
-      if (!key.asString().equals(rs.getString("k"))) {
-        LOG.fatal("Read key: " + key.asString() + ", got " + rs.getString("k"));
-      }
-      LOG.debug("Read key: " + key.toString());
+        if (!key.asString().equals(rs.getString("k"))) {
+          LOG.error("Read key: " + key.asString() + ", got " + rs.getString("k"));
+        }
+        LOG.debug("Read key: " + key.toString());
 
-      if (rs.next()) {
-        LOG.fatal("Read key: " + key.asString() +
-            " expected 1 row in result, got more than one");
-        return 0;
+        if (rs.next()) {
+          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got more");
+          return 0;
+        }
       }
     } catch (Exception e) {
       LOG.fatal("Failed reading value: " + key.getValueStr(), e);
@@ -146,7 +140,7 @@ public class SqlSecondaryIndex extends AppBase {
 
   private PreparedStatement getPreparedInsert() throws Exception {
     if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection(postgres_ybdemo_database).prepareStatement(
+      preparedInsert = getPostgresConnection().prepareStatement(
           String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
     }
     return preparedInsert;
@@ -188,7 +182,7 @@ public class SqlSecondaryIndex extends AppBase {
   }
 
   @Override
-  public List<String> getExampleUsageOptions() {
+  public List<String> getWorkloadOptionalArguments() {
     return Arrays.asList(
         "--num_unique_keys " + appConfig.numUniqueKeysToWrite,
         "--num_reads " + appConfig.numKeysToRead,

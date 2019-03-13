@@ -758,6 +758,7 @@ public class CmdLineOpts {
       int port = 0;
       if (workloadType.toString().startsWith("Cassandra")) port = 9042;
       else if (workloadType.toString().startsWith("Redis")) port = 6379;
+      else if (workloadType.toString().startsWith("Sql")) port = 5433;
       AppBase workload = getAppClass(workloadType).newInstance();
 
       footer.append("\n - " + workloadType.toString() + " :\n");
@@ -783,10 +784,15 @@ public class CmdLineOpts {
       footer.append(optsPrefix + "--workload " + workloadType.toString() + optsSuffix);
       footer.append(optsPrefix + "--nodes 127.0.0.1:" + port);
 
-      List<String> usageOptions = workload.getExampleUsageOptions();
-      if (!usageOptions.isEmpty()) {
+      List<String> requiredArgs = workload.getWorkloadRequiredArguments();
+      for (String line : requiredArgs) {
+        footer.append(optsSuffix).append(optsPrefix).append(line);
+      }
+
+      List<String> optionalArgs = workload.getWorkloadOptionalArguments();
+      if (!optionalArgs.isEmpty()) {
         footer.append("\n\n\t\tOther options (with default values):\n");
-        for (String line : usageOptions) {
+        for (String line : optionalArgs) {
           footer.append(optsPrefix + "[ ");
           footer.append(line);
           footer.append(" ]\n");

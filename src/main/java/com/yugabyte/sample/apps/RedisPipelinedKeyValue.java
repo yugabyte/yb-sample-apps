@@ -222,8 +222,8 @@ public class RedisPipelinedKeyValue extends RedisKeyValue {
   }
 
   @Override
-  public List<String> getExampleUsageOptions() {
-    Vector<String> usage = new Vector<String>(super.getExampleUsageOptions());
+  public List<String> getWorkloadOptionalArguments() {
+    Vector<String> usage = new Vector<String>(super.getWorkloadOptionalArguments());
     usage.add("--pipeline_length " + appConfig.redisPipelineLength);
     return usage;
   }

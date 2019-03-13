@@ -315,7 +315,7 @@ public class CassandraStockTicker extends AppBase {
   }
 
   @Override
-  public List<String> getExampleUsageOptions() {
+  public List<String> getWorkloadOptionalArguments() {
     return Arrays.asList(
       "--num_threads_read " + appConfig.numReaderThreads,
       "--num_threads_write " + appConfig.numWriterThreads,

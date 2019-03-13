@@ -103,11 +103,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   // Is this app instance the main instance?
   private boolean mainInstance = false;
 
-  // Keyspace name.
+  // YCQL keyspace name.
   public static String keyspace = "ybdemo_keyspace";
-
-  // Postgres database name for workload.
-  public static String postgres_ybdemo_database = "ybdemo_database";
 
   //////////// Helper methods to return the client objects (Redis, Cassandra, etc). ////////////////
 
@@ -517,11 +514,18 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    */
   public List<String> getWorkloadDescription() { return Collections.EMPTY_LIST; }
 
+
   /**
-   * Returns the example usage of the app.
-   * @return the example usage splitted in lines.
+   * Returns any workload-specific required command line options.
+   * @return the options split in lines.
    */
-  public List<String> getExampleUsageOptions() { return Collections.EMPTY_LIST; }
+  public List<String> getWorkloadRequiredArguments() {return Collections.EMPTY_LIST; }
+
+  /**
+   * Returns any workload-specific optional command line options.
+   * @return the options split in lines.
+   */
+  public List<String> getWorkloadOptionalArguments() { return Collections.EMPTY_LIST; }
 
   ////////////// The following methods framework/helper methods for subclasses. ////////////////////
 
@@ -608,7 +612,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    */
   public void performWrite(int threadIdx) {
     // If we have written enough keys we are done.
-    if (appConfig.numKeysToWrite > 0 && numKeysWritten.get() >= appConfig.numKeysToWrite
+    if (appConfig.numKeysToWrite >= 0 && numKeysWritten.get() >= appConfig.numKeysToWrite
         || isOutOfTime()) {
       hasFinished.set(true);
       return;
@@ -631,8 +635,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * report the metrics to the user.
    */
   public void performRead() {
+
     // If we have read enough keys we are done.
-    if (appConfig.numKeysToRead > 0 && numKeysRead.get() >= appConfig.numKeysToRead
+    if (appConfig.numKeysToRead >= 0 && numKeysRead.get() >= appConfig.numKeysToRead
         || isOutOfTime()) {
       hasFinished.set(true);
       return;
