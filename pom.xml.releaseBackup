@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!-- Copyright (c) YugaByte, Inc. -->
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.yugabyte</groupId>
   <artifactId>yb-sample-apps</artifactId>
@@ -74,7 +73,7 @@
     <connection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</connection>
     <developerConnection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</developerConnection>
     <url>https://github.com/yugabyte/yb-sample-apps</url>
-    <tag>HEAD</tag>
+    <tag>yb-sample-apps-1.0</tag>
   </scm>
 
   <developers>
