@@ -20,7 +20,7 @@
     <dependency>
       <groupId>com.yugabyte</groupId>
       <artifactId>cassandra-driver-core</artifactId>
-      <version>3.2.0-yb-12</version>
+      <version>3.2.0-yb-19</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
@@ -176,7 +176,7 @@
       <plugin>
         <groupId>com.spotify</groupId>
         <artifactId>dockerfile-maven-plugin</artifactId>
-        <version>1.4.10</version>
+        <version>1.4.6</version>
         <executions>
           <execution>
             <id>default</id>
