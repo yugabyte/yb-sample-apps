@@ -28,7 +28,10 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.yugabyte.sample.apps.AppBase;
+import com.google.common.collect.ImmutableList;
+
+// Import * so we can list the sample apps.
+import com.yugabyte.sample.apps.*;
 
 /**
  * This is a helper class to parse the user specified command-line options if they were specified,
@@ -43,29 +46,29 @@ public class CmdLineOpts {
   public static UUID loadTesterUUID;
 
   // The various apps present in this sample.
-  public static enum AppName {
-    CassandraHelloWorld,
-    CassandraKeyValue,
-    CassandraRangeKeyValue,
-    CassandraBatchKeyValue,
-    CassandraBatchTimeseries,
-    CassandraTransactionalKeyValue,
-    CassandraTransactionalRestartRead,
-    CassandraStockTicker,
-    CassandraTimeseries,
-    CassandraUserId,
-    CassandraPersonalization,
-    CassandraSecondaryIndex,
-    CassandraUniqueSecondaryIndex,
-    RedisKeyValue,
-    RedisPipelinedKeyValue,
-    RedisHashPipelined,
-    RedisYBClientKeyValue,
-    SqlInserts,
-    SqlUpdates,
-    SqlSecondaryIndex,
-    SqlSnapshotTxns,
-  }
+  private final static List<String> HELP_WORKLOADS = ImmutableList.of(
+    CassandraHelloWorld.class.getSimpleName(),
+    CassandraKeyValue.class.getSimpleName(),
+    CassandraRangeKeyValue.class.getSimpleName(),
+    CassandraBatchKeyValue.class.getSimpleName(),
+    CassandraBatchTimeseries.class.getSimpleName(),
+    CassandraTransactionalKeyValue.class.getSimpleName(),
+    CassandraTransactionalRestartRead.class.getSimpleName(),
+    CassandraStockTicker.class.getSimpleName(),
+    CassandraTimeseries.class.getSimpleName(),
+    CassandraUserId.class.getSimpleName(),
+    CassandraPersonalization.class.getSimpleName(),
+    CassandraSecondaryIndex.class.getSimpleName(),
+    CassandraUniqueSecondaryIndex.class.getSimpleName(),
+    RedisKeyValue.class.getSimpleName(),
+    RedisPipelinedKeyValue.class.getSimpleName(),
+    RedisHashPipelined.class.getSimpleName(),
+    RedisYBClientKeyValue.class.getSimpleName(),
+    SqlInserts.class.getSimpleName(),
+    SqlUpdates.class.getSimpleName(),
+    SqlSecondaryIndex.class.getSimpleName(),
+    SqlSnapshotTxns.class.getSimpleName()
+  );
 
   // The class type of the app needed to spawn new objects.
   private Class<? extends AppBase> appClass;
@@ -96,7 +99,7 @@ public class CmdLineOpts {
     }
 
     // Get the workload.
-    AppName appName = AppName.valueOf(commandLine.getOptionValue("workload"));
+    String appName = commandLine.getOptionValue("workload");
     appClass = getAppClass(appName);
     LOG.info("App: " + appClass.getSimpleName());
 
@@ -146,7 +149,7 @@ public class CmdLineOpts {
     }
     LOG.info("Local reads: " + localReads);
     LOG.info("Read only load: " + readOnly);
-    if (appName == AppName.CassandraBatchTimeseries) {
+    if (appName == CassandraBatchTimeseries.class.getSimpleName()) {
       if (commandLine.hasOption("read_batch_size")) {
         AppBase.appConfig.cassandraReadBatchSize =
             Integer.parseInt(commandLine.getOptionValue("read_batch_size"));
@@ -169,7 +172,7 @@ public class CmdLineOpts {
       }
       LOG.info("Batch size : " + AppBase.appConfig.cassandraBatchSize);
     }
-    if (appName == AppName.CassandraPersonalization) {
+    if (appName == CassandraPersonalization.class.getSimpleName()) {
       if (commandLine.hasOption("num_stores")) {
         AppBase.appConfig.numStores = Integer.parseInt(commandLine.getOptionValue("num_stores"));
       }
@@ -193,7 +196,7 @@ public class CmdLineOpts {
       LOG.info("CassandraPersonalization maximum number of coupons per costomer : " +
                AppBase.appConfig.maxCouponsPerCustomer);
     }
-    if (appName == AppName.CassandraSecondaryIndex) {
+    if (appName == CassandraSecondaryIndex.class.getSimpleName()) {
       if (commandLine.hasOption("non_transactional_index")) {
         AppBase.appConfig.nonTransactionalIndex = true;
       }
@@ -203,8 +206,8 @@ public class CmdLineOpts {
       }
       LOG.info("CassandraSecondaryIndex batch write");
     }
-    if (appName == AppName.RedisPipelinedKeyValue ||
-        appName == AppName.RedisHashPipelined) {
+    if (appName == RedisPipelinedKeyValue.class.getSimpleName() ||
+        appName == RedisHashPipelined.class.getSimpleName()) {
       if (commandLine.hasOption("pipeline_length")) {
         AppBase.appConfig.redisPipelineLength =
             Integer.parseInt(commandLine.getOptionValue("pipeline_length"));
@@ -215,7 +218,7 @@ public class CmdLineOpts {
       }
       LOG.info("RedisPipelinedKeyValue pipeline length : " + AppBase.appConfig.redisPipelineLength);
     }
-    if (appName == AppName.RedisHashPipelined) {
+    if (appName == RedisHashPipelined.class.getSimpleName()) {
       if (commandLine.hasOption("num_subkeys_per_key")) {
         AppBase.appConfig.numSubkeysPerKey =
             Integer.parseInt(commandLine.getOptionValue("num_subkeys_per_key"));
@@ -358,10 +361,10 @@ public class CmdLineOpts {
     return AppBase.appConfig.appName;
   }
 
-  private static Class<? extends AppBase> getAppClass(AppName workloadType)
+  private static Class<? extends AppBase> getAppClass(String workloadType)
       throws ClassNotFoundException{
     // Get the workload class.
-    return Class.forName("com.yugabyte.sample.apps." + workloadType.toString())
+    return Class.forName("com.yugabyte.sample.apps." + workloadType)
                          .asSubclass(AppBase.class);
   }
 
@@ -712,13 +715,13 @@ public class CmdLineOpts {
     footer.append("  Use the --help <app name> option to get more details on how to run it.\n");
     String optsPrefix = "\t\t\t";
     String optsSuffix = " \\\n";
-    for (AppName workloadType : AppName.values()) {
+    for (String workloadType : HELP_WORKLOADS) {
       int port = 0;
-      if (workloadType.toString().startsWith("Cassandra")) port = 9042;
-      else if (workloadType.toString().startsWith("Redis")) port = 6379;
-      else if (workloadType.toString().startsWith("Sql")) port = 5433;
+      if (workloadType.startsWith("Cassandra")) port = 9042;
+      else if (workloadType.startsWith("Redis")) port = 6379;
+      else if (workloadType.startsWith("Sql")) port = 5433;
       AppBase workload = getAppClass(workloadType).newInstance();
-      String formattedName = String.format("%-35s: ", workloadType.toString());
+      String formattedName = String.format("%-35s: ", workloadType);
       footer.append("\n  * " + formattedName);
       List<String> description = workload.getWorkloadDescription();
       if (!description.isEmpty()) {
@@ -730,58 +733,53 @@ public class CmdLineOpts {
     System.exit(0);
   }
 
-    private static void printUsageDetails(Options options, String header, String appName) throws Exception {
+  private static void printUsageDetails(Options options, String header, String appName) throws Exception {
     StringBuilder footer = new StringBuilder();
 
     footer.append("Usage and options for workload " + appName + " in YugaByte DB Sample Apps.\n");
     String optsPrefix = "\t\t\t";
     String optsSuffix = " \\\n";
-    for (AppName workloadType : AppName.values()) {
-      if (!appName.equals(workloadType.toString())) {
-        continue;
-      }
-      int port = 0;
-      if (workloadType.toString().startsWith("Cassandra")) port = 9042;
-      else if (workloadType.toString().startsWith("Redis")) port = 6379;
-      else if (workloadType.toString().startsWith("Sql")) port = 5433;
-      AppBase workload = getAppClass(workloadType).newInstance();
+    int port = 0;
+    if (appName.startsWith("Cassandra")) port = 9042;
+    else if (appName.startsWith("Redis")) port = 6379;
+    else if (appName.startsWith("Sql")) port = 5433;
+    AppBase workload = getAppClass(appName).newInstance();
 
-      footer.append("\n - " + workloadType.toString() + " :\n");
-      footer.append("   ");
-      for (int idx = 0; idx < workloadType.toString().length(); idx++) {
-        footer.append("-");
-      }
-      footer.append("\n");
+    footer.append("\n - " + appName + " :\n");
+    footer.append("   ");
+    for (int idx = 0; idx < appName.length(); idx++) {
+      footer.append("-");
+    }
+    footer.append("\n");
 
-      List<String> description = workload.getWorkloadDescription();
-      if (!description.isEmpty()) {
-        for (String line : description) {
-          footer.append("\t\t");
-          footer.append(line);
-          footer.append("\n");
-        }
+    List<String> description = workload.getWorkloadDescription();
+    if (!description.isEmpty()) {
+      for (String line : description) {
+        footer.append("\t\t");
+        footer.append(line);
         footer.append("\n");
       }
-      footer.append("\t\tUsage:\n");
-      footer.append(optsPrefix);
-      footer.append("java -jar yb-sample-apps.jar");
-      footer.append(optsSuffix);
-      footer.append(optsPrefix + "--workload " + workloadType.toString() + optsSuffix);
-      footer.append(optsPrefix + "--nodes 127.0.0.1:" + port);
+      footer.append("\n");
+    }
+    footer.append("\t\tUsage:\n");
+    footer.append(optsPrefix);
+    footer.append("java -jar yb-sample-apps.jar");
+    footer.append(optsSuffix);
+    footer.append(optsPrefix + "--workload " + appName + optsSuffix);
+    footer.append(optsPrefix + "--nodes 127.0.0.1:" + port);
 
-      List<String> requiredArgs = workload.getWorkloadRequiredArguments();
-      for (String line : requiredArgs) {
-        footer.append(optsSuffix).append(optsPrefix).append(line);
-      }
+    List<String> requiredArgs = workload.getWorkloadRequiredArguments();
+    for (String line : requiredArgs) {
+      footer.append(optsSuffix).append(optsPrefix).append(line);
+    }
 
-      List<String> optionalArgs = workload.getWorkloadOptionalArguments();
-      if (!optionalArgs.isEmpty()) {
-        footer.append("\n\n\t\tOther options (with default values):\n");
-        for (String line : optionalArgs) {
-          footer.append(optsPrefix + "[ ");
-          footer.append(line);
-          footer.append(" ]\n");
-        }
+    List<String> optionalArgs = workload.getWorkloadOptionalArguments();
+    if (!optionalArgs.isEmpty()) {
+      footer.append("\n\n\t\tOther options (with default values):\n");
+      for (String line : optionalArgs) {
+        footer.append(optsPrefix + "[ ");
+        footer.append(line);
+        footer.append(" ]\n");
       }
     }
     footer.append("\n");
