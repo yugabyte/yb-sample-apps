@@ -4,12 +4,8 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.yugabyte</groupId>
   <artifactId>yb-sample-apps</artifactId>
-  <version>1.0.3-SNAPSHOT</version>
+  <version>1.0.2-SNAPSHOT</version>
   <name>YB Sample Apps</name>
-  <description>
-    Sample applications for benchmarking YugaByte functionality on various workload types.
-  </description>
-  <url>https://github.com/YugaByte/yb-sample-apps</url>
   <packaging>jar</packaging>
 
    <!-- Properties Management -->
@@ -72,6 +68,33 @@
       <version>42.2.2</version>
     </dependency>
   </dependencies>
+
+  <scm>
+    <connection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</connection>
+    <developerConnection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</developerConnection>
+    <url>https://github.com/yugabyte/yb-sample-apps</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <developers>
+    <developer>
+      <name>YugaByte Development Team</name>
+      <email>info@yugabyte.com</email>
+      <organization>YugaByte, Inc.</organization>
+      <organizationUrl>https://www.yugabyte.com</organizationUrl>
+    </developer>
+  </developers>
+
+  <distributionManagement>
+    <repository>
+      <id>${yugabyte.releases.repository.id}</id>
+      <url>${yugabyte.releases.repository.url}</url>
+    </repository>
+    <snapshotRepository>
+      <id>${yugabyte.snapshots.repository.id}</id>
+      <url>${yugabyte.snapshots.repository.url}</url>
+    </snapshotRepository>
+  </distributionManagement>
 
   <build>
     <pluginManagement>
@@ -192,56 +215,7 @@
           <preparationGoals>clean verify -Penforce-java8</preparationGoals>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <version>1.6</version>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
-
-  <licenses>
-    <license>
-      <name>The Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <scm>
-    <connection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</connection>
-    <developerConnection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</developerConnection>
-    <url>https://github.com/yugabyte/yb-sample-apps</url>
-    <tag>HEAD</tag>
-  </scm>
-
-  <developers>
-    <developer>
-      <name>YugaByte Development Team</name>
-      <email>info@yugabyte.com</email>
-      <organization>YugaByte, Inc.</organization>
-      <organizationUrl>https://www.yugabyte.com</organizationUrl>
-    </developer>
-  </developers>
-
-  <distributionManagement>
-    <repository>
-      <id>${yugabyte.releases.repository.id}</id>
-      <url>${yugabyte.releases.repository.url}</url>
-    </repository>
-    <snapshotRepository>
-      <id>${yugabyte.snapshots.repository.id}</id>
-      <url>${yugabyte.snapshots.repository.url}</url>
-    </snapshotRepository>
-  </distributionManagement>
 
 </project>

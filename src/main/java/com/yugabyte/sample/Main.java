@@ -35,7 +35,7 @@ import com.yugabyte.sample.common.IOPSThread.IOType;
  *
  * Layout of the source code
  * =========================
- * <this directory>
+ * $ this directory
  * |__ Main.java
  * |__ apps/
  *     |__ AppBase.java              : Base class for all the apps. Has helper methods for creating
