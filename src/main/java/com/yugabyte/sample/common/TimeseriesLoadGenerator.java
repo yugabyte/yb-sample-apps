@@ -84,8 +84,7 @@ public class TimeseriesLoadGenerator {
   }
 
   /**
-   * Returns true if this generator has emitted any data so far.
-   * @return
+   * @return true if this generator has emitted any data so far.
    */
   public boolean getHasEmittedData() {
     return (lastEmittedTs > -1);
@@ -95,7 +94,7 @@ public class TimeseriesLoadGenerator {
    * Callback from the user of this generator object to track the latest emitted data point. This
    * should be called after getting the next timestamp by calling getDataEmitTs() and persisting
    * the value in the db.
-   * @param ts
+   * @param ts timestamp to set.
    */
   public synchronized void setLastEmittedTs(long ts) {
     // Set the time when we started emitting data.
@@ -108,8 +107,7 @@ public class TimeseriesLoadGenerator {
   }
 
   /**
-   * Returns the timestamp when the latest data point was emitted.
-   * @return
+   * @return the timestamp when the latest data point was emitted.
    */
   public synchronized long getLastEmittedTs() {
     return lastEmittedTs;
@@ -119,9 +117,9 @@ public class TimeseriesLoadGenerator {
    * Returns the number of data points we expect to have written between the start and finish time.
    * Note that the start and end time are assumed to be exclusive - so any data point at those times
    * is not included in the calculation.
-   * @param startTime
-   * @param endTime
-   * @return
+   * @param startTime the start time for the query.
+   * @param endTime the end time for the query.
+   * @return the number of data points between start and end.
    */
   public int getExpectedNumDataPoints(long startTime, long endTime) {
     // If verification is disabled, nothing to do.

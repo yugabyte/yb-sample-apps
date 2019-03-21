@@ -292,6 +292,7 @@ public class CmdLineOpts {
 
   /**
    * Creates new instance of the app.
+   * @return the app instance.
    */
   public AppBase createAppInstance() {
     return createAppInstance(true /* enableMetrics */);
@@ -300,6 +301,7 @@ public class CmdLineOpts {
   /**
    * Creates new instance of the app.
    * @param enableMetrics Should metrics tracker be enabled.
+   * @return the app instance.
    */
   public AppBase createAppInstance(boolean enableMetrics) {
     AppBase workload = null;
@@ -475,9 +477,9 @@ public class CmdLineOpts {
 
   /**
    * Creates a command line opts object from the arguments specified on the command line.
-   * @param
-   * @return a CmdLineOpts object
-   * @throws Exception
+   * @param args command line args.
+   * @return a CmdLineOpts object.
+   * @throws java.lang.Exception exceptions during parsing and preparing of options.
    */
   public static CmdLineOpts createFromArgs(String[] args) throws Exception {
     Options options = new Options();
@@ -584,16 +586,6 @@ public class CmdLineOpts {
 
     options.addOption("with_local_dc", true, "Local DC name.");
 
-    // Options for CassandraSparkWordCount app.
-    options.addOption("wordcount_input_file", true,
-                      "[CassandraSparkWordCount] Input file with words to count.");
-
-    options.addOption("wordcount_input_table", true,
-                      "[CassandraSparkWordCount] Input table with words to count.");
-
-    options.addOption("wordcount_output_table", true,
-                      "[CassandraSparkWordCount] Output table to write wordcounts to.");
-
     // Options for CassandraPersonalization app.
     options.addOption("num_stores", true,
                       "[CassandraPersonalization] Number of stores.");
@@ -608,13 +600,6 @@ public class CmdLineOpts {
                       "enabled.");
     options.addOption("batch_write", false,
                       "[CassandraSecondaryIndex] Enable batch write of key values.");
-
-    // Options for CassandraSparkKeyValueCopy app.
-    options.addOption("keyvaluecopy_input_table", true,
-        "[CassandraSparkKeyValueCopy] Input table with text keys and blob values.");
-
-    options.addOption("keyvaluecopy_output_table", true,
-        "[CassandraSparkKeyValueCopy] Output table to copy the key-value pairs to.");
 
     // Options for Redis Pipelined Key Value
     options.addOption(
