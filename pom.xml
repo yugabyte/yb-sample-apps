@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.yugabyte</groupId>
   <artifactId>yb-sample-apps</artifactId>
-  <version>1.0.6-SNAPSHOT</version>
+  <version>1.0.5-SNAPSHOT</version>
   <name>YB Sample Apps</name>
   <description>
     Sample applications for benchmarking YugaByte functionality on various workload types.
