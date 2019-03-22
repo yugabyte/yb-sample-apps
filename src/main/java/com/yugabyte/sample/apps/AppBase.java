@@ -163,7 +163,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   /**
    * Private method that is thread-safe and creates the Cassandra client. Exactly one calling thread
    * will succeed in creating the client. This method does nothing for the other threads.
-   * @param contactPoints list of contanct points for the client.
+   * @param contactPoints list of contact points for the client.
    */
   protected synchronized void createCassandraClient(List<ContactPoint> contactPoints) {
     Cluster.Builder builder;
@@ -477,13 +477,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * This call models an OLTP read for the app to perform read operations.
-   * @return Number of reads done, a value less than 0 indicates no ops were done.
+   * @return Number of reads done, a value of 0 or less indicates no ops were done.
    */
   public long doRead() { return 0; }
 
   /**
    * This call models an OLTP write for the app to perform write operations.
-   * @return Number of writes done, a value less than 0 indicates no ops were done.
+   * @return Number of writes done, a value of 0 or less indicates no ops were done.
    * @param threadIdx index of thread that invoked this write.
    */
   public long doWrite(int threadIdx) { return 0; }

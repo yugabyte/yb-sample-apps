@@ -149,7 +149,7 @@ public class CmdLineOpts {
     }
     LOG.info("Local reads: " + localReads);
     LOG.info("Read only load: " + readOnly);
-    if (appName == CassandraBatchTimeseries.class.getSimpleName()) {
+    if (appName.equals(CassandraBatchTimeseries.class.getSimpleName())) {
       if (commandLine.hasOption("read_batch_size")) {
         AppBase.appConfig.cassandraReadBatchSize =
             Integer.parseInt(commandLine.getOptionValue("read_batch_size"));
@@ -172,7 +172,7 @@ public class CmdLineOpts {
       }
       LOG.info("Batch size : " + AppBase.appConfig.cassandraBatchSize);
     }
-    if (appName == CassandraPersonalization.class.getSimpleName()) {
+    if (appName.equals(CassandraPersonalization.class.getSimpleName())) {
       if (commandLine.hasOption("num_stores")) {
         AppBase.appConfig.numStores = Integer.parseInt(commandLine.getOptionValue("num_stores"));
       }
@@ -196,7 +196,7 @@ public class CmdLineOpts {
       LOG.info("CassandraPersonalization maximum number of coupons per costomer : " +
                AppBase.appConfig.maxCouponsPerCustomer);
     }
-    if (appName == CassandraSecondaryIndex.class.getSimpleName()) {
+    if (appName.equals(CassandraSecondaryIndex.class.getSimpleName())) {
       if (commandLine.hasOption("non_transactional_index")) {
         AppBase.appConfig.nonTransactionalIndex = true;
       }
@@ -206,8 +206,8 @@ public class CmdLineOpts {
       }
       LOG.info("CassandraSecondaryIndex batch write");
     }
-    if (appName == RedisPipelinedKeyValue.class.getSimpleName() ||
-        appName == RedisHashPipelined.class.getSimpleName()) {
+    if (appName.equals(RedisPipelinedKeyValue.class.getSimpleName()) ||
+        appName.equals(RedisHashPipelined.class.getSimpleName())) {
       if (commandLine.hasOption("pipeline_length")) {
         AppBase.appConfig.redisPipelineLength =
             Integer.parseInt(commandLine.getOptionValue("pipeline_length"));
@@ -218,7 +218,7 @@ public class CmdLineOpts {
       }
       LOG.info("RedisPipelinedKeyValue pipeline length : " + AppBase.appConfig.redisPipelineLength);
     }
-    if (appName == RedisHashPipelined.class.getSimpleName()) {
+    if (appName.equals(RedisHashPipelined.class.getSimpleName())) {
       if (commandLine.hasOption("num_subkeys_per_key")) {
         AppBase.appConfig.numSubkeysPerKey =
             Integer.parseInt(commandLine.getOptionValue("num_subkeys_per_key"));
