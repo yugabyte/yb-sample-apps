@@ -46,28 +46,28 @@ public class CmdLineOpts {
   public static UUID loadTesterUUID;
 
   // The various apps present in this sample.
-  private final static List<String> HELP_WORKLOADS = ImmutableList.of(
-    CassandraHelloWorld.class.getSimpleName(),
-    CassandraKeyValue.class.getSimpleName(),
-    CassandraRangeKeyValue.class.getSimpleName(),
-    CassandraBatchKeyValue.class.getSimpleName(),
-    CassandraBatchTimeseries.class.getSimpleName(),
-    CassandraTransactionalKeyValue.class.getSimpleName(),
-    CassandraTransactionalRestartRead.class.getSimpleName(),
-    CassandraStockTicker.class.getSimpleName(),
-    CassandraTimeseries.class.getSimpleName(),
-    CassandraUserId.class.getSimpleName(),
-    CassandraPersonalization.class.getSimpleName(),
-    CassandraSecondaryIndex.class.getSimpleName(),
-    CassandraUniqueSecondaryIndex.class.getSimpleName(),
-    RedisKeyValue.class.getSimpleName(),
-    RedisPipelinedKeyValue.class.getSimpleName(),
-    RedisHashPipelined.class.getSimpleName(),
-    RedisYBClientKeyValue.class.getSimpleName(),
-    SqlInserts.class.getSimpleName(),
-    SqlUpdates.class.getSimpleName(),
-    SqlSecondaryIndex.class.getSimpleName(),
-    SqlSnapshotTxns.class.getSimpleName()
+  private final static List<Class> HELP_WORKLOADS = ImmutableList.of(
+    CassandraHelloWorld.class,
+    CassandraKeyValue.class,
+    CassandraRangeKeyValue.class,
+    CassandraBatchKeyValue.class,
+    CassandraBatchTimeseries.class,
+    CassandraTransactionalKeyValue.class,
+    CassandraTransactionalRestartRead.class,
+    CassandraStockTicker.class,
+    CassandraTimeseries.class,
+    CassandraUserId.class,
+    CassandraPersonalization.class,
+    CassandraSecondaryIndex.class,
+    CassandraUniqueSecondaryIndex.class,
+    RedisKeyValue.class,
+    RedisPipelinedKeyValue.class,
+    RedisHashPipelined.class,
+    RedisYBClientKeyValue.class,
+    SqlInserts.class,
+    SqlUpdates.class,
+    SqlSecondaryIndex.class,
+    SqlSnapshotTxns.class
   );
 
   // The class type of the app needed to spawn new objects.
@@ -362,7 +362,7 @@ public class CmdLineOpts {
   }
 
   private static Class<? extends AppBase> getAppClass(String workloadType)
-      throws ClassNotFoundException{
+      throws ClassNotFoundException {
     // Get the workload class.
     return Class.forName("com.yugabyte.sample.apps." + workloadType)
                          .asSubclass(AppBase.class);
@@ -702,6 +702,13 @@ public class CmdLineOpts {
     }
   }
 
+  private static int getAppPort(String appName) {
+    if (appName.startsWith("Cassandra")) return 9042;
+    else if (appName.startsWith("Redis")) return 6379;
+    else if (appName.startsWith("Sql")) return 5433;
+    return 0;
+  }
+
   private static void printUsage(Options options, String header) throws Exception {
     StringBuilder footer = new StringBuilder();
 
@@ -715,11 +722,8 @@ public class CmdLineOpts {
     footer.append("  Use the --help <app name> option to get more details on how to run it.\n");
     String optsPrefix = "\t\t\t";
     String optsSuffix = " \\\n";
-    for (String workloadType : HELP_WORKLOADS) {
-      int port = 0;
-      if (workloadType.startsWith("Cassandra")) port = 9042;
-      else if (workloadType.startsWith("Redis")) port = 6379;
-      else if (workloadType.startsWith("Sql")) port = 5433;
+    for (Class cls: HELP_WORKLOADS) {
+      String workloadType = cls.getSimpleName();
       AppBase workload = getAppClass(workloadType).newInstance();
       String formattedName = String.format("%-35s: ", workloadType);
       footer.append("\n  * " + formattedName);
@@ -739,10 +743,7 @@ public class CmdLineOpts {
     footer.append("Usage and options for workload " + appName + " in YugaByte DB Sample Apps.\n");
     String optsPrefix = "\t\t\t";
     String optsSuffix = " \\\n";
-    int port = 0;
-    if (appName.startsWith("Cassandra")) port = 9042;
-    else if (appName.startsWith("Redis")) port = 6379;
-    else if (appName.startsWith("Sql")) port = 5433;
+    int port = getAppPort(appName);
     AppBase workload = getAppClass(appName).newInstance();
 
     footer.append("\n - " + appName + " :\n");
