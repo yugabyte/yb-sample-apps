@@ -15,6 +15,7 @@ package com.yugabyte.sample.apps;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -50,13 +51,10 @@ public class SqlInserts extends AppBase {
   private static final String DEFAULT_TABLE_NAME = "PostgresqlKeyValue";
 
   // The shared prepared select statement for fetching the data.
-  private volatile PreparedStatement preparedSelect = null;
+  private ThreadLocal<PreparedStatement> preparedSelect = new ThreadLocal<PreparedStatement>();
 
   // The shared prepared insert statement for inserting the data.
-  private volatile PreparedStatement preparedInsert = null;
-
-  // Lock for initializing prepared statement objects.
-  private static final Object prepareInitLock = new Object();
+  private ThreadLocal<PreparedStatement> preparedInsert = new ThreadLocal<PreparedStatement>();
 
   public SqlInserts() {
     buffer = new byte[appConfig.valueSize];
@@ -91,11 +89,34 @@ public class SqlInserts extends AppBase {
   }
 
   private PreparedStatement getPreparedSelect() throws Exception {
-    if (preparedSelect == null) {
-      preparedSelect = getPostgresConnection().prepareStatement(
-          String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
+    if (preparedSelect.get() == null) {
+      preparedSelect.set(
+          getPostgresConnection().prepareStatement(
+              String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName())));
     }
-    return preparedSelect;
+    return preparedSelect.get();
+  }
+
+  private int readKey(Key key) throws Exception {
+    PreparedStatement statement = getPreparedSelect();
+    statement.setString(1, key.asString());
+    try (ResultSet rs = statement.executeQuery()) {
+      if (!rs.next()) {
+        LOG.error("Read key: " + key.asString() + " expected 1 row in result, got 0");
+        return 0;
+      }
+
+      if (!key.asString().equals(rs.getString("k"))) {
+        LOG.error("Read key: " + key.asString() + ", got " + rs.getString("k"));
+      }
+      LOG.debug("Read key: " + key.toString());
+
+      if (rs.next()) {
+        LOG.error("Read key: " + key.asString() + " expected 1 row in result, got more");
+        return 0;
+      }
+    }
+    return 1;
   }
 
   @Override
@@ -107,37 +128,19 @@ public class SqlInserts extends AppBase {
     }
 
     try {
-      PreparedStatement statement = getPreparedSelect();
-      statement.setString(1, key.asString());
-      try (ResultSet rs = statement.executeQuery()) {
-        if (!rs.next()) {
-          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got 0");
-          return 0;
-        }
-
-        if (!key.asString().equals(rs.getString("k"))) {
-          LOG.error("Read key: " + key.asString() + ", got " + rs.getString("k"));
-        }
-        LOG.debug("Read key: " + key.toString());
-
-        if (rs.next()) {
-          LOG.error("Read key: " + key.asString() + " expected 1 row in result, got more");
-          return 0;
-        }
-      }
+      return readKey(key);
     } catch (Exception e) {
       LOG.fatal("Failed reading value: " + key.getValueStr(), e);
       return 0;
     }
-    return 1;
   }
 
   private PreparedStatement getPreparedInsert() throws Exception {
-    if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection().prepareStatement(
-          String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
+    if (preparedInsert.get() == null) {
+      preparedInsert.set(getPostgresConnection().prepareStatement(
+          String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName())));
     }
-    return preparedInsert;
+    return preparedInsert.get();
   }
 
   @Override
