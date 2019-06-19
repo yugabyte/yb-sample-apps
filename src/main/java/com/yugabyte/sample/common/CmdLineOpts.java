@@ -291,6 +291,12 @@ public class CmdLineOpts {
       AppBase.appConfig.concurrentClients = Integer.parseInt(
           commandLine.getOptionValue("concurrent_clients"));
     }
+    if (appName.equals(CassandraTransactionalKeyValue.class.getSimpleName())) {
+      if (commandLine.hasOption("num_range_keys")) {
+        AppBase.appConfig.numRangeKeys = Integer.parseInt(
+            commandLine.getOptionValue("num_range_keys"));
+      }
+    }
   }
 
   /**
@@ -603,6 +609,12 @@ public class CmdLineOpts {
                       "enabled.");
     options.addOption("batch_write", false,
                       "[CassandraSecondaryIndex] Enable batch write of key values.");
+
+    // Options for CassandraTransactionalKeyValue app.
+    options.addOption(
+        "num_range_keys", true,
+        "[CassandraTransactionalKeyValue] Use this number of range key components in the primary " +
+        "key.");
 
     // Options for Redis Pipelined Key Value
     options.addOption(
