@@ -48,6 +48,8 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
     // The number of unique keys to write. This determines the number of inserts (as opposed to
     // updates).
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
+
+    appConfig.numRangeKeys = 0;
   }
 
   // The default table name to create and use for CRUD ops.
@@ -57,22 +59,67 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
   public CassandraTransactionalKeyValue() {
   }
 
+  private String getRangeKeysForSchemaDefinition() {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 1; i <= appConfig.numRangeKeys; ++i) {
+      sb.append("r" + i + " varchar, ");
+    }
+    return sb.toString();
+  }
+
+  private String getPrimaryKeyStr() {
+    if (appConfig.numRangeKeys <= 0) {
+      return "k";
+    }
+    return "(k)" + getCommasAndRangeKeys();
+  }
+
+
+  private String getCommasAndRangeKeys() {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 1; i <= appConfig.numRangeKeys; ++i) {
+      sb.append(", r" );
+      sb.append(i);
+    }
+    return sb.toString();
+  }
+
+  private String getRepeatedPlaceholderForRangeKeys(String placeholder) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 1; i <= appConfig.numRangeKeys; ++i) {
+      sb.append(", ");
+      sb.append(placeholder);
+    }
+    return sb.toString();
+  }
+
   @Override
   public List<String> getCreateTableStatements() {
     String createStmt = String.format(
-        "CREATE TABLE IF NOT EXISTS %s (k varchar, v bigint, primary key (k)) " +
+        "CREATE TABLE IF NOT EXISTS %s (k varchar, " +
+            getRangeKeysForSchemaDefinition() +
+            "v bigint, " +
+            "primary key (" + getPrimaryKeyStr() + ")) " +
         "WITH transactions = { 'enabled' : true };", getTableName());
     return Arrays.asList(createStmt);
   }
 
+  @Override
   public String getTableName() {
-    return appConfig.tableName != null ? appConfig.tableName : DEFAULT_TABLE_NAME;
+    if (appConfig.tableName != null)
+      return appConfig.tableName;
+    if (appConfig.numRangeKeys == 0) {
+      return DEFAULT_TABLE_NAME;
+    }
+    return DEFAULT_TABLE_NAME + "_" + appConfig.numRangeKeys + "range_key" + (
+        appConfig.numRangeKeys > 1 ? "s" : "");
   }
 
   private PreparedStatement getPreparedSelect()  {
-    return getPreparedSelect(String.format("SELECT k, v, writetime(v) FROM %s WHERE k in :k;",
-                                           getTableName()),
-                             appConfig.localReads);
+    return getPreparedSelect(String.format(
+        "SELECT k" + getCommasAndRangeKeys() + ", v, writetime(v) AS wt FROM %s WHERE k in :k;",
+        getTableName()),
+        appConfig.localReads);
   }
 
   private void verifyValue(Key key, long value1, long value2) {
@@ -92,18 +139,19 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
     }
     // Do the read from Cassandra.
     // Bind the select statement.
-    BoundStatement select = getPreparedSelect().bind(Arrays.asList(key.asString() + "_1",
-                                                                   key.asString() + "_2"));
+    String k1 = key.asString() + "_1";
+    String k2 = key.asString() + "_2";
+    BoundStatement select = getPreparedSelect().bind(Arrays.asList(k1, k2));
     ResultSet rs = getCassandraClient().execute(select);
     List<Row> rows = rs.all();
     if (rows.size() != 2) {
       LOG.fatal("Read key: " + key.asString() + " expected 2 row in result, got " + rows.size());
       return 1;
     }
-    verifyValue(key, rows.get(0).getLong(1), rows.get(1).getLong(1));
-    if (rows.get(0).getLong(2) != rows.get(1).getLong(2)) {
+    verifyValue(key, rows.get(0).getLong("v"), rows.get(1).getLong("v"));
+    if (rows.get(0).getLong("wt") != rows.get(1).getLong("wt")) {
       LOG.fatal("Writetime mismatch for key: " + key.toString() + ", " +
-                rows.get(0).getLong(2) + " vs " + rows.get(1).getLong(2));
+                rows.get(0).getLong("wt") + " vs " + rows.get(1).getLong("wt"));
     }
 
     LOG.debug("Read key: " + key.toString());
@@ -113,8 +161,10 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
   protected PreparedStatement getPreparedInsert()  {
     return getPreparedInsert(String.format(
         "BEGIN TRANSACTION" +
-        "  INSERT INTO %s (k, v) VALUES (:k1, :v1);" +
-        "  INSERT INTO %s (k, v) VALUES (:k2, :v2);" +
+        "  INSERT INTO %s (k" + getCommasAndRangeKeys() + ", v) VALUES (:k1" +
+            getRepeatedPlaceholderForRangeKeys(":k1") + ", :v1);" +
+        "  INSERT INTO %s (k" + getCommasAndRangeKeys() + ", v) VALUES (:k2" +
+            getRepeatedPlaceholderForRangeKeys(":k2") + ", :v2);" +
         "END TRANSACTION;",
         getTableName(),
         getTableName()));
@@ -150,7 +200,8 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
   @Override
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
-      "Key-value app with multi-row transactions. Each write txn inserts a pair of unique string keys with the same value.",
+      "Key-value app with multi-row transactions. Each write txn inserts a pair of unique string " +
+          "keys with the same value.",
       " There are multiple readers and writers that update these keys and read them in pair ",
       "indefinitely. The number of reads and writes to perform can be specified as a parameter.");
   }

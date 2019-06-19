@@ -162,4 +162,7 @@ public class AppConfig {
 
   // The number of client connections to establish to each host in the YugaByte DB cluster.
   public int concurrentClients = 4;
+
+  // Number of range keys to include in the primary key.
+  public int numRangeKeys = -1;
 }
