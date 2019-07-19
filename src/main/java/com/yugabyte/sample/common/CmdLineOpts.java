@@ -550,7 +550,7 @@ public class CmdLineOpts {
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
     options.addOption("ssl_cert", true, 
-      "Use an SSL connection while connecting to YugaByte.")
+      "Use an SSL connection while connecting to YugaByte.");
 
     // Options for CassandraTimeseries workload.
     options.addOption("num_users", true, "[CassandraTimeseries] The total number of users.");

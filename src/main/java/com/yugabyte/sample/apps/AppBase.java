@@ -42,7 +42,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.NettySSLOptions;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
@@ -179,15 +179,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * Private function that returns an SSL Handler when provided with a cert file.
    * Used for creating a secure connection for the app.
    */
-  private SslHandler createSslHandler(String certfile) {
+  private SSLOptions createSSLHandler(String certfile) {
     try {
       CertificateFactory cf = CertificateFactory.getInstance("X.509");
-      FileInputStream fis = new FileInputStream(certFile);
+      FileInputStream fis = new FileInputStream(certfile);
       X509Certificate ca;
       try {
         ca = (X509Certificate) cf.generateCertificate(fis);
       } catch (Exception e) {
-        log.error("Exception generating certificate from input file: ", e);
+        LOG.error("Exception generating certificate from input file: ", e);
         return null;
       } finally {
         fis.close();
@@ -206,9 +206,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
       SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(null, tmf.getTrustManagers(), null);
-      return new NettySSLOptions(sslContext);
+      return JdkSSLOptions.builder().withSSLContext(sslContext).build();
     } catch (Exception e) {
-      log.error("Exception creating sslContext: ", e);
+      LOG.error("Exception creating sslContext: ", e);
       return null;
     }
   }
