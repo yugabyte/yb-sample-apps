@@ -41,6 +41,8 @@ import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.SSLOptions;
+import com.datastax.driver.core.NettySSLOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
@@ -54,6 +56,17 @@ import com.yugabyte.sample.common.SimpleLoadGenerator;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 import com.yugabyte.sample.common.metrics.MetricsTracker;
 import com.yugabyte.sample.common.metrics.MetricsTracker.MetricName;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.KeyStore;
+
+import java.io.FileInputStream;
 
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
@@ -163,20 +176,61 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   /**
+   * Private function that returns an SSL Handler when provided with a cert file.
+   * Used for creating a secure connection for the app.
+   */
+  private SslHandler createSslHandler(String certfile) {
+    try {
+      CertificateFactory cf = CertificateFactory.getInstance("X.509");
+      FileInputStream fis = new FileInputStream(certFile);
+      X509Certificate ca;
+      try {
+        ca = (X509Certificate) cf.generateCertificate(fis);
+      } catch (Exception e) {
+        log.error("Exception generating certificate from input file: ", e);
+        return null;
+      } finally {
+        fis.close();
+      }
+
+      // Create a KeyStore containing our trusted CAs
+      String keyStoreType = KeyStore.getDefaultType();
+      KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+      keyStore.load(null, null);
+      keyStore.setCertificateEntry("ca", ca);
+
+      // Create a TrustManager that trusts the CAs in our KeyStore
+      String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+      TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+      tmf.init(keyStore);
+
+      SSLContext sslContext = SSLContext.getInstance("TLS");
+      sslContext.init(null, tmf.getTrustManagers(), null);
+      return new NettySSLOptions(sslContext);
+    } catch (Exception e) {
+      log.error("Exception creating sslContext: ", e);
+      return null;
+    }
+  }
+
+  /**
    * Private method that is thread-safe and creates the Cassandra client. Exactly one calling thread
    * will succeed in creating the client. This method does nothing for the other threads.
    */
   protected synchronized void createCassandraClient(List<ContactPoint> contactPoints) {
     Cluster.Builder builder;
     if (cassandra_cluster == null) {
+      builder = Cluster.builder();
       if (appConfig.cassandraUsername != null) {
         if (appConfig.cassandraPassword == null) {
           throw new IllegalArgumentException("Password required when providing a username");
         }
-        builder = Cluster.builder()
+        builder = builder
             .withCredentials(appConfig.cassandraUsername, appConfig.cassandraPassword);
-      } else {
-        builder = Cluster.builder();
+      }
+      if (appConfig.sslCert != null) {
+        builder = builder
+            .withSSL(createSSLHandler(appConfig.sslCert));
       }
       Integer port = null;
       for (ContactPoint cp : contactPoints) {

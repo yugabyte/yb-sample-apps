@@ -162,4 +162,7 @@ public class AppConfig {
 
   // The number of client connections to establish to each host in the YugaByte DB cluster.
   public int concurrentClients = 4;
+
+  // The path to the certificate to be used for the SSL connection.
+  public String sslCert = null;
 }
