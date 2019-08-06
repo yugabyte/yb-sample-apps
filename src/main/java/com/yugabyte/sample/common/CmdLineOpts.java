@@ -52,6 +52,7 @@ public class CmdLineOpts {
     CassandraRangeKeyValue.class,
     CassandraBatchKeyValue.class,
     CassandraBatchTimeseries.class,
+    CassandraEventData.class,
     CassandraTransactionalKeyValue.class,
     CassandraTransactionalRestartRead.class,
     CassandraStockTicker.class,
@@ -163,6 +164,28 @@ public class CmdLineOpts {
                  AppBase.appConfig.readBackDeltaTimeFromNow);
       }
     }
+    if (appName.equals(CassandraEventData.class.getSimpleName())) {
+		if (commandLine.hasOption("read_batch_size")) {
+			AppBase.appConfig.cassandraReadBatchSize = Integer
+					.parseInt(commandLine.getOptionValue("read_batch_size"));
+			LOG.info("CassandraEventData batch size: " + AppBase.appConfig.cassandraReadBatchSize);
+		}
+		if (commandLine.hasOption("num_devices")) {
+			AppBase.appConfig.num_devices = Integer
+					.parseInt(commandLine.getOptionValue("num_devices"));
+			LOG.info("CassandraEventData num_devices: " + AppBase.appConfig.num_devices);
+		}
+		if (commandLine.hasOption("num_event_types")) {
+			AppBase.appConfig.num_event_types = Integer
+					.parseInt(commandLine.getOptionValue("num_event_types"));
+			LOG.info("CassandraEventData num_event_types: " + AppBase.appConfig.num_event_types);
+		}
+		if (commandLine.hasOption("read_back_delta_from_now")) {
+			AppBase.appConfig.readBackDeltaTimeFromNow = Integer
+					.parseInt(commandLine.getOptionValue("read_back_delta_from_now"));
+			LOG.info("CassandraEventData delta read: " + AppBase.appConfig.readBackDeltaTimeFromNow);
+		}
+	}
     if (commandLine.hasOption("batch_size")) {
       AppBase.appConfig.cassandraBatchSize =
           Integer.parseInt(commandLine.getOptionValue("batch_size"));
@@ -593,6 +616,13 @@ public class CmdLineOpts {
                       "[CassandraBatchTimeseries] Time unit delta back from current time unit.");
 
     options.addOption("with_local_dc", true, "Local DC name.");
+	// Options for CassandraEventData app.
+	options.addOption("read_batch_size", true, "[CassandraEventData] Number of keys to read in a batch.");
+	options.addOption("num_devices", true, "[CassandraEventData] Number of devices to generate data");
+	options.addOption("num_event_types", true, "[CassandraEventData] Number of event yypes to generate per device");
+	options.addOption("read_batch_size", true, "[CassandraEventData] Number of keys to read in a batch.");
+	options.addOption("read_back_delta_from_now", true,
+			"[CassandraEventData] Time unit delta back from current time unit.");
 
     // Options for CassandraPersonalization app.
     options.addOption("num_stores", true,
