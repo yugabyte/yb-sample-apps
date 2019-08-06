@@ -365,20 +365,25 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     getRandomValue(key, buffer);
     return buffer;
   }
+  
 
   protected byte[] getRandomValue(Key key, byte[] outBuffer) {
     getRandomValue(key, outBuffer.length, outBuffer);
     return outBuffer;
   }
-
+  
   protected void getRandomValue(Key key, int valueSize, byte[] outBuffer) {
+	  final byte[] keyValueBytes = key.getValueStr().getBytes();
+	  getRandomValue(keyValueBytes, valueSize, outBuffer);
+  }
+
+  protected void getRandomValue(byte[] keyValueBytes, int valueSize, byte[] outBuffer) {
     outBuffer[0] = appConfig.restrictValuesToAscii ? ASCII_MARKER : BINARY_MARKER;
     final int checksumSize = appConfig.restrictValuesToAscii ? CHECKSUM_ASCII_SIZE : CHECKSUM_SIZE;
     final boolean isUseChecksum = isUseChecksum(valueSize, checksumSize);
     final int contentSize = valueSize - (isUseChecksum ? checksumSize : 0);
     int i = 1;
     if (isUsePrefix(valueSize)) {
-      final byte[] keyValueBytes = key.getValueStr().getBytes();
 
       // Beginning of value is not random, but has format "<MARKER><PREFIX>", where prefix is
       // "val: $key" (or part of it in case small value size). This is needed to verify expected

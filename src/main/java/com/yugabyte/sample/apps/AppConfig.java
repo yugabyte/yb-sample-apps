@@ -165,4 +165,10 @@ public class AppConfig {
 
   // The path to the certificate to be used for the SSL connection.
   public String sslCert = null;
+
+  public int num_devices = 100;
+
+  public int num_event_types = 100;
+
+
 }
