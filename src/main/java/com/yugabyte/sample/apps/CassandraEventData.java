@@ -72,10 +72,6 @@ public class CassandraEventData extends AppBase {
 	private final String DEFAULT_TABLE_NAME = "event_data_raw";
 	// The structure to hold info per device.
 	static List<DataSource> dataSources = new CopyOnWriteArrayList<DataSource>();
-	// The number of devices to simulate.
-//	private static int num_devices = 100;
-//	// The number of event types.
-//	private static int num_event_types = 100;
 	// The shared prepared select statement for fetching the data.
 	private static volatile PreparedStatement preparedSelect;
 	// The shared prepared statement for inserting into the table.
