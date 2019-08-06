@@ -69,7 +69,7 @@ public class CassandraEventData extends AppBase {
 	static List<DataSource> dataSources = new CopyOnWriteArrayList<DataSource>();
 	// The number of devices to simulate.
 	private static int num_devices = 100;
-	// The number of event types
+	// The number of event types.
 	private static int num_event_types = 100;
 	// The shared prepared select statement for fetching the data.
 	private static volatile PreparedStatement preparedSelect;
@@ -130,7 +130,7 @@ public class CassandraEventData extends AppBase {
 				if (preparedInsert == null) {
 					// Create the prepared statement object.
 					String insert_stmt = String.format("INSERT INTO %s (device_id, ts, event_type, value) VALUES "
-							+ "(:device_id, :ts,:event_type, :value);", getTableName());
+							+ "(:device_id, :ts, :event_type, :value);", getTableName());
 					preparedInsert = getCassandraClient().prepare(insert_stmt);
 				}
 			}
@@ -184,7 +184,7 @@ public class CassandraEventData extends AppBase {
 
 		// Bind the select statement.
 		BoundStatement select = getPreparedSelect().bind().setString("deviceId", dataSource.getDeviceId())
-				.setLong("startTs", startTs).setLong("endTs", endTs).setString("event_type", dataSource.getEvent_type())
+				.setLong("startTs", startTs).setLong("endTs", endTs).setString("event_type", dataSource.getEventType())
 				.setInt("readBatchSize", appConfig.cassandraReadBatchSize);
 		// Make the query.
 		ResultSet rs = getCassandraClient().execute(select);
@@ -211,7 +211,7 @@ public class CassandraEventData extends AppBase {
 		long ts = dataSource.getDataEmitTs();
 		for (int i = 0; i < appConfig.cassandraBatchSize; i++) {
 			batch.add(getPreparedInsert().bind().setString("device_id", dataSource.getDeviceId()).setLong("ts", ts)
-					.setString("event_type", dataSource.getEvent_type())
+					.setString("event_type", dataSource.getEventType())
 					.setBytesUnsafe("value", getValue(dataSource.getDeviceId())));
 			numKeysWritten++;
 			ts++;
@@ -280,9 +280,8 @@ public class CassandraEventData extends AppBase {
 			return getDeviceId();
 		}
 
-		public String getEvent_type() {
-			Random rand = new Random();
-			return Integer.toString(rand.nextInt(num_event_types));
+		public String getEventType() {
+			return Integer.toString(random.nextInt(num_event_types));
 		}
 
 	}

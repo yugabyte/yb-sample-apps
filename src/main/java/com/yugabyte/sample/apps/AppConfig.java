@@ -165,9 +165,9 @@ public class AppConfig {
 
   // The path to the certificate to be used for the SSL connection.
   public String sslCert = null;
-
+  //Number of devices to simulate data for CassandraEventData workload
   public int num_devices = 100;
-
+  //Number of Event Types per device to simulate data for CassandraEventData workload
   public int num_event_types = 100;
 
 
