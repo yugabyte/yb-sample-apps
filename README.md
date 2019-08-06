@@ -80,6 +80,7 @@ Below is a list of sample apps supporting a variety of workloads across YugaByte
 | CassandraKeyValue                | Sample key-value app built on Cassandra with concurrent reader and writer threads. |
 | CassandraBatchKeyValue           | Sample batch key-value app built on Cassandra with concurrent reader and writer threads.|
 | CassandraBatchTimeseries         | Timeseries/IoT app built that simulates metric data emitted by devices periodically.|
+| CassandraEventData			   | A sample IoT event data application with batch processing. |
 | CassandraTransactionalKeyValue   | Key-value app with multi-row transactions. Each write txn inserts a pair of unique string keys with the same value. |
 | CassandraTransactionalRestartRead| This workload writes one key per thread, each time incrementing it's value and storing it in array. |
 | CassandraStockTicker             | Sample stock ticker app built on CQL. Models stock tickers each of which emits quote data every second. |

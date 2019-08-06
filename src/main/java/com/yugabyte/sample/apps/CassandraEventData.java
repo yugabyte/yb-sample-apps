@@ -60,6 +60,11 @@ public class CassandraEventData extends AppBase {
 		appConfig.cassandraReadBatchSize = 25;
 		// Default time delta from current time to read in a batch.
 		appConfig.readBackDeltaTimeFromNow = 180;
+		// Number of devices to simulate data for CassandraEventData workload
+		appConfig.num_devices = 100;
+		// Number of Event Types per device to simulate data for CassandraEventData workload
+		appConfig.num_event_types = 100;
+
 	}
 
 	static Random random = new Random();
@@ -68,9 +73,9 @@ public class CassandraEventData extends AppBase {
 	// The structure to hold info per device.
 	static List<DataSource> dataSources = new CopyOnWriteArrayList<DataSource>();
 	// The number of devices to simulate.
-	private static int num_devices = 100;
-	// The number of event types.
-	private static int num_event_types = 100;
+//	private static int num_devices = 100;
+//	// The number of event types.
+//	private static int num_event_types = 100;
 	// The shared prepared select statement for fetching the data.
 	private static volatile PreparedStatement preparedSelect;
 	// The shared prepared statement for inserting into the table.
@@ -88,14 +93,8 @@ public class CassandraEventData extends AppBase {
 				return;
 			}
 
-			// Read the various params from the command line.
-			CommandLine commandLine = configuration.getCommandLine();
-			if (commandLine.hasOption("num_devices")) {
-				num_devices = Integer.parseInt(commandLine.getOptionValue("num_devices"));
-			}
-
 			// Create all the device data sources.
-			for (int i = 0; i < num_devices; i++) {
+			for (int i = 0; i < appConfig.num_devices; i++) {
 				DataSource dataSource = new DataSource(i);
 				dataSources.add(dataSource);
 			}
@@ -281,7 +280,7 @@ public class CassandraEventData extends AppBase {
 		}
 
 		public String getEventType() {
-			return Integer.toString(random.nextInt(num_event_types));
+			return Integer.toString(random.nextInt(appConfig.num_event_types));
 		}
 
 	}
@@ -298,8 +297,8 @@ public class CassandraEventData extends AppBase {
 	@Override
 	public List<String> getWorkloadOptionalArguments() {
 		return Arrays.asList("--num_threads_read " + appConfig.numReaderThreads,
-				"--num_threads_write " + appConfig.numWriterThreads, "--num_devices " + num_devices,
-				"--num_event_types " + num_event_types, "--table_ttl_seconds " + appConfig.tableTTLSeconds,
+				"--num_threads_write " + appConfig.numWriterThreads, "--num_devices " + appConfig.num_devices,
+				"--num_event_types " + appConfig.num_event_types, "--table_ttl_seconds " + appConfig.tableTTLSeconds,
 				"--batch_size " + appConfig.cassandraBatchSize,
 				"--read_batch_size " + appConfig.cassandraReadBatchSize);
 	}
