@@ -297,19 +297,15 @@ public class CmdLineOpts {
     if (commandLine.hasOption("use_redis_cluster")) {
       AppBase.appConfig.useRedisCluster = true;
     }
-    if (commandLine.hasOption("yql_username")) {
-      if (!commandLine.hasOption("yql_password")) {
-        LOG.error("--yql_username requires --yql_password to be set");
-        System.exit(1);
-      }
-      AppBase.appConfig.cassandraUsername = commandLine.getOptionValue("yql_username");
+    if (commandLine.hasOption("username")) {
+      AppBase.appConfig.dbUsername = commandLine.getOptionValue("username");
     }
-    if (commandLine.hasOption("yql_password")) {
-      if (!commandLine.hasOption("yql_username")) {
-        LOG.error("--yql_password requires --yql_username to be set");
+    if (commandLine.hasOption("password")) {
+      if (!commandLine.hasOption("username")) {
+        LOG.error("--password requires --username to be set");
         System.exit(1);
       }
-      AppBase.appConfig.cassandraPassword = commandLine.getOptionValue("yql_password");
+      AppBase.appConfig.dbPassword = commandLine.getOptionValue("password");
     }
     if (commandLine.hasOption("concurrent_clients")) {
       AppBase.appConfig.concurrentClients = Integer.parseInt(
@@ -570,12 +566,11 @@ public class CmdLineOpts {
     options.addOption("run_time", true,
         "Run time for workload. Negative value means forever (default).");
     options.addOption("use_redis_cluster", false, "Use redis cluster client.");
-    options.addOption("yql_username", true,
-        "Use authentication with the YQL client using the provided username. " +
-            "If this option is set, yql_password option should be used too.");
-    options.addOption("yql_password", true,
-        "Use authentication with the YQL client using the provided password. " +
-            "If this option is set, yql_username option should be used too.");
+    options.addOption("username", true,
+        "User name to connect to the database using. ");
+    options.addOption("password", true,
+        "The password to use when connecting to the database. " +
+            "If this option is set, the --username option is required.");
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
     options.addOption("ssl_cert", true, 

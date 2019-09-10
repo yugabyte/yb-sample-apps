@@ -141,10 +141,17 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   protected Connection getPostgresConnection(String database) throws Exception {
+    if (appConfig.dbUsername == null) {
+      return getPostgresConnection(database, appConfig.defaultPostgresUsername);
+    }
+    return getPostgresConnection(database, appConfig.dbUsername);
+  }
+
+  protected Connection getPostgresConnection(String database, String username) throws Exception {
     Class.forName("org.postgresql.Driver");
     ContactPoint contactPoint = getRandomContactPoint();
     Properties props = new Properties();
-    props.setProperty("user", "postgres");
+    props.setProperty("user", username);
     props.setProperty("sslmode", "disable");
     String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
                                                                     contactPoint.getPort(),
@@ -220,12 +227,12 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     Cluster.Builder builder;
     if (cassandra_cluster == null) {
       builder = Cluster.builder();
-      if (appConfig.cassandraUsername != null) {
-        if (appConfig.cassandraPassword == null) {
+      if (appConfig.dbUsername != null) {
+        if (appConfig.dbPassword == null) {
           throw new IllegalArgumentException("Password required when providing a username");
         }
         builder = builder
-            .withCredentials(appConfig.cassandraUsername, appConfig.cassandraPassword);
+            .withCredentials(appConfig.dbUsername, appConfig.dbPassword);
       }
       if (appConfig.sslCert != null) {
         builder = builder

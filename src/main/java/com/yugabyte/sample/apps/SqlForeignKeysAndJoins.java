@@ -279,11 +279,7 @@ public class SqlForeignKeysAndJoins extends AppBase {
       PreparedStatement statement = getPreparedInsertUserOrder();
       // Prefix hashcode to ensure generated keys are random and not sequential.
       statement.setString(1, key.asString());
-
-      Calendar calendar = Calendar.getInstance();
-      Timestamp timestamp = new Timestamp(calendar.getTime().getTime());
-
-      statement.setTimestamp(2, timestamp);
+      statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
       statement.setString(3, key.getValueStr());
       result = statement.executeUpdate();
       LOG.debug("Wrote key: " + key.asString() + ", " + key.getValueStr() + ", return code: " +
@@ -309,11 +305,11 @@ public class SqlForeignKeysAndJoins extends AppBase {
   @Override
   public List<String> getWorkloadOptionalArguments() {
     return Arrays.asList(
-        "--num_unique_keys " + appConfig.numUniqueKeysToWrite + "  # Number of users to create",
-        "--num_threads_read " + appConfig.numReaderThreads + "  # Number of user orders to retrieve",
-        "--num_threads_write " + appConfig.numWriterThreads + "  # Writes per ratio of new users to orders",
-        "--num_reads " + appConfig.numKeysToRead,
-        "--num_writes " + appConfig.numKeysToWrite
+        "--num_unique_keys " + appConfig.numUniqueKeysToWrite,
+        "--num_threads_read " + appConfig.numReaderThreads,
+        "--num_threads_write " + appConfig.numWriterThreads,
+        "--username " + "<DB USERNAME>",
+        "--password " + "<OPTIONAL PASSWORD>"
         );
   }
 }

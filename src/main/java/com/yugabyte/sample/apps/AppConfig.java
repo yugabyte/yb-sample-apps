@@ -119,6 +119,9 @@ public class AppConfig {
   // Name of the default database for postgres.
   public String defaultPostgresDatabase = "postgres";
 
+  // Name of the default username for postgres.
+  public String defaultPostgresUsername = "postgres";
+
   // Does the table need to be dropped.
   public boolean shouldDropTable = false;
 
@@ -154,11 +157,11 @@ public class AppConfig {
   // Enable batch write.
   public boolean batchWrite = false;
 
-  // Username to connect to the YQL client.
-  public String cassandraUsername = null;
+  // Username to connect to the DB.
+  public String dbUsername = null;
 
-  // Password to connect to the YQL client.
-  public String cassandraPassword = null;
+  // Password to connect to the DB.
+  public String dbPassword = null;
 
   // The number of client connections to establish to each host in the YugaByte DB cluster.
   public int concurrentClients = 4;
