@@ -65,10 +65,11 @@ public class CmdLineOpts {
     RedisPipelinedKeyValue.class,
     RedisHashPipelined.class,
     RedisYBClientKeyValue.class,
+    SqlForeignKeysAndJoins.class,
     SqlInserts.class,
-    SqlUpdates.class,
     SqlSecondaryIndex.class,
-    SqlSnapshotTxns.class
+    SqlSnapshotTxns.class,
+    SqlUpdates.class
   );
 
   // The class type of the app needed to spawn new objects.
