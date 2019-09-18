@@ -186,6 +186,7 @@ public class Main {
       // Start the reader and writer threads.
       for (IOPSThread iopsThread : iopsThreads) {
         iopsThread.start();
+        Thread.sleep(50);
       }
 
       // Wait for the various threads to exit.

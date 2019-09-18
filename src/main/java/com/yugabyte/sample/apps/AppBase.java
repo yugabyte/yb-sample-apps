@@ -142,16 +142,19 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   protected Connection getPostgresConnection(String database) throws Exception {
     if (appConfig.dbUsername == null) {
-      return getPostgresConnection(database, appConfig.defaultPostgresUsername);
+      return getPostgresConnection(database, appConfig.defaultPostgresUsername, null);
     }
-    return getPostgresConnection(database, appConfig.dbUsername);
+    return getPostgresConnection(database, appConfig.dbUsername, appConfig.dbPassword);
   }
 
-  protected Connection getPostgresConnection(String database, String username) throws Exception {
+  protected Connection getPostgresConnection(String database, String username, String password) throws Exception {
     Class.forName("org.postgresql.Driver");
     ContactPoint contactPoint = getRandomContactPoint();
     Properties props = new Properties();
     props.setProperty("user", username);
+    if (password != null) {
+      props.setProperty("password", password);
+    }
     props.setProperty("sslmode", "disable");
     String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
                                                                     contactPoint.getPort(),

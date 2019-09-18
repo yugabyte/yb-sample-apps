@@ -77,11 +77,11 @@ public class SqlSecondaryIndex extends AppBase {
     Connection connection = getPostgresConnection();
 
     // (Re)Create the table (every run should start cleanly with an empty table).
-    connection.createStatement().execute(
-        String.format("DROP TABLE IF EXISTS %s", getTableName()));
+    // connection.createStatement().execute(
+    //     String.format("DROP TABLE IF EXISTS %s", getTableName()));
     LOG.info("Dropping table(s) left from previous runs if any");
     connection.createStatement().executeUpdate(
-        String.format("CREATE TABLE %s (k text PRIMARY KEY, v text);", getTableName()));
+        String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text);", getTableName()));
     LOG.info(String.format("Created table: %s", getTableName()));
 
     // Create an index on the table.
