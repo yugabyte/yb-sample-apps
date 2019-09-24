@@ -64,9 +64,9 @@ public class CassandraBatchTimeseries extends AppBase {
   // The structure to hold info per metric.
   static List<DataSource> dataSources = new CopyOnWriteArrayList<DataSource>();
   // The minimum number of metrics to simulate.
-  private static int min_metrics_count = 5;
+  private static int min_metrics_count = 5000;
   // The maximum number of metrics to simulate.
-  private static int max_metrics_count = 10;
+  private static int max_metrics_count = 10000;
   // The shared prepared select statement for fetching the data.
   private static volatile PreparedStatement preparedSelect;
   // The shared prepared statement for inserting into the table.
