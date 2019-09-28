@@ -11,13 +11,13 @@ The sample apps here have drivers compatible with the above and emulate a number
 
 Download yb-sample-apps JAR
 ```
-$ wget -P target https://github.com/YugaByte/yb-sample-apps/releases/download/v1.2.0/yb-sample-apps.jar
+$ wget https://github.com/YugaByte/yb-sample-apps/releases/download/v1.2.0/yb-sample-apps.jar
 ```
 
 For help, simply run the following:
 
 ```
-$ java -jar target/yb-sample-apps.jar --help
+$ java -jar yb-sample-apps.jar --help
 ```
 You should see the set of workloads available in the app.
 
