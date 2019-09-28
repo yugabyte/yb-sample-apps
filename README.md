@@ -23,7 +23,7 @@ You should see the set of workloads available in the app.
 
 To get details on running any app, just pass the app name as a parameter to the `--help` flag:
 ```
-$ java -jar target/yb-sample-apps.jar --help CassandraKeyValue
+$ java -jar yb-sample-apps.jar --help CassandraKeyValue
 1 [main] INFO com.yugabyte.sample.Main  - Starting sample app...
 Usage and options for workload CassandraKeyValue in YugaByte DB Sample Apps.
 
