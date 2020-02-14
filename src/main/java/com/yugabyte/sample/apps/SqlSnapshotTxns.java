@@ -124,6 +124,8 @@ public class SqlSnapshotTxns extends AppBase {
         }
         LOG.debug("Read key: " + key.toString());
 
+        key.verify(rs.getString("v"));
+
         if (rs.next()) {
           LOG.error("Read key: " + key.asString() + " expected 1 row in result, got more");
           return 0;
