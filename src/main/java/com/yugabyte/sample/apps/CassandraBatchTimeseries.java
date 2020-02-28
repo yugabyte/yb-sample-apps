@@ -51,7 +51,7 @@ public class CassandraBatchTimeseries extends AppBase {
     // Set the TTL for the raw table.
     appConfig.tableTTLSeconds = 24 * 60 * 60;
     // Default write batch size.
-    appConfig.cassandraBatchSize = 500;
+    appConfig.batchSize = 500;
     // Default read batch size.
     appConfig.cassandraReadBatchSize = 100;
     // Default time delta from current time to read in a batch.
@@ -220,7 +220,7 @@ public class CassandraBatchTimeseries extends AppBase {
     BatchStatement batch = new BatchStatement();
     // Enter a batch of data points.
     long ts = dataSource.getDataEmitTs();
-    for (int i = 0; i < appConfig.cassandraBatchSize; i++) {
+    for (int i = 0; i < appConfig.batchSize; i++) {
       batch.add(getPreparedInsert().bind().setString("metric_id", dataSource.getMetricId())
                                           .setLong("ts", ts)
                                           .setString("value", getValue(ts)));
@@ -307,7 +307,7 @@ public class CassandraBatchTimeseries extends AppBase {
       "--num_threads_write " + appConfig.numWriterThreads,
       "--max_metrics_count " + max_metrics_count,
       "--table_ttl_seconds " + appConfig.tableTTLSeconds,
-      "--batch_size " + appConfig.cassandraBatchSize,
+      "--batch_size " + appConfig.batchSize,
       "--read_batch_size " + appConfig.cassandraReadBatchSize);
   }
 }

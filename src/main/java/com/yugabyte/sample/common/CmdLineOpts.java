@@ -65,6 +65,7 @@ public class CmdLineOpts {
     RedisPipelinedKeyValue.class,
     RedisHashPipelined.class,
     RedisYBClientKeyValue.class,
+    SqlDataLoad.class,
     SqlForeignKeysAndJoins.class,
     SqlInserts.class,
     SqlSecondaryIndex.class,
@@ -187,15 +188,27 @@ public class CmdLineOpts {
 			LOG.info("CassandraEventData delta read: " + AppBase.appConfig.readBackDeltaTimeFromNow);
 		}
 	}
+
     if (commandLine.hasOption("batch_size")) {
-      AppBase.appConfig.cassandraBatchSize =
-          Integer.parseInt(commandLine.getOptionValue("batch_size"));
-      if (AppBase.appConfig.cassandraBatchSize > AppBase.appConfig.numUniqueKeysToWrite) {
-        LOG.fatal("The batch size cannot be more than the number of unique keys");
-        System.exit(-1);
+      AppBase.appConfig.batchSize =
+              Integer.parseInt(commandLine.getOptionValue("batch_size"));
+
+      if (appName.equals(SqlDataLoad.class.getSimpleName())) {
+        if (AppBase.appConfig.batchSize > 0) {
+          LOG.info(String.format("SqlDataLoad: Will use a (write) batch size of %d",
+                                 AppBase.appConfig.batchSize));
+        } else {
+          LOG.info("Will not use batching");
+        }
+      } else {
+        if (AppBase.appConfig.batchSize > AppBase.appConfig.numUniqueKeysToWrite) {
+          LOG.fatal("The batch size cannot be more than the number of unique keys");
+          System.exit(-1);
+        }
+        LOG.info("Batch size : " + AppBase.appConfig.batchSize);
       }
-      LOG.info("Batch size : " + AppBase.appConfig.cassandraBatchSize);
     }
+
     if (appName.equals(CassandraPersonalization.class.getSimpleName())) {
       if (commandLine.hasOption("num_stores")) {
         AppBase.appConfig.numStores = Integer.parseInt(commandLine.getOptionValue("num_stores"));
@@ -314,6 +327,45 @@ public class CmdLineOpts {
     if (commandLine.hasOption("ssl_cert")) {
       AppBase.appConfig.sslCert = commandLine.getOptionValue("ssl_cert");
     }
+
+    if (appName.equals(SqlDataLoad.class.getSimpleName())) {
+
+      if (commandLine.hasOption("num_value_columns")) {
+        AppBase.appConfig.numValueColumns =
+                Integer.parseInt(commandLine.getOptionValue("num_value_columns"));
+      }
+      LOG.info(String.format("SqlDataLoad: will use %d value columns for the main table",
+               AppBase.appConfig.numValueColumns));
+
+      if (commandLine.hasOption("num_indexes")) {
+        AppBase.appConfig.numIndexes =
+                Integer.parseInt(commandLine.getOptionValue("num_indexes"));
+      }
+      LOG.info(String.format("SqlDataLoad: will create %d secondary indexes on the main table",
+                             AppBase.appConfig.numIndexes));
+
+      if (commandLine.hasOption("num_foreign_keys")) {
+        AppBase.appConfig.numForeignKeys =
+                Integer.parseInt(commandLine.getOptionValue("num_foreign_keys"));
+      }
+      LOG.info(String.format("SqlDataLoad: will create %d foreign key constraints the main table",
+                             AppBase.appConfig.numForeignKeys));
+
+      if (commandLine.hasOption("num_foreign_key_table_rows")) {
+        AppBase.appConfig.numForeignKeyTableRows =
+                Integer.parseInt(commandLine.getOptionValue("num_foreign_key_table_rows"));
+      }
+      LOG.info(String.format("SqlDataLoad: will preload foreign key tables with %d rows",
+                             AppBase.appConfig.numForeignKeyTableRows));
+
+      if (commandLine.hasOption("num_consecutive_rows_with_same_fk")) {
+        AppBase.appConfig.numConsecutiveRowsWithSameFk =
+                Integer.parseInt(commandLine.getOptionValue("num_consecutive_rows_with_same_fk"));
+      }
+      LOG.info(String.format("SqlDataLoad: Will use a new fk every %d rows",
+                             AppBase.appConfig.numConsecutiveRowsWithSameFk));
+    }
+
   }
 
   /**
@@ -575,6 +627,8 @@ public class CmdLineOpts {
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
     options.addOption("ssl_cert", true, 
       "Use an SSL connection while connecting to YugaByte.");
+    options.addOption("batch_size", true,
+                      "Number of keys to write in a batch (for apps that support batching).");
 
     // Options for CassandraTimeseries workload.
     options.addOption("num_users", true, "[CassandraTimeseries] The total number of users.");
@@ -601,10 +655,6 @@ public class CmdLineOpts {
     options.addOption("max_written_key", true,
         "[KV workloads only, reusing existing table] Max written key number.");
 
-    // Options for CassandraBatchKeyValue app.
-    options.addOption("batch_size", true,
-                      "[CassandraBatchKeyValue] Number of keys to write in a batch.");
-
     // Options for CassandraBatchTimeseries app.
     options.addOption("read_batch_size", true,
                       "[CassandraBatchTimeseries] Number of keys to read in a batch.");
@@ -615,7 +665,7 @@ public class CmdLineOpts {
 	// Options for CassandraEventData app.
 	options.addOption("read_batch_size", true, "[CassandraEventData] Number of keys to read in a batch.");
 	options.addOption("num_devices", true, "[CassandraEventData] Number of devices to generate data");
-	options.addOption("num_event_types", true, "[CassandraEventData] Number of event yypes to generate per device");
+	options.addOption("num_event_types", true, "[CassandraEventData] Number of event types to generate per device");
 	options.addOption("read_batch_size", true, "[CassandraEventData] Number of keys to read in a batch.");
 	options.addOption("read_back_delta_from_now", true,
 			"[CassandraEventData] Time unit delta back from current time unit.");
@@ -673,6 +723,22 @@ public class CmdLineOpts {
         "subkey_value_max_size", true,
         "[RedisHashPipelined] If using zipf distribution to choose value sizes, " +
         "specifies an upper bound on the value sizes.");
+
+    // Options for SQL DataLoad.
+    options.addOption("num_value_columns", true,
+                      "[SqlDataLoad] Number of value columns the target table should have.");
+
+    options.addOption("num_indexes", true,
+                      "[SqlDataLoad] Number of secondary indexes on the target table.");
+
+    options.addOption("num_foreign_keys", true,
+                      "[SqlDataLoad] Number of secondary indexes on the target table.");
+
+    options.addOption("num_foreign_key_table_rows", true,
+                      "[SqlDataLoad] Number of secondary indexes on the target table.");
+
+    options.addOption("num_consecutive_rows_with_same_fk", true,
+                      "[SqlDataLoad] Number of secondary indexes on the target table.");
 
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:

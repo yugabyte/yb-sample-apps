@@ -35,14 +35,14 @@ public class CassandraBatchKeyValue extends CassandraKeyValue {
   // Static initialization of this workload's config.
   static {
     // The number of keys to write in each batch.
-    appConfig.cassandraBatchSize = 10;
+    appConfig.batchSize = 10;
   }
 
   // Buffers for each key in a batch.
   private final byte[][] buffers;
 
   public CassandraBatchKeyValue() {
-    buffers = new byte[appConfig.cassandraBatchSize][appConfig.valueSize];
+    buffers = new byte[appConfig.batchSize][appConfig.valueSize];
   }
 
   @Override
@@ -51,7 +51,7 @@ public class CassandraBatchKeyValue extends CassandraKeyValue {
     HashSet<Key> keys = new HashSet<Key>();
     PreparedStatement insert = getPreparedInsert();
     try {
-      for (int i = 0; i < appConfig.cassandraBatchSize; i++) {
+      for (int i = 0; i < appConfig.batchSize; i++) {
         Key key = getSimpleLoadGenerator().getKeyToWrite();
         ByteBuffer value = null;
         if (appConfig.valueSize == 0) {
@@ -95,7 +95,7 @@ public class CassandraBatchKeyValue extends CassandraKeyValue {
       "--value_size " + appConfig.valueSize,
       "--num_threads_read " + appConfig.numReaderThreads,
       "--num_threads_write " + appConfig.numWriterThreads,
-      "--batch_size " + appConfig.cassandraBatchSize,
+      "--batch_size " + appConfig.batchSize,
       "--table_ttl_seconds " + appConfig.tableTTLSeconds);
   }
 }

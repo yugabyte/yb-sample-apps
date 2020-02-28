@@ -116,7 +116,7 @@ public class CassandraSecondaryIndex extends CassandraKeyValue {
       if (appConfig.batchWrite) {
         BatchStatement batch = new BatchStatement();
         PreparedStatement insert = getPreparedInsert();
-        for (int i = 0; i < appConfig.cassandraBatchSize; i++) {
+        for (int i = 0; i < appConfig.batchSize; i++) {
           Key key = getSimpleLoadGenerator().getKeyToWrite();
           keys.add(key);
           batch.add(insert.bind(key.asString(), key.getValueStr()));
@@ -168,6 +168,6 @@ public class CassandraSecondaryIndex extends CassandraKeyValue {
       "--num_threads_read " + appConfig.numReaderThreads,
       "--num_threads_write " + appConfig.numWriterThreads,
       "--batch_write",
-      "--batch_size " + appConfig.cassandraBatchSize);
+      "--batch_size " + appConfig.batchSize);
   }
 }
