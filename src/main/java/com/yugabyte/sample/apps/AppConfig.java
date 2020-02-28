@@ -84,8 +84,8 @@ public class AppConfig {
   // Batch size to send from client for redis pipeline app.
   public int redisPipelineLength = 1;
 
-  // Batch size to send from client for Cassandra batch key-value app.
-  public int cassandraBatchSize = 1;
+  // Batch size for apps that support batching.
+  public int batchSize = 1;
 
   // Batch size to read for Cassandra batch timeseries app.
   public int cassandraReadBatchSize = 1;
@@ -173,5 +173,11 @@ public class AppConfig {
   // Number of Event Types per device to simulate data for CassandraEventData workload
   public int num_event_types = 100;
 
+  // Configurations for SqlDataLoad workload.
+  public int numValueColumns = 1;
+  public int numIndexes = 0;
+  public int numForeignKeys = 0;
+  public int numForeignKeyTableRows = 1000; // Only relevant if num_foreign_keys > 0.
+  public int numConsecutiveRowsWithSameFk = 500; // Only relevant if num_foreign_keys > 0.
 
 }

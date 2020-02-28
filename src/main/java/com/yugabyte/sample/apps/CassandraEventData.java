@@ -14,13 +14,11 @@
 package com.yugabyte.sample.apps;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.BatchStatement;
@@ -29,7 +27,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 
 import com.yugabyte.sample.common.CmdLineOpts;
-import com.datastax.driver.core.utils.Bytes;
 
 /**
  * A sample IoT event data application with batch processing
@@ -55,7 +52,7 @@ public class CassandraEventData extends AppBase {
 		// Set the TTL for the raw table.
 		appConfig.tableTTLSeconds = 24 * 60 * 60;
 		// Default write batch size.
-		appConfig.cassandraBatchSize = 25;
+		appConfig.batchSize = 25;
 		// Default read batch size.
 		appConfig.cassandraReadBatchSize = 25;
 		// Default time delta from current time to read in a batch.
@@ -204,7 +201,7 @@ public class CassandraEventData extends AppBase {
 		BatchStatement batch = new BatchStatement();
 		// Enter a batch of data points.
 		long ts = dataSource.getDataEmitTs();
-		for (int i = 0; i < appConfig.cassandraBatchSize; i++) {
+		for (int i = 0; i < appConfig.batchSize; i++) {
 			batch.add(getPreparedInsert().bind().setString("device_id", dataSource.getDeviceId()).setLong("ts", ts)
 					.setString("event_type", dataSource.getEventType())
 					.setBytesUnsafe("value", getValue(dataSource.getDeviceId())));
@@ -295,7 +292,7 @@ public class CassandraEventData extends AppBase {
 		return Arrays.asList("--num_threads_read " + appConfig.numReaderThreads,
 				"--num_threads_write " + appConfig.numWriterThreads, "--num_devices " + appConfig.num_devices,
 				"--num_event_types " + appConfig.num_event_types, "--table_ttl_seconds " + appConfig.tableTTLSeconds,
-				"--batch_size " + appConfig.cassandraBatchSize,
+				"--batch_size " + appConfig.batchSize,
 				"--read_batch_size " + appConfig.cassandraReadBatchSize);
 	}
 }
