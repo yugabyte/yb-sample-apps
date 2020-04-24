@@ -505,6 +505,14 @@ public class CmdLineOpts {
       AppBase.appConfig.jedisSocketTimeout =
           Integer.parseInt(cmd.getOptionValue("socket_timeout"));
     }
+    if (cmd.hasOption("cql_connect_timeout_ms")) {
+      AppBase.appConfig.cqlConnectTimeoutMs =
+          Integer.parseInt(cmd.getOptionValue("cql_connect_timeout_ms"));
+    }
+    if (cmd.hasOption("cql_read_timeout_ms")) {
+      AppBase.appConfig.cqlReadTimeoutMs =
+          Integer.parseInt(cmd.getOptionValue("cql_read_timeout_ms"));
+    }
     if (cmd.hasOption("use_ascii_values")) {
       AppBase.appConfig.restrictValuesToAscii = true;
     }
@@ -600,6 +608,8 @@ public class CmdLineOpts {
         "How long (in ms) to sleep between multiple pipeline batches.");
     options.addOption("socket_timeout", true,
                       "How long (in ms) to wait for a response from jedis.");
+    options.addOption("cql_connect_timeout_ms", true, "Connection timeout for cql in millisecs");
+    options.addOption("cql_read_timeout_ms", true, "Read timeout for cql in millisecs");
     options.addOption("value_size", true, "Size in bytes of the value. " +
         "The bytes are random. Value size should be more than 5 (9) bytes for binary (ascii) " +
         "values in order to have checksum for read verification. First byte is used as a " +
@@ -625,7 +635,7 @@ public class CmdLineOpts {
             "If this option is set, the --username option is required.");
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
-    options.addOption("ssl_cert", true, 
+    options.addOption("ssl_cert", true,
       "Use an SSL connection while connecting to YugaByte.");
     options.addOption("batch_size", true,
                       "Number of keys to write in a batch (for apps that support batching).");

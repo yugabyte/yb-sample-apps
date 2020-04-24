@@ -59,6 +59,9 @@ public class AppConfig {
   public int sleepTime = 0;
   public int jedisSocketTimeout = 61000;
 
+  public int cqlConnectTimeoutMs = 0;
+  public int cqlReadTimeoutMs = 0;
+
   // Use ASCII strings as values.
   public boolean restrictValuesToAscii;
 
