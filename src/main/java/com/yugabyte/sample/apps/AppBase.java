@@ -43,6 +43,7 @@ import com.datastax.driver.core.QueryOptions;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.JdkSSLOptions;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
 import com.datastax.driver.core.policies.DefaultRetryPolicy;
@@ -242,6 +243,14 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
             .withSSL(createSSLHandler(appConfig.sslCert));
       }
       Integer port = null;
+      SocketOptions socketOptions = new SocketOptions();
+      if (appConfig.cqlConnectTimeoutMs > 0) {
+        socketOptions.setConnectTimeoutMillis(appConfig.cqlConnectTimeoutMs);
+      }
+      if (appConfig.cqlReadTimeoutMs > 0) {
+        socketOptions.setReadTimeoutMillis(appConfig.cqlReadTimeoutMs);
+      }
+      builder.withSocketOptions(socketOptions);
       for (ContactPoint cp : contactPoints) {
         if (port == null) {
           port = cp.getPort();
@@ -375,13 +384,12 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     getRandomValue(key, buffer);
     return buffer;
   }
-  
 
   protected byte[] getRandomValue(Key key, byte[] outBuffer) {
     getRandomValue(key, outBuffer.length, outBuffer);
     return outBuffer;
   }
-  
+
   protected void getRandomValue(Key key, int valueSize, byte[] outBuffer) {
 	  final byte[] keyValueBytes = key.getValueStr().getBytes();
 	  getRandomValue(keyValueBytes, valueSize, outBuffer);
