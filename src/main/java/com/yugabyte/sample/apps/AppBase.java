@@ -162,6 +162,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     return DriverManager.getConnection(connectStr, props);
   }
 
+  public void Initialize(int numThreads) { }
+
   protected static void createKeyspace(Session session, String ks) {
     String create_keyspace_stmt = "CREATE KEYSPACE IF NOT EXISTS " + ks +
       " WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 1};";
@@ -375,13 +377,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     getRandomValue(key, buffer);
     return buffer;
   }
-  
+
 
   protected byte[] getRandomValue(Key key, byte[] outBuffer) {
     getRandomValue(key, outBuffer.length, outBuffer);
     return outBuffer;
   }
-  
+
   protected void getRandomValue(Key key, int valueSize, byte[] outBuffer) {
 	  final byte[] keyValueBytes = key.getValueStr().getBytes();
 	  getRandomValue(keyValueBytes, valueSize, outBuffer);
