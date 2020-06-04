@@ -146,6 +146,7 @@ public class Main {
     // Disable extended peer check, to ensure "SELECT * FROM system.peers" works without
     // all columns.
     System.setProperty("com.datastax.driver.EXTENDED_PEER_CHECK", "false");
+    app.InitializeConnectionsAndStatements(cmdLineOpts.getNumWriterThreads() + cmdLineOpts.getNumReaderThreads());
     try {
       // If this is a simple app, run it and return.
       if (app.appConfig.appType == AppConfig.Type.Simple) {
