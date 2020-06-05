@@ -163,7 +163,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     return DriverManager.getConnection(connectStr, props);
   }
 
-  public void InitializeConnectionsAndStatements(int numThreads) { }
+  public void initializeConnectionsAndStatements(int numThreads) { }
 
   protected static void createKeyspace(Session session, String ks) {
     String create_keyspace_stmt = "CREATE KEYSPACE IF NOT EXISTS " + ks +
