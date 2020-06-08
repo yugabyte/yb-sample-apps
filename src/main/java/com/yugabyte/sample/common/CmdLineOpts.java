@@ -917,9 +917,12 @@ public class CmdLineOpts {
     }
 
     public static ContactPoint fromHostPort(String hostPort) {
-      String[] parts = hostPort.split(":");
-      String host = parts[0];
-      int port = Integer.parseInt(parts[1]);
+      int portSplit = hostPort.lastIndexOf(":");
+      if (portSplit < 0) {
+        throw new RuntimeException("Invalid port specification in " + hostPort);
+      }
+      String host = hostPort.substring(0, portSplit);
+      int port = Integer.parseInt(hostPort.substring(portSplit + 1));
       return new ContactPoint(host, port);
     }
 
