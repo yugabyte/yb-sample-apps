@@ -157,6 +157,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       props.setProperty("password", password);
     }
     props.setProperty("sslmode", "disable");
+    props.put("reWriteBatchedInserts", "true");
     String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
                                                                     contactPoint.getPort(),
                                                                     database);
