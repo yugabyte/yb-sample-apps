@@ -328,6 +328,11 @@ public class CmdLineOpts {
       AppBase.appConfig.sslCert = commandLine.getOptionValue("ssl_cert");
     }
 
+    if (commandLine.hasOption("num_indexes")) {
+      AppBase.appConfig.numIndexes =
+          Integer.parseInt(commandLine.getOptionValue("num_indexes"));
+    }
+
     if (appName.equals(SqlDataLoad.class.getSimpleName())) {
 
       if (commandLine.hasOption("num_value_columns")) {
@@ -337,10 +342,7 @@ public class CmdLineOpts {
       LOG.info(String.format("SqlDataLoad: will use %d value columns for the main table",
                AppBase.appConfig.numValueColumns));
 
-      if (commandLine.hasOption("num_indexes")) {
-        AppBase.appConfig.numIndexes =
-                Integer.parseInt(commandLine.getOptionValue("num_indexes"));
-      }
+
       LOG.info(String.format("SqlDataLoad: will create %d secondary indexes on the main table",
                              AppBase.appConfig.numIndexes));
 

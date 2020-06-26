@@ -58,6 +58,18 @@ public class SimpleLoadGenerator {
       return ("val:" + key.toString());
     }
 
+    public String getValueStr(int idx, int size) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("val");
+      sb.append(idx);
+      sb.append(":");
+      sb.append(key.toString());
+      for (int i = sb.length(); i < size; ++i) {
+        sb.append("_");
+      }
+      return sb.toString();
+    }
+
     public void verify(String value) {
       if (value == null || !value.equals(getValueStr())) {
         LOG.fatal("Value mismatch for key: " + key.toString() +
