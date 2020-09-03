@@ -13,9 +13,13 @@
 
 package com.yugabyte.sample.apps;
 
+import java.io.FileInputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
@@ -32,17 +36,21 @@ import java.util.stream.Collectors;
 import java.util.zip.Adler32;
 import java.util.zip.Checksum;
 
-import com.datastax.driver.core.ConsistencyLevel;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.EndPoint;
 import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.SimpleStatement;
-import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.JdkSSLOptions;
+import com.datastax.driver.core.PoolingOptions;
+import com.datastax.driver.core.QueryOptions;
+import com.datastax.driver.core.SSLOptions;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
@@ -59,22 +67,11 @@ import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 import com.yugabyte.sample.common.metrics.MetricsTracker;
 import com.yugabyte.sample.common.metrics.MetricsTracker.MetricName;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.KeyStore;
-
-import java.io.FileInputStream;
-
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.YBJedis;
-import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.YBJedis;
 
 /**
  * Abstract base class for all apps. This class does the following:
@@ -591,7 +588,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     LOG.info("Caught Exception: ", e);
     if (e instanceof NoHostAvailableException) {
       NoHostAvailableException ne = (NoHostAvailableException)e;
-      for (Map.Entry<InetSocketAddress,Throwable> entry : ne.getErrors().entrySet()) {
+      for (Map.Entry<EndPoint,Throwable> entry : ne.getErrors().entrySet()) {
         LOG.info("Exception encountered at host " + entry.getKey() + ": ", entry.getValue());
       }
     }
