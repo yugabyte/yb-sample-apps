@@ -275,7 +275,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       cassandra_cluster =
           builder.withLoadBalancingPolicy(getLoadBalancingPolicy())
                  .withPoolingOptions(poolingOptions)
-                 .withQueryOptions(new QueryOptions().setDefaultIdempotence(true))
+                 .withQueryOptions(new QueryOptions()
+                     .setDefaultIdempotence(true)
+                     .setConsistencyLevel(ConsistencyLevel.QUORUM))
                  .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
                  .build();
       LOG.debug("Connected to cluster: " + cassandra_cluster.getClusterName());
