@@ -15,8 +15,10 @@ package com.yugabyte.sample.common;
 
 import java.security.MessageDigest;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -96,8 +98,8 @@ public class SimpleLoadGenerator {
   final Set<Long> failedKeys;
   // Keys that have been written above maxWrittenKey.
   final Set<Long> writtenKeys;
-  // Keys that have been written to and read, currently just used for Updates.
-  final Set<Long> completedKeys;
+  // Keys that have been updated.
+  final Set<Long> updatedKeys;
   // A background thread to track keys written and increment maxWrittenKey.
   Thread writtenKeysTracker;
   // The prefix for the key.
@@ -113,7 +115,7 @@ public class SimpleLoadGenerator {
     this.maxGeneratedKey = new AtomicLong(maxWrittenKey);
     failedKeys = new HashSet<Long>();
     writtenKeys = new HashSet<Long>();
-    completedKeys = new HashSet<Long>();
+    updatedKeys = ConcurrentHashMap.newKeySet();
     writtenKeysTracker = new Thread("Written Keys Tracker") {
         @Override
         public void run() {
@@ -166,9 +168,19 @@ public class SimpleLoadGenerator {
     }
   }
 
-  public void addCompletedKey(Key key) {
+  public int markKeysAsUpdated(List<Key> keys) {
+    int newRows = 0;
+    for (Key key : keys) {
+      if (updatedKeys.add(key.asNumber())) {
+        newRows++;
+      }
+    }
+    return newRows;
+  }
+
+  public void unmarkKeyAsUpdated(Key key) {
     if (key != null) {
-      completedKeys.add(key.asNumber());
+      updatedKeys.remove(key.asNumber());
     }
   }
 
@@ -194,7 +206,7 @@ public class SimpleLoadGenerator {
     return retKey;
   }
 
-  public Key getKeyToRead() {
+  public Key getKey(KeyComparator kc) {
     long maxKey = maxWrittenKey.get();
     if (maxKey < 0) {
       return null;
@@ -203,9 +215,25 @@ public class SimpleLoadGenerator {
     }
     do {
       long key = ThreadLocalRandom.current().nextLong(maxKey);
-      if (!failedKeys.contains(key) && !completedKeys.contains(key))
+      if (kc.isValidKey(key)) {
         return generateKey(key);
+      }
     } while (true);
+  }
+
+  public Key getKeyToRead() {
+    // Find a key that has not failed a write.
+    return getKey((key) -> (!failedKeys.contains(key)));
+  }
+
+  public Key getKeyToUpdate() {
+    // Find a key that has not failed or been updated yet.
+    return getKey((key) -> (!failedKeys.contains(key) && !updatedKeys.contains(key)));
+  }
+
+  public Key getUpdatedKeyToRead() {
+    // Find a key that has not failed and that has been updated.
+    return getKey((key) -> (!failedKeys.contains(key) && updatedKeys.contains(key)));
   }
 
   public long getMaxWrittenKey() {
@@ -222,5 +250,9 @@ public class SimpleLoadGenerator {
 
   public boolean stillLoading() {
     return maxGeneratedKey.get() < endKey - 1;
+  }
+
+  public interface KeyComparator {
+    public boolean isValidKey(long key);
   }
 }

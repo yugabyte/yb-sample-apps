@@ -140,7 +140,7 @@ public class SqlUpdatesWithProcedures extends AppBase {
 
   @Override
   public long doRead() {
-    Key key = getSimpleLoadGenerator().getKeyToRead();
+    Key key = getSimpleLoadGenerator().getUpdatedKeyToRead();
     if (key == null) {
       // There are no keys to read yet.
       return 0;
@@ -162,6 +162,8 @@ public class SqlUpdatesWithProcedures extends AppBase {
 
         // Value has not been updated yet.
         if (rs.getString("v") == null || rs.getString("v").equals(key.getValueStr())) {
+          // Need to remove from updatedKeys.
+          getSimpleLoadGenerator().unmarkKeyAsUpdated(key);
           return 0;
         }
 
@@ -174,8 +176,6 @@ public class SqlUpdatesWithProcedures extends AppBase {
       LOG.fatal("Failed reading value: " + key.getValueStr(), e);
       return 0;
     }
-    // Mark this key as completed.
-    getSimpleLoadGenerator().addCompletedKey(key);
     return 1;
   }
 
@@ -200,7 +200,7 @@ public class SqlUpdatesWithProcedures extends AppBase {
     List<Key> keys = new ArrayList<>(getBatchSize());
     for (int i = 0; i < getBatchSize(); i++) {
       // Get a key that has already been written (will need to implicitly read it to update).
-      Key key = getSimpleLoadGenerator().getKeyToRead();
+      Key key = getSimpleLoadGenerator().getKeyToUpdate();
       if (key == null) {
         if (i == 0) {
           // No more keys to read.
@@ -222,8 +222,8 @@ public class SqlUpdatesWithProcedures extends AppBase {
         statement.setString(2 * i + 2, key.getValueStr() + ":" + System.currentTimeMillis());
       }
       statement.executeUpdate();
-      // All updates went through.
-      result = getBatchSize();
+      // Mark these keys as having been updated successfully.
+      result = getSimpleLoadGenerator().markKeysAsUpdated(keys);
     } catch (Exception e) {
       LOG.fatal("Failed writing keys: " + Arrays.toString(keys.toArray()), e);
     }
