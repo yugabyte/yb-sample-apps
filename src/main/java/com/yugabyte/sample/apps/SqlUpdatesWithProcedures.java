@@ -70,12 +70,12 @@ public class SqlUpdatesWithProcedures extends AppBase {
     // Check that (extra_ required options are set (maxWrittenKey and loadTesterUUID) set.
     if (appConfig.maxWrittenKey <= 0) {
       LOG.fatal("Workload requires option --max_written_key to be set. \n " +
-                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details");
+                "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details");
       System.exit(1);
     }
     if (CmdLineOpts.loadTesterUUID == null) {
       LOG.fatal("Workload requires option --uuid to be set. \n " +
-                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details");
+                "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details");
       System.exit(1);
     }
 
@@ -87,7 +87,7 @@ public class SqlUpdatesWithProcedures extends AppBase {
     if (!tables.next()) {
       LOG.fatal(
           String.format("Could not find the %s table. Did you run SqlInserts first?" +
-                            "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details",
+                        "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details",
                         getTableName()));
       System.exit(1);
     }
