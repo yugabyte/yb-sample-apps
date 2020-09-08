@@ -142,9 +142,6 @@ public class SqlUpdates extends AppBase {
       LOG.fatal("Failed reading value: " + key.getValueStr(), e);
       return 0;
     }
-
-    // Mark this key as completed.
-    getSimpleLoadGenerator().addCompletedKey(key);
     return 1;
   }
 
