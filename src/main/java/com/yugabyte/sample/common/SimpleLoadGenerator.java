@@ -96,6 +96,8 @@ public class SimpleLoadGenerator {
   final Set<Long> failedKeys;
   // Keys that have been written above maxWrittenKey.
   final Set<Long> writtenKeys;
+  // Keys that have been written to and read, currently just used for Updates.
+  final Set<Long> completedKeys;
   // A background thread to track keys written and increment maxWrittenKey.
   Thread writtenKeysTracker;
   // The prefix for the key.
@@ -111,6 +113,7 @@ public class SimpleLoadGenerator {
     this.maxGeneratedKey = new AtomicLong(maxWrittenKey);
     failedKeys = new HashSet<Long>();
     writtenKeys = new HashSet<Long>();
+    completedKeys = new HashSet<Long>();
     writtenKeysTracker = new Thread("Written Keys Tracker") {
         @Override
         public void run() {
@@ -163,6 +166,12 @@ public class SimpleLoadGenerator {
     }
   }
 
+  public void addCompletedKey(Key key) {
+    if (key != null) {
+      completedKeys.add(key.asNumber());
+    }
+  }
+
   // Always returns a non-null key.
   public Key getKeyToWrite() {
     Key retKey = null;
@@ -194,7 +203,7 @@ public class SimpleLoadGenerator {
     }
     do {
       long key = ThreadLocalRandom.current().nextLong(maxKey);
-      if (!failedKeys.contains(key))
+      if (!failedKeys.contains(key) && !completedKeys.contains(key))
         return generateKey(key);
     } while (true);
   }

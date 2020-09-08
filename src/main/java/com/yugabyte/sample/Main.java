@@ -166,6 +166,8 @@ public class Main {
 
       app.createTablesIfNeeded();
 
+      app.createStoredProcedures();
+
       // For 100% read case, do a pre-setup to write a bunch of keys and enable metrics tracking
       // after that.
       if (!cmdLineOpts.getReadOnly() && cmdLineOpts.getNumWriterThreads() == 0) {

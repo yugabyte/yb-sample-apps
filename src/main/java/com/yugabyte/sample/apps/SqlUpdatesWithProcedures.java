@@ -16,8 +16,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import com.yugabyte.sample.common.CmdLineOpts;
@@ -28,8 +28,8 @@ import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 /**
  * This workload writes and reads some random string keys from a postgresql table.
  */
-public class SqlUpdates extends AppBase {
-  private static final Logger LOG = Logger.getLogger(SqlUpdates.class);
+public class SqlUpdatesWithProcedures extends AppBase {
+  private static final Logger LOG = Logger.getLogger(SqlUpdatesWithProcedures.class);
 
   // Static initialization of this workload's config. These are good defaults for getting a decent
   // read dominated workload on a reasonably powered machine. Exact IOPS will of course vary
@@ -61,7 +61,7 @@ public class SqlUpdates extends AppBase {
   // Lock for initializing prepared statement objects.
   private static final Object prepareInitLock = new Object();
 
-  public SqlUpdates() {
+  public SqlUpdatesWithProcedures() {
     buffer = new byte[appConfig.valueSize];
   }
 
@@ -70,12 +70,12 @@ public class SqlUpdates extends AppBase {
     // Check that (extra_ required options are set (maxWrittenKey and loadTesterUUID) set.
     if (appConfig.maxWrittenKey <= 0) {
       LOG.fatal("Workload requires option --max_written_key to be set. \n " +
-                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdates' for more details");
+                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details");
       System.exit(1);
     }
     if (CmdLineOpts.loadTesterUUID == null) {
       LOG.fatal("Workload requires option --uuid to be set. \n " +
-                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdates' for more details");
+                    "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details");
       System.exit(1);
     }
 
@@ -87,7 +87,7 @@ public class SqlUpdates extends AppBase {
     if (!tables.next()) {
       LOG.fatal(
           String.format("Could not find the %s table. Did you run SqlInserts first?" +
-                            "Run 'java -jar yb-sample-apps.jar --help SqlUpdates' for more details",
+                            "Run 'java -jar yb-sample-apps.jar --help SqlUpdatesWithProcedures' for more details",
                         getTableName()));
       System.exit(1);
     }
@@ -96,6 +96,38 @@ public class SqlUpdates extends AppBase {
   public String getTableName() {
     String tableName = appConfig.tableName != null ? appConfig.tableName : DEFAULT_TABLE_NAME;
     return tableName.toLowerCase();
+  }
+
+  @Override
+  public void createStoredProcedures() throws Exception {
+    // Drop previous procedures.
+    getPostgresConnection().createStatement().execute(
+      String.format("DROP PROCEDURE IF EXISTS %s;", getStoredProcedureName()));
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("CREATE PROCEDURE ").append(getStoredProcedureName()).append("(");
+    for (int i = 0; i < getBatchSize(); i++) {
+      if (i > 0) {
+        sb.append(", ");
+      }
+      sb.append("k").append(i).append(" text, v").append(i).append(" text");
+    }
+    sb.append(") AS '");
+    for (int i = 0; i < getBatchSize(); i++) {
+      sb.append("UPDATE ").append(getTableName())
+        .append(" SET v=v").append(i)
+        .append(" WHERE k=k").append(i).append(";");
+    }
+    sb.append("' LANGUAGE sql;");
+    getPostgresConnection().createStatement().execute(sb.toString());
+  }
+
+  public String getStoredProcedureName() {
+    return appConfig.storedProcedureName;
+  }
+
+  public int getBatchSize() {
+    return appConfig.updateBatchSize;
   }
 
   private PreparedStatement getPreparedSelect() throws Exception {
@@ -142,7 +174,6 @@ public class SqlUpdates extends AppBase {
       LOG.fatal("Failed reading value: " + key.getValueStr(), e);
       return 0;
     }
-
     // Mark this key as completed.
     getSimpleLoadGenerator().addCompletedKey(key);
     return 1;
@@ -150,29 +181,51 @@ public class SqlUpdates extends AppBase {
 
   private PreparedStatement getPreparedUpdate() throws Exception {
     if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection().prepareStatement(
-          String.format("UPDATE %s SET v=? WHERE k=?;", getTableName()));
+      StringBuilder sb = new StringBuilder();
+      sb.append("CALL ").append(getStoredProcedureName()).append("(");
+      for (int i = 0; i < getBatchSize(); i++) {
+        if (i > 0) {
+          sb.append(",");
+        }
+        sb.append(" ? , ? ");
+      }
+      sb.append(");");
+      preparedInsert = getPostgresConnection().prepareCall(sb.toString());
     }
     return preparedInsert;
   }
 
   @Override
   public long doWrite(int threadIdx) {
-    // Get a key that has already been written (will need to implicitly read it to update).
-    Key key = getSimpleLoadGenerator().getKeyToRead();
-    if (key == null) {
-      return 0;
+    List<Key> keys = new ArrayList<>(getBatchSize());
+    for (int i = 0; i < getBatchSize(); i++) {
+      // Get a key that has already been written (will need to implicitly read it to update).
+      Key key = getSimpleLoadGenerator().getKeyToRead();
+      if (key == null) {
+        if (i == 0) {
+          // No more keys to read.
+          return 0;
+        }
+        // Still have a few keys left to update, so just duplicate the first key.
+        key = keys.get(0);
+      }
+      keys.add(key);
     }
 
     int result = 0;
     try {
       PreparedStatement statement = getPreparedUpdate();
       // Prefix hashcode to ensure generated keys are random and not sequential.
-      statement.setString(1, key.getValueStr() + ":" + System.currentTimeMillis());
-      statement.setString(2, key.asString());
-      result = statement.executeUpdate();
+      for (int i = 0; i < getBatchSize(); i++) {
+        Key key = keys.get(i);
+        statement.setString(2 * i + 1, key.asString());
+        statement.setString(2 * i + 2, key.getValueStr() + ":" + System.currentTimeMillis());
+      }
+      statement.executeUpdate();
+      // All updates went through.
+      result = getBatchSize();
     } catch (Exception e) {
-      LOG.fatal("Failed writing key: " + key.asString(), e);
+      LOG.fatal("Failed writing keys: " + Arrays.toString(keys.toArray()), e);
     }
     return result;
   }
@@ -181,16 +234,19 @@ public class SqlUpdates extends AppBase {
   public List<String> getWorkloadDescription() {
     return Arrays.asList(
         "Sample key-value app built on PostgreSQL with concurrent readers and writers. ",
+        "Similar to the SqlUpdates workload, except that this workload uses SQL procedures",
+        "to batch update statements together.",
         "The app updates existing string keys loaded by a run of the SqlInserts sample app.",
         "There are multiple readers and writers that update these keys and read them",
         "indefinitely, with the readers query the keys by the associated values that are",
         "indexed. Note that the number of reads and writes to perform can be specified as",
         "a parameter.",
-        "It requires two additional options: ",
+        "It requires three additional options: ",
         "   1. --max_written_key: set to the max key written by the SqlInserts app run.",
         "   2. --uuid: set to the uuid to the uuid prefix used by SqlInserts (recommended ",
         "     to (re)run SqlInserts with the '--uuid' option set, otherwise select from the ",
         "    " + getTableName() + " table to find out the used uuid.",
+        "   3. --update_batch_size: set to number of updates to perform per procedure call.",
         "Example, run SqlInserts before as follows:",
         "java -jar yb-sample-apps.jar --workload SqlInserts --nodes 127.0.0.1:5433 \\",
         "                             --uuid 'ffffffff-ffff-ffff-ffff-ffffffffffff' \\",
@@ -202,8 +258,10 @@ public class SqlUpdates extends AppBase {
   @Override
   public List<String> getWorkloadRequiredArguments() {
     return Arrays.asList(
-        "--uuid 'ffffffff-ffff-ffff-ffff-ffffffffffff'",
-        "--max_written_key 100000");
+      "--uuid 'ffffffff-ffff-ffff-ffff-ffffffffffff'",
+      "--update_batch_size " + appConfig.updateBatchSize,
+      "--stored_procedure_name " + appConfig.storedProcedureName,
+      "--max_written_key 100000");
   }
 
   @Override

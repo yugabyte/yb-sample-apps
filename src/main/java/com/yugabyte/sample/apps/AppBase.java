@@ -543,6 +543,12 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   /**
+   * The apps extending this base should create any stored procedures when this method is called.
+   * @throws java.lang.Exception in case of CREATE PROCEDURE statement errors.
+   */
+  public void createStoredProcedures() throws Exception {}
+
+  /**
    * Returns the redis server that we are currently talking to.
    * Used for debug purposes. Returns "" for non-redis workloads.
    * @return String format of redis server that we are talking t.
