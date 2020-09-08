@@ -98,7 +98,7 @@ public class SimpleLoadGenerator {
   final Set<Long> failedKeys;
   // Keys that have been written above maxWrittenKey.
   final Set<Long> writtenKeys;
-  // Keys that have been updated.
+  // Keys that have been updated, currently only used for SqlUpdatesWithProcedures.
   final Set<Long> updatedKeys;
   // A background thread to track keys written and increment maxWrittenKey.
   Thread writtenKeysTracker;

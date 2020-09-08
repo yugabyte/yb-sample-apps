@@ -235,7 +235,7 @@ public class SqlUpdatesWithProcedures extends AppBase {
     return Arrays.asList(
         "Sample key-value app built on PostgreSQL with concurrent readers and writers. ",
         "Similar to the SqlUpdates workload, except that this workload uses SQL procedures",
-        "to batch update statements together.",
+        "to batch update statements together, and does not repeat updates to the same key.",
         "The app updates existing string keys loaded by a run of the SqlInserts sample app.",
         "There are multiple readers and writers that update these keys and read them",
         "indefinitely, with the readers query the keys by the associated values that are",
