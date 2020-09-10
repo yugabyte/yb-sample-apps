@@ -208,7 +208,7 @@ public class SimpleLoadGenerator {
     return retKey;
   }
 
-  public Key getKey(KeyComparator kc, int maxAttempts) {
+  public Key getKey(KeyComparator kc, long maxAttempts) {
     long maxKey = maxWrittenKey.get();
     if (maxKey < 0) {
       return null;
@@ -231,7 +231,7 @@ public class SimpleLoadGenerator {
 
   public Key getKeyToUpdate() {
     // Find a unupdated key that has not failed or been updated yet.
-    Key key = getKey((k) -> (!failedKeys.contains(k) && !updatedKeys.contains(k)), 100);
+    Key key = getKey((k) -> (!failedKeys.contains(k) && !updatedKeys.contains(k)), maxWrittenKey.get());
     if (key != null && updatedKeys.add(key.asNumber())) {
       return key;
     }
@@ -241,7 +241,7 @@ public class SimpleLoadGenerator {
 
   public Key getUpdatedKeyToRead() {
     // Find a key that has not failed and that has been updated.
-    return getKey((key) -> (!failedKeys.contains(key) && updatedKeys.contains(key)), 100);
+    return getKey((key) -> (!failedKeys.contains(key) && updatedKeys.contains(key)), maxWrittenKey.get());
   }
 
   public long getMaxWrittenKey() {
