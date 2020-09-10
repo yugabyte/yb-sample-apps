@@ -178,9 +178,11 @@ public class SimpleLoadGenerator {
     return newRows;
   }
 
-  public void unmarkKeyAsUpdated(Key key) {
-    if (key != null) {
-      updatedKeys.remove(key.asNumber());
+  public void unmarkKeysAsUpdated(List<Key> keys) {
+    for (Key key : keys) {
+      if (key != null) {
+        updatedKeys.remove(key.asNumber());
+      }
     }
   }
 
@@ -206,7 +208,7 @@ public class SimpleLoadGenerator {
     return retKey;
   }
 
-  public Key getKey(KeyComparator kc) {
+  public Key getKey(KeyComparator kc, int maxAttempts) {
     long maxKey = maxWrittenKey.get();
     if (maxKey < 0) {
       return null;
@@ -218,22 +220,28 @@ public class SimpleLoadGenerator {
       if (kc.isValidKey(key)) {
         return generateKey(key);
       }
-    } while (true);
+    } while (maxAttempts < 0 || maxAttempts-- != 0);
+    return null;
   }
 
   public Key getKeyToRead() {
     // Find a key that has not failed a write.
-    return getKey((key) -> (!failedKeys.contains(key)));
+    return getKey((key) -> (!failedKeys.contains(key)), -1);
   }
 
   public Key getKeyToUpdate() {
-    // Find a key that has not failed or been updated yet.
-    return getKey((key) -> (!failedKeys.contains(key) && !updatedKeys.contains(key)));
+    // Find a unupdated key that has not failed or been updated yet.
+    Key key = getKey((k) -> (!failedKeys.contains(k) && !updatedKeys.contains(k)), 100);
+    if (key != null && updatedKeys.add(key.asNumber())) {
+      return key;
+    }
+    // Key was taken, just return null.
+    return null;
   }
 
   public Key getUpdatedKeyToRead() {
     // Find a key that has not failed and that has been updated.
-    return getKey((key) -> (!failedKeys.contains(key) && updatedKeys.contains(key)));
+    return getKey((key) -> (!failedKeys.contains(key) && updatedKeys.contains(key)), 100);
   }
 
   public long getMaxWrittenKey() {

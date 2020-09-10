@@ -18,6 +18,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.yugabyte.sample.common.CmdLineOpts;
@@ -163,7 +164,7 @@ public class SqlUpdatesWithProcedures extends AppBase {
         // Value has not been updated yet.
         if (rs.getString("v") == null || rs.getString("v").equals(key.getValueStr())) {
           // Need to remove from updatedKeys.
-          getSimpleLoadGenerator().unmarkKeyAsUpdated(key);
+          getSimpleLoadGenerator().unmarkKeysAsUpdated(Collections.singletonList(key));
           return 0;
         }
 
@@ -197,22 +198,24 @@ public class SqlUpdatesWithProcedures extends AppBase {
 
   @Override
   public long doWrite(int threadIdx) {
+    int result = 0;
     List<Key> keys = new ArrayList<>(getBatchSize());
     for (int i = 0; i < getBatchSize(); i++) {
-      // Get a key that has already been written (will need to implicitly read it to update).
+      // Get a new key that to update.
       Key key = getSimpleLoadGenerator().getKeyToUpdate();
       if (key == null) {
         if (i == 0) {
           // No more keys to read.
           return 0;
         }
-        // Still have a few keys left to update, so just duplicate the first key.
+        // Have less than getBatchSize() number of keys left to update, so just duplicate the first key.
         key = keys.get(0);
+      } else {
+        result++;
       }
       keys.add(key);
     }
 
-    int result = 0;
     try {
       PreparedStatement statement = getPreparedUpdate();
       // Prefix hashcode to ensure generated keys are random and not sequential.
@@ -222,9 +225,10 @@ public class SqlUpdatesWithProcedures extends AppBase {
         statement.setString(2 * i + 2, key.getValueStr() + ":" + System.currentTimeMillis());
       }
       statement.executeUpdate();
-      // Mark these keys as having been updated successfully.
-      result = getSimpleLoadGenerator().markKeysAsUpdated(keys);
     } catch (Exception e) {
+      // Allow other threads to update these keys.
+      getSimpleLoadGenerator().unmarkKeysAsUpdated(keys);
+      result = 0;
       LOG.fatal("Failed writing keys: " + Arrays.toString(keys.toArray()), e);
     }
     return result;
