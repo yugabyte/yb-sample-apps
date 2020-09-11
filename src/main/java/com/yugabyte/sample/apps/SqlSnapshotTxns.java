@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.yugabyte.sample.apps.AppBase.TableOp;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 import static java.sql.Connection.TRANSACTION_REPEATABLE_READ;
@@ -75,7 +76,7 @@ public class SqlSnapshotTxns extends AppBase {
   }
 
   @Override
-  public void createTablesIfNeeded() throws Exception {
+  public void createTablesIfNeeded(TableOp tableOp) throws Exception {
     Connection connection = getPostgresConnection();
     connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
     connection.setAutoCommit(false);

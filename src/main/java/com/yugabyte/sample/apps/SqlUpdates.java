@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.yugabyte.sample.apps.AppBase.TableOp;
 import com.yugabyte.sample.common.CmdLineOpts;
 import org.apache.log4j.Logger;
 
@@ -66,7 +67,7 @@ public class SqlUpdates extends AppBase {
   }
 
   @Override
-  public void createTablesIfNeeded() throws Exception {
+  public void createTablesIfNeeded(TableOp tableOp) throws Exception {
     // Check that (extra_ required options are set (maxWrittenKey and loadTesterUUID) set.
     if (appConfig.maxWrittenKey <= 0) {
       LOG.fatal("Workload requires option --max_written_key to be set. \n " +

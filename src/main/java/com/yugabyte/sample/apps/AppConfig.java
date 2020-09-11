@@ -13,6 +13,8 @@
 
 package com.yugabyte.sample.apps;
 
+import com.yugabyte.sample.apps.AppBase.TableOp;
+
 /**
  * This class encapsulates the various configuration parameters for the various apps.
  */
@@ -125,8 +127,8 @@ public class AppConfig {
   // Name of the default username for postgres.
   public String defaultPostgresUsername = "postgres";
 
-  // Does the table need to be dropped.
-  public boolean shouldDropTable = false;
+  // Should we drop / truncate table.
+  public AppBase.TableOp tableOp = TableOp.NoOp;
 
   // Skip running workloads. These might be operations independent of workload.
   // For example, if we only need to drop a table, or any such DDL/non-CRUD op.

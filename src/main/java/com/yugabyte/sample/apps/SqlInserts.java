@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.yugabyte.sample.apps.AppBase.TableOp;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
@@ -73,16 +74,23 @@ public class SqlInserts extends AppBase {
   }
 
   @Override
-  public void createTablesIfNeeded() throws Exception {
+  public void createTablesIfNeeded(TableOp tableOp) throws Exception {
     Connection connection = getPostgresConnection();
 
     // (Re)Create the table (every run should start cleanly with an empty table).
-    // connection.createStatement().execute(
-    //     String.format("DROP TABLE IF EXISTS %s", getTableName()));
-    LOG.info("Dropping any table(s) left from previous runs if any");
+    if (tableOp.equals(TableOp.DropTable)) {
+        connection.createStatement().execute(
+            String.format("DROP TABLE IF EXISTS %s", getTableName()));
+        LOG.info("Dropping any table(s) left from previous runs if any");
+    }
     connection.createStatement().execute(
         String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text)", getTableName()));
     LOG.info(String.format("Created table: %s", getTableName()));
+    if (tableOp.equals(TableOp.TruncateTable)) {
+    	connection.createStatement().execute(
+          String.format("TRUNCATE TABLE %s", getTableName()));
+      LOG.info(String.format("Truncated table: %s", getTableName()));
+    }
   }
 
   public String getTableName() {
