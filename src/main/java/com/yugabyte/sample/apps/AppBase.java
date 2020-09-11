@@ -118,6 +118,12 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   // YCQL keyspace name.
   public static String keyspace = "ybdemo_keyspace";
 
+  public enum TableOp {
+    NoOp,
+    DropTable,
+    TruncateTable,
+  }
+
   //////////// Helper methods to return the client objects (Redis, Cassandra, etc). ////////////////
 
   /**
@@ -523,9 +529,10 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * The apps extending this base should create all the necessary tables in this method.
+   * @param tableOp operation on table, e.g. drop the table at beginning of application launch
    * @throws java.lang.Exception in case of CREATE statement errors.
    */
-  public void createTablesIfNeeded() throws Exception {
+  public void createTablesIfNeeded(TableOp tableOp) throws Exception {
     for (String create_stmt : getCreateTableStatements()) {
       Session session = getCassandraClient();
       // consistency level of one to allow cross DC requests.

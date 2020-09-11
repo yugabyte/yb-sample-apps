@@ -235,7 +235,8 @@ public class MultiTableMultiIndexInserts extends AppBase {
     LOG.info("Dropped all tables");
   }
 
-  public void createTablesIfNeeded() throws Exception {
+  @Override
+  public void createTablesIfNeeded(TableOp dropTable) throws Exception {
     dropTable();
     Connection connection = getPostgresConnection();
     Statement statement = connection.createStatement();

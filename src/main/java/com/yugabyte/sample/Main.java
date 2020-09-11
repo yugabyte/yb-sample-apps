@@ -164,7 +164,7 @@ public class Main {
         System.exit(0);
       }
 
-      app.createTablesIfNeeded();
+      app.createTablesIfNeeded(app.appConfig.tableOp);
 
       // For 100% read case, do a pre-setup to write a bunch of keys and enable metrics tracking
       // after that.

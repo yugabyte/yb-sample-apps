@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 
 // Import * so we can list the sample apps.
 import com.yugabyte.sample.apps.*;
+import com.yugabyte.sample.apps.AppBase.TableOp;
 
 /**
  * This is a helper class to parse the user specified command-line options if they were specified,
@@ -427,7 +428,7 @@ public class CmdLineOpts {
   }
 
   public boolean shouldDropTable() {
-    return AppBase.appConfig.shouldDropTable;
+    return AppBase.appConfig.tableOp == TableOp.DropTable;
   }
 
   public boolean skipWorkload() {
@@ -531,9 +532,20 @@ public class CmdLineOpts {
       LOG.error("Both create and drop table options cannot be provided together.");
       System.exit(1);
     }
+    if (cmd.hasOption("keep_table")) {
+      if (cmd.hasOption("drop_table_name")) {
+        LOG.error("Both keep and drop table options cannot be provided together.");
+        System.exit(1);
+      }
+      AppBase.appConfig.tableOp = TableOp.NoOp;
+    }
     if (cmd.hasOption("create_table_name")) {
       AppBase.appConfig.tableName = cmd.getOptionValue("create_table_name");
       LOG.info("Create table name: " + AppBase.appConfig.tableName);
+    }
+    if (cmd.hasOption("truncate")) {
+      AppBase.appConfig.tableOp = TableOp.TruncateTable;
+      LOG.info("Going to truncate table");
     }
     if (cmd.hasOption("default_postgres_database")) {
       AppBase.appConfig.defaultPostgresDatabase = cmd.getOptionValue("default_postgres_database");
@@ -542,7 +554,7 @@ public class CmdLineOpts {
     if (cmd.hasOption("drop_table_name")) {
       AppBase.appConfig.tableName = cmd.getOptionValue("drop_table_name");
       LOG.info("Drop table name: " + AppBase.appConfig.tableName);
-      AppBase.appConfig.shouldDropTable = true;
+      AppBase.appConfig.tableOp = TableOp.DropTable;
     }
     LOG.info("Num unique keys to insert: " + AppBase.appConfig.numUniqueKeysToWrite);
     LOG.info("Num keys to update: " +
@@ -596,9 +608,11 @@ public class CmdLineOpts {
     options.addOption("create_table_name", true, "The name of the CQL table to create.");
     options.addOption("default_postgres_database", true, "The name of the default postgres db.");
     options.addOption("drop_table_name", true, "The name of the CQL table to drop.");
+    options.addOption("truncate", false, "Whether to truncate the table at the beginning.");
     options.addOption("read_only", false, "Read-only workload. " +
         "Values must have been written previously and uuid must be provided. " +
         "num_threads_write will be ignored.");
+    options.addOption("keep_table", false, "Keep the table at the beginning of application launch");
     options.addOption("local_reads", false, "Use consistency ONE for reads.");
     options.addOption("num_threads", true, "The total number of threads.");
     options.addOption("num_threads_read", true, "The number of threads that perform reads.");
