@@ -67,7 +67,7 @@ public class SqlUpdatesWithProcedures extends AppBase {
   }
 
   @Override
-  public void createTablesIfNeeded() throws Exception {
+  public void createTablesIfNeeded(TableOp tableOp) throws Exception {
     // Check that (extra_ required options are set (maxWrittenKey and loadTesterUUID) set.
     if (appConfig.maxWrittenKey <= 0) {
       LOG.fatal("Workload requires option --max_written_key to be set. \n " +
