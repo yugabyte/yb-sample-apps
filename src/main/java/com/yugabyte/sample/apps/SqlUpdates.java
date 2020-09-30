@@ -129,10 +129,7 @@ public class SqlUpdates extends AppBase {
         }
         LOG.debug("Read key: " + key.toString());
 
-        // Value has not been updated yet.
-        if (rs.getString("v") == null || rs.getString("v").equals(key.getValueStr())) {
-          return 0;
-        }
+        key.verify(rs.getString("v"));
 
         if (rs.next()) {
           LOG.error("Read key: " + key.asString() + " expected 1 row in result, got more");
