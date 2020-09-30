@@ -369,17 +369,6 @@ public class CmdLineOpts {
                              AppBase.appConfig.numConsecutiveRowsWithSameFk));
     }
 
-    if (appName.equals(SqlUpdatesWithProcedures.class.getSimpleName())) {
-      if (commandLine.hasOption("update_batch_size")) {
-        AppBase.appConfig.updateBatchSize =
-                Integer.parseInt(commandLine.getOptionValue("update_batch_size"));
-      }
-
-      if (commandLine.hasOption("stored_procedure_name")) {
-        AppBase.appConfig.storedProcedureName = commandLine.getOptionValue("stored_procedure_name");
-      }
-    }
-
   }
 
   /**
@@ -776,13 +765,6 @@ public class CmdLineOpts {
 
     options.addOption("num_consecutive_rows_with_same_fk", true,
                       "[SqlDataLoad] Number of secondary indexes on the target table.");
-
-    // Options for SqlUpdatesWithProcedures.
-    options.addOption("update_batch_size", true,
-                      "[SqlUpdatesWithProcedures] Number of updates per procedure call.");
-
-    options.addOption("stored_procedure_name", true,
-                      "[SqlUpdatesWithProcedures] Name of stored procedure call to create and use.");
 
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:
