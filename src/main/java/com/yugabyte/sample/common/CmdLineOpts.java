@@ -314,6 +314,13 @@ public class CmdLineOpts {
     if (commandLine.hasOption("username")) {
       AppBase.appConfig.dbUsername = commandLine.getOptionValue("username");
     }
+    if (commandLine.hasOption("ysql_cert")) {
+      AppBase.appConfig.ysqlCert = commandLine.getOptionValue("ysql_cert");
+    }
+    if (commandLine.hasOption("ysql_key")) {
+      AppBase.appConfig.ysqlKey = commandLine.getOptionValue("ysql_Key");
+    }
+    
     if (commandLine.hasOption("password")) {
       if (!commandLine.hasOption("username")) {
         LOG.error("--password requires --username to be set");
@@ -325,8 +332,8 @@ public class CmdLineOpts {
       AppBase.appConfig.concurrentClients = Integer.parseInt(
           commandLine.getOptionValue("concurrent_clients"));
     }
-    if (commandLine.hasOption("ssl_cert")) {
-      AppBase.appConfig.sslCert = commandLine.getOptionValue("ssl_cert");
+    if (commandLine.hasOption("ycql_cert")) {
+      AppBase.appConfig.ycqlCert = commandLine.getOptionValue("ycql_cert");
     }
 
     if (commandLine.hasOption("num_indexes")) {
@@ -651,8 +658,12 @@ public class CmdLineOpts {
             "If this option is set, the --username option is required.");
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
-    options.addOption("ssl_cert", true,
-      "Use an SSL connection while connecting to YugaByte.");
+    options.addOption("ycql_cert", true,
+        "Use an SSL connection while connecting to YugaByte.");
+    options.addOption("ysql_cert", true,
+        "Path to the certificate file for SSL connection while connecting to YugaByte Postgres Database.");
+    options.addOption("ysql_key", true,
+        "Path to the key file for SSL connection while connecting to YugaByte Postgres Database.");
     options.addOption("batch_size", true,
                       "Number of keys to write in a batch (for apps that support batching).");
 

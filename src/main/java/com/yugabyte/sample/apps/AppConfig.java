@@ -168,11 +168,17 @@ public class AppConfig {
   // Password to connect to the DB.
   public String dbPassword = null;
 
+  // The path to the certificate to be used for the SSL connection to Postgres.
+  public String ysqlCert = null;
+
+  // The path to the key to be used for the SSL connection to Postgres.
+  public String ysqlKey = null;
+
   // The number of client connections to establish to each host in the YugaByte DB cluster.
   public int concurrentClients = 4;
 
   // The path to the certificate to be used for the SSL connection.
-  public String sslCert = null;
+  public String ycqlCert = null;
   // Number of devices to simulate data for CassandraEventData workload
   public int num_devices = 100;
   // Number of Event Types per device to simulate data for CassandraEventData workload
