@@ -369,6 +369,17 @@ public class CmdLineOpts {
                              AppBase.appConfig.numConsecutiveRowsWithSameFk));
     }
 
+    if (appName.equals(SqlGeoPartitionedTable.class.getSimpleName())) {
+
+      if (commandLine.hasOption("num_partitions")) {
+        AppBase.appConfig.numPartitions =
+                Integer.parseInt(commandLine.getOptionValue("num_partitions"));
+      }
+      LOG.info(String.format("SqlGeoPartitionedTable: will use %d partitions",
+                             AppBase.appConfig.numPartitions));
+    }
+
+
   }
 
   /**
@@ -765,6 +776,9 @@ public class CmdLineOpts {
 
     options.addOption("num_consecutive_rows_with_same_fk", true,
                       "[SqlDataLoad] Number of secondary indexes on the target table.");
+
+    options.addOption("num_partitions", true,
+                      "[SqlGeoPartitionedTable] Number of partitions to create.");
 
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:

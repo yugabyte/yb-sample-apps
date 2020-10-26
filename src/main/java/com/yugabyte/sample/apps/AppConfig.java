@@ -185,4 +185,6 @@ public class AppConfig {
   public int numForeignKeyTableRows = 1000; // Only relevant if num_foreign_keys > 0.
   public int numConsecutiveRowsWithSameFk = 500; // Only relevant if num_foreign_keys > 0.
 
+  // Configurations for SqlGeoPartitionedTable workload.
+  public int numPartitions = 2;
 }
