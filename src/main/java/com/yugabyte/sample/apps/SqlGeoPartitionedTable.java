@@ -79,7 +79,7 @@ public class SqlGeoPartitionedTable extends AppBase {
     try (Connection connection = getPostgresConnection();
          Statement statement = connection.createStatement()) {
 
-      // (Re)Create the table (every run should start cleanly with an empty table).
+      // Drop the table if requested.
       if (tableOp.equals(TableOp.DropTable)) {
         statement.execute(String.format("DROP TABLE IF EXISTS %s", getTableName()));
         LOG.info("Dropping any table(s) left from previous runs if any");

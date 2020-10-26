@@ -370,7 +370,6 @@ public class CmdLineOpts {
     }
 
     if (appName.equals(SqlGeoPartitionedTable.class.getSimpleName())) {
-
       if (commandLine.hasOption("num_partitions")) {
         AppBase.appConfig.numPartitions =
                 Integer.parseInt(commandLine.getOptionValue("num_partitions"));
