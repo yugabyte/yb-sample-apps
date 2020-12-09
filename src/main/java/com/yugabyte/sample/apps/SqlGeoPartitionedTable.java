@@ -159,7 +159,8 @@ public class SqlGeoPartitionedTable extends AppBase {
         }
       }
     } catch (Exception e) {
-      LOG.fatal("Failed reading value: " + key.getValueStr(), e);
+      LOG.info("Failed reading value: " + key.getValueStr(), e);
+      preparedSelect = null;
       return 0;
     }
     return 1;
@@ -194,7 +195,8 @@ public class SqlGeoPartitionedTable extends AppBase {
       getSimpleLoadGenerator().recordWriteSuccess(key);
     } catch (Exception e) {
       getSimpleLoadGenerator().recordWriteFailure(key);
-      LOG.fatal("Failed writing key: " + key.asString(), e);
+      LOG.info("Failed writing key: " + key.asString(), e);
+      preparedInsert = null;
     }
     return result;
   }

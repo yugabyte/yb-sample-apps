@@ -197,7 +197,10 @@ public class SqlForeignKeysAndJoins extends AppBase {
         LOG.debug("Got " + count + " orders for user : " + key.toString());
       }
     } catch (Exception e) {
-      LOG.fatal("Failed reading value: " + key.getValueStr(), e);
+      LOG.info("Failed reading value: " + key.getValueStr(), e);
+      synchronized (prepareInitLock) {
+        preparedSelect = null;
+      }
       return 0;
     }
     return 1;
@@ -263,7 +266,10 @@ public class SqlForeignKeysAndJoins extends AppBase {
       return 1;
     } catch (Exception e) {
       getSimpleLoadGenerator().recordWriteFailure(key);
-      LOG.fatal("Failed writing key: " + key.asString(), e);
+      LOG.info("Failed writing key: " + key.asString(), e);
+      synchronized (prepareInitLock) {
+        preparedInsertUser = null;
+      }
     }
     return 0;
   }
@@ -289,7 +295,10 @@ public class SqlForeignKeysAndJoins extends AppBase {
       return 1;
     } catch (Exception e) {
       getSimpleLoadGenerator().recordWriteFailure(key);
-      LOG.fatal("Failed writing key: " + key.asString(), e);
+      LOG.info("Failed writing key: " + key.asString(), e);
+      synchronized (prepareInitLock) {
+        preparedInsertOrder = null;
+      }
     }
     return 0;
   }

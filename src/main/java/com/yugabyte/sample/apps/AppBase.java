@@ -151,24 +151,43 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     return getPostgresConnection(database, appConfig.dbUsername, appConfig.dbPassword);
   }
 
+  // Returns false if the sleep is interrupted
+  static boolean sleep(int durationMs) {
+  	try {
+      Thread.sleep(durationMs);
+    } catch (InterruptedException ie) {
+  	  return false;
+    }
+  	return true;
+  }
+
   protected Connection getPostgresConnection(String database, String username, String password) throws Exception {
     Class.forName("org.postgresql.Driver");
-    ContactPoint contactPoint = getRandomContactPoint();
-    Properties props = new Properties();
-    props.setProperty("user", username);
-    if (password != null) {
-      props.setProperty("password", password);
-    }
-    props.setProperty("sslmode", "disable");
-    props.setProperty("reWriteBatchedInserts", "true");
-    if (appConfig.localReads) {
-      props.setProperty("options", "-c yb_read_from_followers=true");
-    }
+    do {
+      try {
+        ContactPoint contactPoint = getRandomContactPoint();
+        Properties props = new Properties();
+        props.setProperty("user", username);
+        if (password != null) {
+          props.setProperty("password", password);
+        }
+        props.setProperty("sslmode", "disable");
+        props.setProperty("reWriteBatchedInserts", "true");
+        if (appConfig.localReads) {
+          props.setProperty("options", "-c yb_read_from_followers=true");
+        }
 
-    String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
-                                                                    contactPoint.getPort(),
-                                                                    database);
-    return DriverManager.getConnection(connectStr, props);
+        String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
+                                                                        contactPoint.getPort(),
+                                                                        database);
+        Connection connection = DriverManager.getConnection(connectStr, props);
+        return connection;
+      } catch (Exception e) {
+        LOG.info("Going to retrieve connection again: " + e.getMessage());
+        if (!sleep(2000)) return null;
+        continue;
+      }
+    } while (true);
   }
 
   public void initializeConnectionsAndStatements(int numThreads) { }

@@ -195,7 +195,8 @@ public class SqlDataLoad extends AppBase {
                 }
             }
         } catch (Exception e) {
-            LOG.fatal("Failed reading value: " + key.getValueStr(), e);
+            LOG.info("Failed reading value: " + key.getValueStr(), e);
+            preparedSelect = null;
             return 0;
         }
         return 1;
@@ -259,7 +260,8 @@ public class SqlDataLoad extends AppBase {
             for (Key key : keys) {
                 getSimpleLoadGenerator().recordWriteFailure(key);
             }
-            LOG.fatal("Failed write with error: " + e.getMessage());
+            LOG.info("Failed write with error: " + e.getMessage());
+            preparedInsert = null;
         }
         return keys.size();
     }

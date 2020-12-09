@@ -137,7 +137,8 @@ public class SqlUpdates extends AppBase {
         }
       }
     } catch (Exception e) {
-      LOG.fatal("Failed reading value: " + key.getValueStr(), e);
+      LOG.info("Failed reading value: " + key.getValueStr(), e);
+      preparedSelect = null;
       return 0;
     }
     return 1;
@@ -167,7 +168,8 @@ public class SqlUpdates extends AppBase {
       statement.setString(2, key.asString());
       result = statement.executeUpdate();
     } catch (Exception e) {
-      LOG.fatal("Failed writing key: " + key.asString(), e);
+      LOG.info("Failed writing key: " + key.asString(), e);
+      preparedInsert = null;
     }
     return result;
   }

@@ -133,7 +133,8 @@ public class SqlSnapshotTxns extends AppBase {
         }
       }
     } catch (Exception e) {
-      LOG.fatal("Failed reading value: " + key.getValueStr(), e);
+      LOG.info("Failed reading value: " + key.getValueStr(), e);
+      preparedSelect = null;
       return 0;
     }
     return 1;
@@ -172,7 +173,8 @@ public class SqlSnapshotTxns extends AppBase {
       return 1;
     } catch (Exception e) {
       getSimpleLoadGenerator().recordWriteFailure(key);
-      LOG.fatal("Failed writing key: " + key.asString(), e);
+      LOG.info("Failed writing key: " + key.asString(), e);
+      preparedInsert = null;
     }
     return 0;
   }
