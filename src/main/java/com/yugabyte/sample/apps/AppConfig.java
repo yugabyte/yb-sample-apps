@@ -187,4 +187,10 @@ public class AppConfig {
 
   // Configurations for SqlGeoPartitionedTable workload.
   public int numPartitions = 2;
+
+  // Stats I/O options.
+  public String statsOutputDir = null;
+  public String statsDirBefore = null;
+  public String statsDirAfter = null;
+  public String statsMetricName = null;
 }

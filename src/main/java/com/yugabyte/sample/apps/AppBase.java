@@ -39,6 +39,9 @@ import java.util.zip.Checksum;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
+import com.yugabyte.sample.common.metrics.ComparableStatsIO;
+import com.yugabyte.sample.common.metrics.ComparableStatsData;
+import com.yugabyte.sample.common.metrics.Observation;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
@@ -79,7 +82,7 @@ import redis.clients.jedis.YBJedis;
  *   - Has a metrics tracker object, and internally tracks reads and writes.
  *   - Has the abstract methods that are implemented by the various apps.
  */
-public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
+public abstract class AppBase implements MetricsTracker.StatusMessageAppender, MetricsTracker.StatsOutputHandler {
   private static final Logger LOG = Logger.getLogger(AppBase.class);
 
   // Number of uniques keys to insert by default.
@@ -611,6 +614,19 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     sb.append("Uptime: " + (System.currentTimeMillis() - workloadStartTime) + " ms | ");
   }
 
+  @Override
+  public void outputStats(MetricName metricName, ComparableStatsData data) {
+    if (appConfig.statsOutputDir != null) {
+      try {
+        ComparableStatsIO io = new ComparableStatsIO(appConfig.statsOutputDir);
+        io.write(metricName.name(), data);
+      } catch (Exception e) {
+        LOG.error("Error writing stats data.", e);
+      }
+    }
+
+  }
+
   /**
    * Report exception.
    *
@@ -671,6 +687,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         metricsTracker.createMetric(MetricName.Read);
         metricsTracker.createMetric(MetricName.Write);
         metricsTracker.registerStatusMessageAppender(this);
+        metricsTracker.registerStatsOutputHandler(this);
         metricsTracker.start();
       }
     }
@@ -743,7 +760,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     if (count > 0) {
       numKeysWritten.addAndGet(count);
       if (metricsTracker != null) {
-        metricsTracker.getMetric(MetricName.Write).accumulate(count, endTs - startTs);
+        Observation o = new Observation(count, startTs, endTs);
+        metricsTracker.getMetric(MetricName.Write).observe(o);
       }
     }
   }
@@ -768,7 +786,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     if (count > 0) {
       numKeysRead.addAndGet(count);
       if (metricsTracker != null) {
-        metricsTracker.getMetric(MetricName.Read).accumulate(count, endTs - startTs);
+        Observation o = new Observation(count, startTs, endTs);
+        metricsTracker.getMetric(MetricName.Read).observe(o);
       }
     }
   }

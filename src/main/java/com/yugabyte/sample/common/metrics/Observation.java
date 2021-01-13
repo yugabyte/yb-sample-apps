@@ -13,25 +13,22 @@
 
 package com.yugabyte.sample.common.metrics;
 
-public class Metric {
-  private LoggableStatsMetric loggableStatsMetric;
-  private ComparableStatsMetric comparableStatsMetric;
+public class Observation {
+    private long count;
+    private long startTsNanos;
+    private long endTsNanos;
 
-  public Metric(String name) {
-    loggableStatsMetric = new LoggableStatsMetric(name);
-    comparableStatsMetric = new ComparableStatsMetric();
-  }
+    public Observation(long count, long startTsNanos, long endTsNanos) {
+        this.count = count;
+        this.startTsNanos = startTsNanos;
+        this.endTsNanos = endTsNanos;
+    }
 
-  public synchronized void observe(Observation o) {
-    loggableStatsMetric.accumulate(o.getCount(), o.getLatencyNanos());
-    comparableStatsMetric.observe(o);
-  }
+    public long getLatencyNanos() { return endTsNanos - startTsNanos; }
 
-  public String getMetricsAndReset() {
-    return loggableStatsMetric.getMetricsAndReset();
-  }
+    public long getCount() { return count; }
 
-  public ComparableStatsData getStats() {
-    return comparableStatsMetric.getData();
-  }
+    public long getStartTsNanos() { return startTsNanos; }
+
+    public long getEndTsNanos() { return endTsNanos; }
 }

@@ -124,6 +124,22 @@ public class CmdLineOpts {
     }
     LOG.info("Run time (seconds): " + AppBase.appConfig.runTimeSeconds);
 
+    if (appName.equals(CompareStats.class.getSimpleName())) {
+      AppBase.appConfig.statsDirBefore = commandLine.getOptionValue("stats_dir_before");
+      AppBase.appConfig.statsDirAfter = commandLine.getOptionValue("stats_dir_after");
+      if (AppBase.appConfig.statsDirBefore == null || AppBase.appConfig.statsDirAfter == null) {
+        LOG.fatal(
+                "Must specify both stats_file_before and stats_file_after to run " + CompareStats.class.getSimpleName());
+      }
+      AppBase.appConfig.statsMetricName = commandLine.getOptionValue("stats_metric_name");
+      if (AppBase.appConfig.statsMetricName == null) {
+        LOG.fatal("Must specify stats_metric_name");
+      }
+      return;
+    } else if (!commandLine.hasOption("nodes")) {
+      throw new RuntimeException("Must specify --nodes option.");
+    }
+
     // Get the proxy contact points.
     List<String> hostPortList = Arrays.asList(commandLine.getOptionValue("nodes").split(","));
     for (String hostPort : hostPortList) {
@@ -153,6 +169,9 @@ public class CmdLineOpts {
     }
     LOG.info("Local reads: " + localReads);
     LOG.info("Read only load: " + readOnly);
+    if (commandLine.hasOption("stats_output_dir")) {
+      AppBase.appConfig.statsOutputDir = commandLine.getOptionValue("stats_output_dir");
+    }
     if (appName.equals(CassandraBatchTimeseries.class.getSimpleName())) {
       if (commandLine.hasOption("read_batch_size")) {
         AppBase.appConfig.cassandraReadBatchSize =
@@ -603,7 +622,6 @@ public class CmdLineOpts {
 
     Option proxyAddrs = OptionBuilder.create("nodes");
     proxyAddrs.setDescription("Comma separated proxies, host1:port1,....,hostN:portN");
-    proxyAddrs.setRequired(true);
     proxyAddrs.setLongOpt("nodes");
     proxyAddrs.setArgs(1);
     options.addOption(proxyAddrs);
@@ -665,6 +683,11 @@ public class CmdLineOpts {
       "Use an SSL connection while connecting to YugaByte.");
     options.addOption("batch_size", true,
                       "Number of keys to write in a batch (for apps that support batching).");
+    options.addOption("stats_output_dir", true,
+                      "The path to the directory at which comparable workload stats will be serialized.");
+    options.addOption("stats_dir_before", true, "");
+    options.addOption("stats_dir_after", true, "");
+    options.addOption("stats_metric_name", true, "");
 
     // Options for CassandraTimeseries workload.
     options.addOption("num_users", true, "[CassandraTimeseries] The total number of users.");

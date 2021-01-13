@@ -13,25 +13,25 @@
 
 package com.yugabyte.sample.common.metrics;
 
-public class Metric {
-  private LoggableStatsMetric loggableStatsMetric;
-  private ComparableStatsMetric comparableStatsMetric;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
-  public Metric(String name) {
-    loggableStatsMetric = new LoggableStatsMetric(name);
-    comparableStatsMetric = new ComparableStatsMetric();
-  }
+import java.io.Serializable;
 
-  public synchronized void observe(Observation o) {
-    loggableStatsMetric.accumulate(o.getCount(), o.getLatencyNanos());
-    comparableStatsMetric.observe(o);
-  }
+public class ComparableStatsMetric implements Serializable {
+    private SummaryStatistics latency;
+    private ThroughputStats throughput;
 
-  public String getMetricsAndReset() {
-    return loggableStatsMetric.getMetricsAndReset();
-  }
+    public ComparableStatsMetric() {
+        latency = new SummaryStatistics();
+        throughput = new ThroughputStats();
+    }
 
-  public ComparableStatsData getStats() {
-    return comparableStatsMetric.getData();
-  }
+    public synchronized void observe(Observation o) {
+        throughput.observe(o);
+        latency.addValue(o.getLatencyNanos());
+    }
+
+    public ComparableStatsData getData() {
+        return new ComparableStatsData(latency, throughput.getStats());
+    }
 }

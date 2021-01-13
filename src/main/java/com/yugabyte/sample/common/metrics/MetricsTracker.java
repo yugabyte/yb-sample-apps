@@ -14,7 +14,9 @@
 package com.yugabyte.sample.common.metrics;
 
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 
@@ -22,28 +24,27 @@ public class MetricsTracker extends Thread {
   private static final Logger LOG = Logger.getLogger(MetricsTracker.class);
 
   // Interface to print custom messages.
-  public static interface StatusMessageAppender {
-    public String appenderName();
-    public void appendMessage(StringBuilder sb);
+  public interface StatusMessageAppender {
+    String appenderName();
+    void appendMessage(StringBuilder sb);
+  }
+
+  public interface StatsOutputHandler {
+    void outputStats(MetricName metricName, ComparableStatsData data);
   }
 
   // The type of metrics supported.
-  public static enum MetricName {
+  public enum MetricName {
     Read,
     Write,
   }
   // Map to store all the metrics objects.
   Map<MetricName, Metric> metrics = new ConcurrentHashMap<MetricName, Metric>();
-  // Track reads.
-  Metric reads = new Metric("Reads");
-  // Track writes.
-  Metric writes = new Metric("Writes");
   // State variable to make sure this thread is started exactly once.
   boolean hasStarted = false;
-  Object initLock = new Object();
   // Map of custom appenders.
-  Map<String, StatusMessageAppender> appenders =
-      new ConcurrentHashMap<String, StatusMessageAppender>();
+  Map<String, StatusMessageAppender> appenders = new ConcurrentHashMap<String, StatusMessageAppender>();
+  Queue<StatsOutputHandler> statsOutputHandlers = new ConcurrentLinkedQueue<StatsOutputHandler>();
 
   public MetricsTracker() {
     this.setDaemon(true);
@@ -53,11 +54,13 @@ public class MetricsTracker extends Thread {
     appenders.put(appender.appenderName(), appender);
   }
 
-  public void createMetric(MetricName metricName) {
-    synchronized (initLock) {
-      if (!metrics.containsKey(metricName)) {
-        metrics.put(metricName, new Metric(metricName.name()));
-      }
+  public void registerStatsOutputHandler(StatsOutputHandler handler) {
+    statsOutputHandlers.add(handler);
+  }
+
+  public synchronized void createMetric(MetricName metricName) {
+    if (!metrics.containsKey(metricName)) {
+      metrics.put(metricName, new Metric(metricName.name()));
     }
   }
 
@@ -72,12 +75,10 @@ public class MetricsTracker extends Thread {
   }
 
   @Override
-  public void start() {
-    synchronized (initLock) {
-      if (!hasStarted) {
-        hasStarted = true;
-        super.start();
-      }
+  public synchronized void start() {
+    if (!hasStarted) {
+      hasStarted = true;
+      super.start();
     }
   }
 
@@ -90,6 +91,11 @@ public class MetricsTracker extends Thread {
         getMetricsAndReset(sb);
         for (StatusMessageAppender appender : appenders.values()) {
           appender.appendMessage(sb);
+        }
+        for (StatsOutputHandler handler : statsOutputHandlers) {
+          for (MetricName metricName : MetricName.values()) {
+            handler.outputStats(metricName, metrics.get(metricName).getStats());
+          }
         }
         LOG.info(sb.toString());
       } catch (InterruptedException e) {}
