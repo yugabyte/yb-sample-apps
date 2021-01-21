@@ -39,6 +39,7 @@ import java.util.zip.Checksum;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
+import com.yugabyte.sample.common.metrics.Observation;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
@@ -666,7 +667,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   private synchronized void initMetricsTracker() {
     if (metricsTracker == null) {
-      metricsTracker = new MetricsTracker();
+      metricsTracker = new MetricsTracker(appConfig.outputJsonMetrics);
       if (appConfig.appType == AppConfig.Type.OLTP) {
         metricsTracker.createMetric(MetricName.Read);
         metricsTracker.createMetric(MetricName.Write);
@@ -743,7 +744,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     if (count > 0) {
       numKeysWritten.addAndGet(count);
       if (metricsTracker != null) {
-        metricsTracker.getMetric(MetricName.Write).accumulate(count, endTs - startTs);
+        Observation o = new Observation(count, startTs, endTs);
+        metricsTracker.getMetric(MetricName.Write).observe(o);
       }
     }
   }
@@ -768,7 +770,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     if (count > 0) {
       numKeysRead.addAndGet(count);
       if (metricsTracker != null) {
-        metricsTracker.getMetric(MetricName.Read).accumulate(count, endTs - startTs);
+        Observation o = new Observation(count, startTs, endTs);
+        metricsTracker.getMetric(MetricName.Read).observe(o);
       }
     }
   }

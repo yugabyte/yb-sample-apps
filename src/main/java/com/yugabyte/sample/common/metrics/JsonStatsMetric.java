@@ -15,25 +15,26 @@ package com.yugabyte.sample.common.metrics;
 
 import com.google.gson.JsonObject;
 
-public class Metric {
-  private ReadableStatsMetric readableStatsMetric;
-  private JsonStatsMetric jsonStatsMetric;
+public class JsonStatsMetric {
+    private StatsTracker latency;
+    private ThroughputStats throughput;
+    private final String name;
 
-  public Metric(String name) {
-    readableStatsMetric = new ReadableStatsMetric(name);
-    jsonStatsMetric = new JsonStatsMetric(name);
-  }
+    public JsonStatsMetric(String name) {
+        latency = new StatsTracker();
+        throughput = new ThroughputStats();
+        this.name = name;
+    }
 
-  public synchronized void observe(Observation o) {
-    readableStatsMetric.accumulate(o.getCount(), o.getLatencyNanos());
-    jsonStatsMetric.observe(o);
-  }
+    public synchronized void observe(Observation o) {
+        throughput.observe(o);
+        latency.observe(o.getLatencyNanos());
+    }
 
-  public String getReadableMetricsAndReset() {
-    return readableStatsMetric.getMetricsAndReset();
-  }
-
-  public JsonObject getJsonMetrics() {
-    return jsonStatsMetric.getJson();
-  }
+    public synchronized JsonObject getJson() {
+        JsonObject json = new JsonObject();
+        json.add("latency", latency.getJson());
+        json.add("throughput", throughput.getJson());
+        return json;
+    }
 }
