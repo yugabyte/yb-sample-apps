@@ -188,6 +188,6 @@ public class AppConfig {
   // Configurations for SqlGeoPartitionedTable workload.
   public int numPartitions = 2;
 
-  // Determines whether we should output JSON metrics instead of human-readable metrics.
+  // Determines whether we should output JSON metrics in addition to human-readable metrics.
   public boolean outputJsonMetrics = false;
 }
