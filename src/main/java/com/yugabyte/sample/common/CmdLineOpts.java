@@ -153,6 +153,9 @@ public class CmdLineOpts {
     }
     LOG.info("Local reads: " + localReads);
     LOG.info("Read only load: " + readOnly);
+    if (commandLine.hasOption("output_json_metrics")) {
+      AppBase.appConfig.outputJsonMetrics = true;
+    }
     if (appName.equals(CassandraBatchTimeseries.class.getSimpleName())) {
       if (commandLine.hasOption("read_batch_size")) {
         AppBase.appConfig.cassandraReadBatchSize =
@@ -665,6 +668,9 @@ public class CmdLineOpts {
       "Use an SSL connection while connecting to YugaByte.");
     options.addOption("batch_size", true,
                       "Number of keys to write in a batch (for apps that support batching).");
+    options.addOption(
+        "output_json_metrics", false,
+        "If true, output JSON metrics in addition to human-readable metrics to stdout.");
 
     // Options for CassandraTimeseries workload.
     options.addOption("num_users", true, "[CassandraTimeseries] The total number of users.");
