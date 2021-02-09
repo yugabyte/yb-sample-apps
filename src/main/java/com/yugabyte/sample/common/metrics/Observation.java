@@ -13,6 +13,8 @@
 
 package com.yugabyte.sample.common.metrics;
 
+import java.util.concurrent.TimeUnit;
+
 public class Observation {
     private long count;
     private long startTsNanos;
@@ -25,6 +27,10 @@ public class Observation {
     }
 
     public long getLatencyNanos() { return endTsNanos - startTsNanos; }
+
+    public double getLatencyMillis() {
+        return ((double) getLatencyNanos()) / ((double) TimeUnit.MILLISECONDS.toNanos(1));
+    }
 
     public long getCount() { return count; }
 
