@@ -21,7 +21,7 @@ public class StatsTracker {
         json.addProperty("sampleSize", stats.getN());
         json.addProperty("min", stats.getMin());
         json.addProperty("max", stats.getMax());
-        json.addProperty("p99", stats.getPercentile(.99));
+        json.addProperty("p99", stats.getPercentile(99));
         return json;
     }
 }
