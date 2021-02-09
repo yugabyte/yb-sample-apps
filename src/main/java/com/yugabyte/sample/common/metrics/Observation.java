@@ -28,7 +28,9 @@ public class Observation {
 
     public long getLatencyNanos() { return endTsNanos - startTsNanos; }
 
-    public long getLatencyMillis() { return TimeUnit.NANOSECONDS.toMillis(getLatencyNanos()); }
+    public double getLatencyMillis() {
+        return ((double) getLatencyNanos()) / ((double) TimeUnit.MILLISECONDS.toNanos(1));
+    }
 
     public long getCount() { return count; }
 
