@@ -28,7 +28,7 @@ public class JsonStatsMetric {
 
     public synchronized void observe(Observation o) {
         throughput.observe(o);
-        latency.observe(o.getLatencyNanos());
+        latency.observe(o.getLatencyMillis());
     }
 
     public synchronized JsonObject getJson() {
