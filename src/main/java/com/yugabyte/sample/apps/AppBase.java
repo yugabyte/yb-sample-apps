@@ -178,6 +178,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
           props.setProperty("options", "-c yb_read_from_followers=true");
         }
 
+        if (appConfig.sslCert != null && appConfig.sslCert.length() > 0) {
+          assert(appConfig.sslKey != null && appConfig.sslKey.length() > 0) : "The SSL key is empty.";
+          props.put("sslmode", "require");
+          props.put("sslcert", appConfig.sslCert);
+          props.put("sslkey", appConfig.sslKey);
+        }
+
         String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
                                                                         contactPoint.getPort(),
                                                                         database);

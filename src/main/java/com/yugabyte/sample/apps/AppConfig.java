@@ -171,8 +171,10 @@ public class AppConfig {
   // The number of client connections to establish to each host in the YugaByte DB cluster.
   public int concurrentClients = 4;
 
-  // The path to the certificate to be used for the SSL connection.
+  // The path to the certificate and the key to be used for the SSL connection.
   public String sslCert = null;
+  public String sslKey = null;
+
   // Number of devices to simulate data for CassandraEventData workload
   public int num_devices = 100;
   // Number of Event Types per device to simulate data for CassandraEventData workload

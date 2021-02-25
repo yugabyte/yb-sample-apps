@@ -331,6 +331,9 @@ public class CmdLineOpts {
     if (commandLine.hasOption("ssl_cert")) {
       AppBase.appConfig.sslCert = commandLine.getOptionValue("ssl_cert");
     }
+    if (commandLine.hasOption("ssl_key")) {
+      AppBase.appConfig.sslKey = commandLine.getOptionValue("ssl_key");
+    }
 
     if (commandLine.hasOption("num_indexes")) {
       AppBase.appConfig.numIndexes =
@@ -665,6 +668,8 @@ public class CmdLineOpts {
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
     options.addOption("ssl_cert", true,
+      "Use an SSL connection while connecting to YugaByte.");
+    options.addOption("ssl_key", true,
       "Use an SSL connection while connecting to YugaByte.");
     options.addOption("batch_size", true,
                       "Number of keys to write in a batch (for apps that support batching).");
