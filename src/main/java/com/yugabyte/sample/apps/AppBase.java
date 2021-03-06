@@ -172,7 +172,6 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         if (password != null) {
           props.setProperty("password", password);
         }
-        props.setProperty("sslmode", "disable");
         props.setProperty("reWriteBatchedInserts", "true");
         if (appConfig.localReads) {
           props.setProperty("options", "-c yb_read_from_followers=true");
