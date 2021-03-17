@@ -46,11 +46,11 @@ public class AppConfig {
   public int numWriterThreads;
 
   // The number of keys to write as a part of this workload.
-  public long numKeysToWrite;
+  public long numKeysToWrite=2000000;
 
   // The number of keys to read as a part of this workload. This ignores the attempts to read where
   // no data has yet to be written.
-  public long numKeysToRead;
+  public long numKeysToRead=1500000;
 
   // The size of the value to be written.
   public int valueSize;
