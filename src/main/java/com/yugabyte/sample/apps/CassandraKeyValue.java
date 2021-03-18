@@ -73,6 +73,8 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
     return Arrays.asList(
       "Sample key-value app built on Cassandra with concurrent reader and writer threads.",
       " Each of these threads operates on a single key-value pair. The number of readers ",
-      " and writers, the value size, the number of inserts vs updates are configurable.");
+      " and writers, the value size, the number of inserts vs updates are configurable. " ,
+       "By default number of reads and writes operations are configured to "+AppBase.appConfig.numKeysToRead+" and "+AppBase.appConfig.numKeysToWrite+" respectively." ,
+       " User can run read/write(both) operations indefinitely by passing -1 to --num_reads or --num_writes or both");
   }
 }

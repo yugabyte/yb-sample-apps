@@ -178,9 +178,9 @@ public class SqlInserts extends AppBase {
         "Sample key-value app built on PostgreSQL with concurrent readers and writers. The app inserts unique string keys",
         "each with a string value to a postgres table with an index on the value column.",
         "There are multiple readers and writers that update these keys and read them",
-        "indefinitely, with the readers query the keys by the associated values that are",
+        "for a specified number of operations,default value for read ops is "+AppBase.appConfig.numKeysToRead+" and write ops is "+AppBase.appConfig.numKeysToWrite+", with the readers query the keys by the associated values that are",
         "indexed. Note that the number of reads and writes to perform can be specified as",
-        "a parameter.");
+        "a parameter, user can run read/write(both) operations indefinitely by passing -1 to --num_reads or --num_writes or both.");
   }
 
   @Override
