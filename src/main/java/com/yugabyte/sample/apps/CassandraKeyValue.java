@@ -34,7 +34,12 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
 
   // The default table name to create and use for CRUD ops.
   private static final String DEFAULT_TABLE_NAME = CassandraKeyValue.class.getSimpleName();
-
+  static {
+    // The number of keys to read.
+    appConfig.numKeysToRead = 1500000;
+    // The number of keys to write. This is the combined total number of inserts and updates.
+    appConfig.numKeysToWrite = 2000000;
+  }
   @Override
   public List<String> getCreateTableStatements() {
     String create_stmt = String.format(

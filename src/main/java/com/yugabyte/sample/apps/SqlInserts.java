@@ -38,6 +38,10 @@ public class SqlInserts extends AppBase {
     // Set the read and write threads to 2 each.
     appConfig.numReaderThreads = 2;
     appConfig.numWriterThreads = 2;
+    // The number of keys to read.
+    appConfig.numKeysToRead = 1500000;
+    // The number of keys to write. This is the combined total number of inserts and updates.
+    appConfig.numKeysToWrite = 2000000;
     // The number of unique keys to write. This determines the number of inserts (as opposed to
     // updates).
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
