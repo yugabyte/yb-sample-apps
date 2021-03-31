@@ -32,16 +32,18 @@ Usage and options for workload CassandraKeyValue in YugaByte DB Sample Apps.
 		Sample key-value app built on Cassandra with concurrent reader and writer threads.
 		 Each of these threads operates on a single key-value pair. The number of readers
 		 and writers, the value size, the number of inserts vs updates are configurable.
-
+                 By default number of reads and writes operations are configured to 1500000 and 2000000 respectively.
+		 User can run read/write(both) operations indefinitely by passing -1 to --num_reads or --num_writes or both
+        
 		Usage:
 			java -jar yb-sample-apps.jar \
 			--workload CassandraKeyValue \
 			--nodes 127.0.0.1:9042
 
 		Other options (with default values):
-			[ --num_unique_keys 1000000 ]
-			[ --num_reads -1 ]
-			[ --num_writes -1 ]
+			[ --num_unique_keys 2000000 ]
+			[ --num_reads 1500000 ]
+			[ --num_writes 2000000 ]
 			[ --value_size 0 ]
 			[ --num_threads_read 24 ]
 			[ --num_threads_write 2 ]
