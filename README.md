@@ -41,7 +41,7 @@ Usage and options for workload CassandraKeyValue in YugaByte DB Sample Apps.
 			--nodes 127.0.0.1:9042
 
 		Other options (with default values):
-			[ --num_unique_keys 1000000 ]
+			[ --num_unique_keys 2000000 ]
 			[ --num_reads 1500000 ]
 			[ --num_writes 2000000 ]
 			[ --value_size 0 ]

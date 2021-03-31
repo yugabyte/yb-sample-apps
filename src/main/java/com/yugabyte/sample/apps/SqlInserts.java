@@ -39,12 +39,12 @@ public class SqlInserts extends AppBase {
     appConfig.numReaderThreads = 2;
     appConfig.numWriterThreads = 2;
     // The number of keys to read.
-    appConfig.numKeysToRead = 1500000;
+    appConfig.numKeysToRead = NUM_KEYS_TO_READ_FOR_YSQL_AND_YCQL;
     // The number of keys to write. This is the combined total number of inserts and updates.
-    appConfig.numKeysToWrite = 2000000;
+    appConfig.numKeysToWrite = NUM_KEYS_TO_WRITE_FOR_YSQL_AND_YCQL;
     // The number of unique keys to write. This determines the number of inserts (as opposed to
     // updates).
-    appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
+    appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL;
   }
 
   // The default table name to create and use for CRUD ops.
