@@ -34,7 +34,15 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
 
   // The default table name to create and use for CRUD ops.
   private static final String DEFAULT_TABLE_NAME = CassandraKeyValue.class.getSimpleName();
-
+  static {
+    // The number of keys to read.
+    appConfig.numKeysToRead = NUM_KEYS_TO_READ_FOR_YSQL_AND_YCQL;
+    // The number of keys to write. This is the combined total number of inserts and updates.
+    appConfig.numKeysToWrite = NUM_KEYS_TO_WRITE_FOR_YSQL_AND_YCQL;
+    // The number of unique keys to write. This determines the number of inserts (as opposed to
+    // updates).
+    appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL;
+  }
   @Override
   public List<String> getCreateTableStatements() {
     String create_stmt = String.format(
@@ -73,6 +81,8 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
     return Arrays.asList(
       "Sample key-value app built on Cassandra with concurrent reader and writer threads.",
       " Each of these threads operates on a single key-value pair. The number of readers ",
-      " and writers, the value size, the number of inserts vs updates are configurable.");
+      " and writers, the value size, the number of inserts vs updates are configurable. " ,
+       "By default number of reads and writes operations are configured to "+AppBase.appConfig.numKeysToRead+" and "+AppBase.appConfig.numKeysToWrite+" respectively." ,
+       " User can run read/write(both) operations indefinitely by passing -1 to --num_reads or --num_writes or both");
   }
 }

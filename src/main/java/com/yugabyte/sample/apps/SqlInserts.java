@@ -39,12 +39,12 @@ public class SqlInserts extends AppBase {
     appConfig.numReaderThreads = 2;
     appConfig.numWriterThreads = 2;
     // The number of keys to read.
-    appConfig.numKeysToRead = -1;
+    appConfig.numKeysToRead = NUM_KEYS_TO_READ_FOR_YSQL_AND_YCQL;
     // The number of keys to write. This is the combined total number of inserts and updates.
-    appConfig.numKeysToWrite = -1;
+    appConfig.numKeysToWrite = NUM_KEYS_TO_WRITE_FOR_YSQL_AND_YCQL;
     // The number of unique keys to write. This determines the number of inserts (as opposed to
     // updates).
-    appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
+    appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL;
   }
 
   // The default table name to create and use for CRUD ops.
@@ -182,9 +182,9 @@ public class SqlInserts extends AppBase {
         "Sample key-value app built on PostgreSQL with concurrent readers and writers. The app inserts unique string keys",
         "each with a string value to a postgres table with an index on the value column.",
         "There are multiple readers and writers that update these keys and read them",
-        "indefinitely, with the readers query the keys by the associated values that are",
+        "for a specified number of operations,default value for read ops is "+AppBase.appConfig.numKeysToRead+" and write ops is "+AppBase.appConfig.numKeysToWrite+", with the readers query the keys by the associated values that are",
         "indexed. Note that the number of reads and writes to perform can be specified as",
-        "a parameter.");
+        "a parameter, user can run read/write(both) operations indefinitely by passing -1 to --num_reads or --num_writes or both.");
   }
 
   @Override
