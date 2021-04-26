@@ -192,4 +192,13 @@ public class AppConfig {
 
   // Determines whether we should output JSON metrics in addition to human-readable metrics.
   public boolean outputJsonMetrics = false;
+
+  // Tablespaces to be used for the SqlGeoPartitionedTable workload.
+  public String[] tablespaces;
+
+  // Placement policies to be used for the SqlGeoPartitionedTable workload.
+  public String[] placementPolicies;
+
+  // Replication factor to be used for the SqlGeoPartitionedTable workload.
+  public int replicationFactor;
 }
