@@ -1,5 +1,5 @@
 FROM openjdk:8-jre-alpine
-MAINTAINER YugaByte
+MAINTAINER Yugabyte
 ENV container=yb-sample-apps
 
 WORKDIR /opt/yugabyte

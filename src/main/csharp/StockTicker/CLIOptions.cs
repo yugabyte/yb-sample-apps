@@ -1,4 +1,4 @@
-// Copyright (c) YugaByte, Inc.
+// Copyright (c) Yugabyte, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License.  You may obtain a copy of the License at
@@ -50,7 +50,7 @@ namespace YB
     {
       var help = new HelpText {
         Heading = new HeadingInfo ("C# Stock Ticker App", "1.0"),
-        Copyright = new CopyrightInfo ("YugaByte, Inc", 2016),
+        Copyright = new CopyrightInfo ("Yugabyte, Inc", 2016),
         AdditionalNewLineAfterOption = true,
         AddDashesToOption = true
       };

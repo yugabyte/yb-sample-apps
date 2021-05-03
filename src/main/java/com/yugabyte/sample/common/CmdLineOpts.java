@@ -1,4 +1,4 @@
-// Copyright (c) YugaByte, Inc.
+// Copyright (c) Yugabyte, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 // in compliance with the License.  You may obtain a copy of the License at
@@ -668,9 +668,9 @@ public class CmdLineOpts {
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugabyteDB cluster.");
     options.addOption("ssl_cert", true,
-      "Use an SSL connection while connecting to YugaByte.");
+      "Use an SSL connection while connecting to Yugabyte.");
     options.addOption("ssl_key", true,
-      "Use an SSL connection while connecting to YugaByte.");
+      "Use an SSL connection while connecting to Yugabyte.");
     options.addOption("batch_size", true,
                       "Number of keys to write in a batch (for apps that support batching).");
     options.addOption(

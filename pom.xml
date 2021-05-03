@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- Copyright (c) YugaByte, Inc. -->
+<!-- Copyright (c) Yugabyte, Inc. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.yugabyte</groupId>
@@ -9,7 +9,7 @@
   <description>
     Sample applications for benchmarking YugabyteDB functionality on various workload types.
   </description>
-  <url>https://github.com/YugaByte/yb-sample-apps</url>
+  <url>https://github.com/yugabyte/yb-sample-apps</url>
   <packaging>jar</packaging>
 
    <!-- Properties Management -->
@@ -222,17 +222,17 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</connection>
-    <developerConnection>scm:git:git@github.com:YugaByte/yb-sample-apps.git</developerConnection>
+    <connection>scm:git:git@github.com:yugabyte/yb-sample-apps.git</connection>
+    <developerConnection>scm:git:git@github.com:yugabyte/yb-sample-apps.git</developerConnection>
     <url>https://github.com/yugabyte/yb-sample-apps</url>
     <tag>HEAD</tag>
   </scm>
 
   <developers>
     <developer>
-      <name>YugaByte Development Team</name>
+      <name>Yugabyte Development Team</name>
       <email>info@yugabyte.com</email>
-      <organization>YugaByte, Inc.</organization>
+      <organization>Yugabyte, Inc.</organization>
       <organizationUrl>https://www.yugabyte.com</organizationUrl>
     </developer>
   </developers>
