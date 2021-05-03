@@ -1,6 +1,6 @@
 # YugabyteDB workload generator
 
-This repository emulates various workloads against YugaByte DB. YugaByte DB is a multi-model database that supports:
+This repository emulates various workloads against YugabyteDB. YugabyteDB is a multi-model database that supports:
 * YSQL (Distributed SQL API with joins. Compatible with PostgreSQL)
 * YCQL (Flexible-schema API with indexes, transactions and the JSONB data type. Roots in Cassandra QL)
 * YEDIS (Transactional KV API with elasticity and persistence. Compatible with Redis)
@@ -25,7 +25,7 @@ To get details on running any app, just pass the app name as a parameter to the 
 ```
 $ java -jar yb-sample-apps.jar --help CassandraKeyValue
 1 [main] INFO com.yugabyte.sample.Main  - Starting sample app...
-Usage and options for workload CassandraKeyValue in YugaByte DB Sample Apps.
+Usage and options for workload CassandraKeyValue in YugabyteDB Sample Apps.
 
  - CassandraKeyValue :
    -----------------
