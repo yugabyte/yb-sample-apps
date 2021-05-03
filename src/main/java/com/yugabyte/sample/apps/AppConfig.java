@@ -168,7 +168,7 @@ public class AppConfig {
   // Password to connect to the DB.
   public String dbPassword = null;
 
-  // The number of client connections to establish to each host in the YugaByte DB cluster.
+  // The number of client connections to establish to each host in the YugabyteDB cluster.
   public int concurrentClients = 4;
 
   // The path to the certificate and the key to be used for the SSL connection.

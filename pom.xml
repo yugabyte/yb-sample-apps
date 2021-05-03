@@ -7,7 +7,7 @@
   <version>1.3.7-SNAPSHOT</version>
   <name>YB Sample Apps</name>
   <description>
-    Sample applications for benchmarking YugaByte DB functionality on various workload types.
+    Sample applications for benchmarking YugabyteDB functionality on various workload types.
   </description>
   <url>https://github.com/YugaByte/yb-sample-apps</url>
   <packaging>jar</packaging>
