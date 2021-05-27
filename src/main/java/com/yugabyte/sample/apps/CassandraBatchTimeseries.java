@@ -125,7 +125,8 @@ public class CassandraBatchTimeseries extends AppBase {
       create_stmt += " WITH default_time_to_live = " + appConfig.tableTTLSeconds;
     }
     create_stmt += ";";
-    return Arrays.asList(create_stmt);
+    throw new IllegalArgumentException("SSHAIKH Exception: What are you doing? This is not supported. ");
+    //return Arrays.asList(create_stmt);
   }
 
   private PreparedStatement getPreparedInsert()  {
