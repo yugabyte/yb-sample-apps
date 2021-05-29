@@ -20,6 +20,10 @@ import com.yugabyte.sample.apps.AppBase.TableOp;
  */
 public class AppConfig {
 
+  // Skips running DDL. Useful when running fault tolerance tests where DDL fails
+  // under node down conditions.
+  public boolean skipDDL;
+
   /**
    * The type of the current app. The valid types are:
    *   - OLTP   : These apps implement read() and write() methods. The read() and write() methods
