@@ -118,6 +118,11 @@ public class CmdLineOpts {
       }
     }
 
+    if (commandLine.hasOption("skip_ddl")) {
+      AppBase.appConfig.skipDDL = true;
+      LOG.info("Not running DDL");
+    }
+
     if (commandLine.hasOption("run_time")) {
       AppBase.appConfig.runTimeSeconds =
           Integer.parseInt(commandLine.getOptionValue("run_time"));
@@ -451,6 +456,10 @@ public class CmdLineOpts {
     return AppBase.appConfig.skipWorkload;
   }
 
+  public boolean skipDDL() {
+    return AppBase.appConfig.skipDDL;
+  }
+
   public String appName() {
     return AppBase.appConfig.appName;
   }
@@ -657,6 +666,7 @@ public class CmdLineOpts {
     options.addOption("print_all_exceptions", false,
         "Print all exceptions encountered on the client, instead of sampling.");
     options.addOption("skip_workload", false, "Skip running workload.");
+    options.addOption("skip_ddl", false, "Skip running DDL.");
     options.addOption("run_time", true,
         "Run time for workload. Negative value means forever (default).");
     options.addOption("use_redis_cluster", false, "Use redis cluster client.");

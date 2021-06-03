@@ -209,14 +209,16 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   public void initializeConnectionsAndStatements(int numThreads) { }
 
   protected static void createKeyspace(Session session, String ks) {
-    String create_keyspace_stmt = "CREATE KEYSPACE IF NOT EXISTS " + ks +
-      " WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 1};";
-    // Use consistency level ONE to allow cross DC requests.
-    session.execute(
-      session.prepare(create_keyspace_stmt)
-        .setConsistencyLevel(ConsistencyLevel.ONE)
-        .bind());
-    LOG.debug("Created a keyspace " + ks + " using query: [" + create_keyspace_stmt + "]");
+    if (!appConfig.skipDDL) {
+      String create_keyspace_stmt = "CREATE KEYSPACE IF NOT EXISTS " + ks +
+              " WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 1};";
+      // Use consistency level ONE to allow cross DC requests.
+      session.execute(
+              session.prepare(create_keyspace_stmt)
+                      .setConsistencyLevel(ConsistencyLevel.ONE)
+                      .bind());
+      LOG.debug("Created a keyspace " + ks + " using query: [" + create_keyspace_stmt + "]");
+    }
     String use_keyspace_stmt = "USE " + ks + ";";
     session.execute(
       session.prepare(use_keyspace_stmt)
@@ -572,6 +574,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * @throws java.lang.Exception in case of CREATE statement errors.
    */
   public void createTablesIfNeeded(TableOp tableOp) throws Exception {
+    LOG.info("Creating YCQL tables...");
     for (String create_stmt : getCreateTableStatements()) {
       Session session = getCassandraClient();
       // consistency level of one to allow cross DC requests.
