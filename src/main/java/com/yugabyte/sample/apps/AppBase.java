@@ -574,7 +574,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * @throws java.lang.Exception in case of CREATE statement errors.
    */
   public void createTablesIfNeeded(TableOp tableOp) throws Exception {
-    LOG.info("Creating Cassandra tables...");
+    LOG.info("Creating YCQL tables...");
     for (String create_stmt : getCreateTableStatements()) {
       Session session = getCassandraClient();
       // consistency level of one to allow cross DC requests.
