@@ -54,7 +54,8 @@ public abstract class CassandraKeyValueBase extends AppBase {
   }
 
   protected PreparedStatement getPreparedSelect(String selectStmt, boolean localReads)  {
-    if (preparedSelect == null) {
+    PreparedStatement preparedSelectLocal = preparedSelect;
+    if (preparedSelectLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedSelect == null) {
           // Create the prepared statement object.
@@ -64,9 +65,10 @@ public abstract class CassandraKeyValueBase extends AppBase {
             preparedSelect.setConsistencyLevel(ConsistencyLevel.ONE);
           }
         }
+        preparedSelectLocal = preparedSelect;
       }
     }
-    return preparedSelect;
+    return preparedSelectLocal;
   }
 
   protected abstract String getDefaultTableName();
@@ -129,15 +131,17 @@ public abstract class CassandraKeyValueBase extends AppBase {
   }
 
   protected PreparedStatement getPreparedInsert(String insertStmt)  {
+    PreparedStatement preparedInsertLocal = preparedInsert;
     if (preparedInsert == null) {
       synchronized (prepareInitLock) {
         if (preparedInsert == null) {
           // Create the prepared statement object.
           preparedInsert = getCassandraClient().prepare(insertStmt);
         }
+        preparedInsertLocal = preparedInsert;
       }
     }
-    return preparedInsert;
+    return preparedInsertLocal;
   }
 
   protected abstract BoundStatement bindInsert(String key, ByteBuffer value);
