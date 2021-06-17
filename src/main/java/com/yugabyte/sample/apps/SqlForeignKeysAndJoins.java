@@ -146,7 +146,8 @@ public class SqlForeignKeysAndJoins extends AppBase {
   }
 
   private PreparedStatement getPreparedSelect() throws Exception {
-    if (preparedSelect == null) {
+    PreparedStatement preparedSelectLocal = preparedSelect;
+    if (preparedSelectLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedSelect == null) {
           preparedSelect = getPostgresConnection().prepareStatement(
@@ -156,9 +157,10 @@ public class SqlForeignKeysAndJoins extends AppBase {
                             "LIMIT 10;", getTable1Name(), getTable2Name(),
                             getTable1Name(), getTable1Name(), getTable2Name()));
         }
+        preparedSelectLocal = preparedSelect;
       }
     }
-    return preparedSelect;
+    return preparedSelectLocal;
   }
 
   @Override
@@ -207,7 +209,8 @@ public class SqlForeignKeysAndJoins extends AppBase {
   }
 
   private PreparedStatement getPreparedInsertUser() throws Exception {
-    if (preparedInsertUser == null) {
+    PreparedStatement preparedInsertUserLocal = preparedInsertUser;
+    if (preparedInsertUserLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedInsertUser == null) {
           String stmt = String.format("INSERT INTO %s (user_id, user_details) VALUES (?, ?);", getTable1Name());
@@ -215,13 +218,15 @@ public class SqlForeignKeysAndJoins extends AppBase {
             preparedInsertUser = getPostgresConnection().prepareStatement(stmt);
           }
         }
+        preparedInsertUserLocal = preparedInsertUser;
       }
     }
-    return preparedInsertUser;
+    return preparedInsertUserLocal;
   }
 
   private PreparedStatement getPreparedInsertUserOrder() throws Exception {
-    if (preparedInsertOrder == null) {
+    PreparedStatement preparedInsertOrderLocal = preparedInsertOrder;
+    if (preparedInsertOrderLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedInsertOrder == null) {
           String stmt = String.format("INSERT INTO %s (user_id, order_time, order_details) VALUES (?, ?, ?);", 
@@ -232,9 +237,10 @@ public class SqlForeignKeysAndJoins extends AppBase {
             preparedInsertOrder = connection.prepareStatement(stmt);
           }
         }
+        preparedInsertOrderLocal = preparedInsertOrder;
       }
     }
-    return preparedInsertOrder;
+    return preparedInsertOrderLocal;
   }
 
   @Override

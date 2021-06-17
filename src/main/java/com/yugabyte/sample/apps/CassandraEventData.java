@@ -117,7 +117,8 @@ public class CassandraEventData extends AppBase {
 	}
 
 	private PreparedStatement getPreparedInsert() {
-		if (preparedInsert == null) {
+		PreparedStatement pInsertTmp = preparedInsert;
+		if (pInsertTmp == null) {
 			synchronized (prepareInitLock) {
 				if (preparedInsert == null) {
 					// Create the prepared statement object.
@@ -125,13 +126,15 @@ public class CassandraEventData extends AppBase {
 							+ "(:device_id, :ts, :event_type, :value);", getTableName());
 					preparedInsert = getCassandraClient().prepare(insert_stmt);
 				}
+				pInsertTmp = preparedInsert;
 			}
 		}
-		return preparedInsert;
+		return pInsertTmp;
 	}
 
 	private PreparedStatement getPreparedSelect() {
-		if (preparedSelect == null) {
+		PreparedStatement pSelectTmp = preparedSelect;
+		if (pSelectTmp == null) {
 			synchronized (prepareInitLock) {
 				if (preparedSelect == null) {
 					// Create the prepared statement object.
@@ -140,9 +143,10 @@ public class CassandraEventData extends AppBase {
 							+ "LIMIT :readBatchSize;", getTableName());
 					preparedSelect = getCassandraClient().prepare(select_stmt);
 				}
+				pSelectTmp = preparedSelect;
 			}
 		}
-		return preparedSelect;
+		return pSelectTmp;
 	}
 
 	@Override

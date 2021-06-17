@@ -820,20 +820,23 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   public SimpleLoadGenerator getSimpleLoadGenerator() {
-    if (simpleLoadGenerator == null) {
+    SimpleLoadGenerator sLoadGeneratorTmp = simpleLoadGenerator;
+    if (sLoadGeneratorTmp == null) {
       synchronized (AppBase.class) {
         if (simpleLoadGenerator == null) {
           simpleLoadGenerator = new SimpleLoadGenerator(0,
               appConfig.numUniqueKeysToWrite,
               appConfig.maxWrittenKey);
         }
+        sLoadGeneratorTmp = simpleLoadGenerator;
       }
     }
-    return simpleLoadGenerator;
+    return sLoadGeneratorTmp;
   }
 
   public RedisHashLoadGenerator getRedisHashLoadGenerator() {
-    if (redisHashLoadGenerator == null) {
+    RedisHashLoadGenerator redisHashLoadGeneratorTmp = redisHashLoadGenerator;
+    if (redisHashLoadGeneratorTmp == null) {
       synchronized (AppBase.class) {
         if (redisHashLoadGenerator == null) {
           redisHashLoadGenerator = new RedisHashLoadGenerator(appConfig.uuid,
@@ -841,9 +844,10 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
               appConfig.keyUpdateFreqZipfExponent, appConfig.subkeyUpdateFreqZipfExponent,
               appConfig.numSubkeysPerWrite, appConfig.numSubkeysPerRead);
         }
+        redisHashLoadGeneratorTmp = redisHashLoadGenerator;
       }
     }
-    return redisHashLoadGenerator;
+    return redisHashLoadGeneratorTmp;
   }
 
   public static long numOps() {

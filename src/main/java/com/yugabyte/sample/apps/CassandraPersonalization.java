@@ -134,15 +134,17 @@ public class CassandraPersonalization extends AppBase {
   }
 
   protected PreparedStatement getPreparedSelect(String selectStmt)  {
-    if (preparedSelect == null) {
+    PreparedStatement preparedSelectLocal = preparedSelect;
+    if (preparedSelectLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedSelect == null) {
           // Create the prepared statement object.
           preparedSelect = getCassandraClient().prepare(selectStmt);
         }
+        preparedSelectLocal = preparedSelect;
       }
     }
-    return preparedSelect;
+    return preparedSelectLocal;
   }
 
   private PreparedStatement getPreparedSelect()  {
@@ -169,15 +171,17 @@ public class CassandraPersonalization extends AppBase {
   }
 
   protected PreparedStatement getPreparedInsert(String insertStmt)  {
-    if (preparedInsert == null) {
+    PreparedStatement preparedInsertLocal = preparedInsert;
+    if (preparedInsertLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedInsert == null) {
           // Create the prepared statement object.
           preparedInsert = getCassandraClient().prepare(insertStmt);
         }
+        preparedInsertLocal = preparedInsert;
       }
     }
-    return preparedInsert;
+    return preparedInsertLocal;
   }
 
   protected PreparedStatement getPreparedInsert()  {
