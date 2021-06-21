@@ -142,7 +142,8 @@ public class CassandraStockTicker extends AppBase {
   }
 
   private PreparedStatement getPreparedSelectLatest()  {
-    if (preparedSelectLatest == null) {
+    PreparedStatement pSelectLatestTmp = preparedSelectLatest;
+    if (pSelectLatestTmp == null) {
       synchronized (prepareInitLock) {
         if (preparedSelectLatest == null) {
           // Create the prepared statement object.
@@ -150,9 +151,10 @@ public class CassandraStockTicker extends AppBase {
               String.format("SELECT * from %s WHERE ticker_id = ? LIMIT 1", tickerTableRaw);
           preparedSelectLatest = getCassandraClient().prepare(select_stmt);
         }
+        pSelectLatestTmp = preparedSelectLatest;
       }
     }
-    return preparedSelectLatest;
+    return pSelectLatestTmp;
   }
 
   @Override
@@ -177,7 +179,8 @@ public class CassandraStockTicker extends AppBase {
   }
 
   private PreparedStatement getPreparedInsertRaw()  {
-    if (preparedInsertRaw == null) {
+    PreparedStatement preparedInsertRawLocal = preparedInsertRaw;
+    if (preparedInsertRawLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedInsertRaw == null) {
           // Create the prepared statement object.
@@ -186,13 +189,15 @@ public class CassandraStockTicker extends AppBase {
                             tickerTableRaw);
           preparedInsertRaw = getCassandraClient().prepare(insert_stmt);
         }
+        preparedInsertRawLocal = preparedInsertRaw;
       }
     }
-    return preparedInsertRaw;
+    return preparedInsertRawLocal;
   }
 
   private PreparedStatement getPreparedInsertMin()  {
-    if (preparedInsertMin == null) {
+    PreparedStatement preparedInsertMinLocal = preparedInsertMin;
+    if (preparedInsertMinLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedInsertMin == null) {
           // Create the prepared statement object.
@@ -201,9 +206,10 @@ public class CassandraStockTicker extends AppBase {
                             tickerTableMin);
           preparedInsertMin = getCassandraClient().prepare(insert_stmt);
         }
+        preparedInsertMinLocal = preparedInsertMin;
       }
     }
-    return preparedInsertMin;
+    return preparedInsertMinLocal;
   }
 
   @Override

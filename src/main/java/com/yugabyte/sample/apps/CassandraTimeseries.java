@@ -161,7 +161,8 @@ public class CassandraTimeseries extends AppBase {
   }
 
   private PreparedStatement getPreparedSelect()  {
-    if (preparedSelect == null) {
+    PreparedStatement pSelectTmp = preparedSelect;
+    if (pSelectTmp == null) {
       synchronized (prepareInitLock) {
         if (preparedSelect == null) {
           // Create the prepared statement object.
@@ -173,9 +174,10 @@ public class CassandraTimeseries extends AppBase {
                             getTableName());
           preparedSelect = getCassandraClient().prepare(select_stmt);
         }
+        pSelectTmp = preparedSelect;
       }
     }
-    return preparedSelect;
+    return pSelectTmp;
   }
 
   @Override
@@ -247,7 +249,8 @@ public class CassandraTimeseries extends AppBase {
   }
 
   private PreparedStatement getPreparedInsert()  {
-    if (preparedInsert == null) {
+    PreparedStatement preparedInsertLocal = preparedInsert;
+    if (preparedInsertLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedInsert == null) {
           // Create the prepared statement object.
@@ -257,9 +260,10 @@ public class CassandraTimeseries extends AppBase {
                             getTableName());
           preparedInsert = getCassandraClient().prepare(insert_stmt);
         }
+        preparedInsertLocal = preparedInsert;
       }
     }
-    return preparedInsert;
+    return preparedInsertLocal;
   }
 
   @Override
