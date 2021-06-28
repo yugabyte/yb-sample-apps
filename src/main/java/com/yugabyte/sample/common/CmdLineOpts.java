@@ -89,7 +89,7 @@ public class CmdLineOpts {
   // Command line opts parser.
   CommandLine commandLine;
 
-  public void initialize(CommandLine commandLine) throws ClassNotFoundException,IllegalArgumentException {
+  public void initialize(CommandLine commandLine) throws ClassNotFoundException {
     this.commandLine = commandLine;
     if (commandLine.hasOption("uuid")) {
       loadTesterUUID = UUID.fromString(commandLine.getOptionValue("uuid"));
