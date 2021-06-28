@@ -53,9 +53,11 @@ public class SqlDataLoad extends AppBase {
     private static final String DEFAULT_TABLE_NAME = "SqlDataLoad";
 
     // The prepared select statement for fetching the data.
+    private volatile Connection selConnection = null;
     private PreparedStatement preparedSelect = null;
 
     // The prepared insert statement for inserting the data.
+    private volatile Connection insConnection = null;
     private PreparedStatement preparedInsert = null;
 
     // Lock for initializing prepared statement objects.
@@ -161,7 +163,9 @@ public class SqlDataLoad extends AppBase {
 
     private PreparedStatement getPreparedSelect() throws Exception {
         if (preparedSelect == null) {
-            preparedSelect = getPostgresConnection().prepareStatement(
+            close(selConnection);
+            selConnection = getPostgresConnection();
+            preparedSelect = selConnection.prepareStatement(
                     String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
         }
         return preparedSelect;
@@ -196,6 +200,7 @@ public class SqlDataLoad extends AppBase {
             }
         } catch (Exception e) {
             LOG.info("Failed reading value: " + key.getValueStr(), e);
+            close(preparedSelect);
             preparedSelect = null;
             return 0;
         }
@@ -217,7 +222,9 @@ public class SqlDataLoad extends AppBase {
             }
             sb.append(")");
 
-            preparedInsert = getPostgresConnection().prepareStatement(sb.toString());
+            close(insConnection);
+            insConnection = getPostgresConnection();
+            preparedInsert = insConnection.prepareStatement(sb.toString());
         }
         return preparedInsert;
     }
@@ -261,6 +268,7 @@ public class SqlDataLoad extends AppBase {
                 getSimpleLoadGenerator().recordWriteFailure(key);
             }
             LOG.info("Failed write with error: " + e.getMessage());
+            close(preparedInsert);
             preparedInsert = null;
         }
         return keys.size();
