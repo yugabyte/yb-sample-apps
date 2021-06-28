@@ -22,6 +22,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -797,6 +798,32 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   @Override
   public String appenderName() {
     return this.getClass().getSimpleName();
+  }
+
+  /**
+   * Close the Connection.
+   */
+  static void close(Connection c) {
+    if (c != null) {
+      try {
+        c.close();
+      } catch (Throwable t) {
+        LOG.warn("encountered exception closing connection: " + c);
+      }
+    }
+  }
+
+  /**
+   * Close the PreparedStatement.
+   */
+  static void close(PreparedStatement ps) {
+    if (ps != null) {
+      try {
+        ps.close();
+      } catch (Throwable t) {
+        LOG.warn("encountered exception closing statement: " + t);
+      }
+    }
   }
 
   /**

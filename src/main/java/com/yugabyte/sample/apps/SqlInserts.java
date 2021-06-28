@@ -51,9 +51,11 @@ public class SqlInserts extends AppBase {
   private static final String DEFAULT_TABLE_NAME = "PostgresqlKeyValue";
 
   // The shared prepared select statement for fetching the data.
+  private volatile Connection selConnection = null;
   private volatile PreparedStatement preparedSelect = null;
 
   // The shared prepared insert statement for inserting the data.
+  private volatile Connection insConnection = null;
   private volatile PreparedStatement preparedInsert = null;
 
   // Lock for initializing prepared statement objects.
@@ -100,7 +102,9 @@ public class SqlInserts extends AppBase {
 
   private PreparedStatement getPreparedSelect() throws Exception {
     if (preparedSelect == null) {
-      preparedSelect = getPostgresConnection().prepareStatement(
+      close(selConnection);
+      selConnection = getPostgresConnection();
+      preparedSelect = selConnection.prepareStatement(
           String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
     }
     return preparedSelect;
@@ -137,6 +141,7 @@ public class SqlInserts extends AppBase {
       }
     } catch (Exception e) {
       LOG.info("Failed reading value: " + key.getValueStr(), e);
+      close(preparedSelect);
       preparedSelect = null;
       return 0;
     }
@@ -145,7 +150,9 @@ public class SqlInserts extends AppBase {
 
   private PreparedStatement getPreparedInsert() throws Exception {
     if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection().prepareStatement(
+      close(insConnection);
+      insConnection = getPostgresConnection();
+      preparedInsert = insConnection.prepareStatement(
           String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
     }
     return preparedInsert;
@@ -171,6 +178,7 @@ public class SqlInserts extends AppBase {
     } catch (Exception e) {
       getSimpleLoadGenerator().recordWriteFailure(key);
       LOG.info("Failed writing key: " + key.asString(), e);
+      close(preparedInsert);
       preparedInsert = null;
     }
     return result;
