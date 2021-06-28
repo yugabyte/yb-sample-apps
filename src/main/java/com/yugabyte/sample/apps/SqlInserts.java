@@ -70,28 +70,30 @@ public class SqlInserts extends AppBase {
    */
   @Override
   public void dropTable() throws Exception {
-    Connection connection = getPostgresConnection();
-    connection.createStatement().execute("DROP TABLE " + getTableName());
-    LOG.info(String.format("Dropped table: %s", getTableName()));
+    try (Connection connection = getPostgresConnection()) {
+      connection.createStatement().execute("DROP TABLE " + getTableName());
+      LOG.info(String.format("Dropped table: %s", getTableName()));
+    }
   }
 
   @Override
   public void createTablesIfNeeded(TableOp tableOp) throws Exception {
-    Connection connection = getPostgresConnection();
+    try (Connection connection = getPostgresConnection()) {
 
-    // (Re)Create the table (every run should start cleanly with an empty table).
-    if (tableOp.equals(TableOp.DropTable)) {
-        connection.createStatement().execute(
-            String.format("DROP TABLE IF EXISTS %s", getTableName()));
-        LOG.info("Dropping any table(s) left from previous runs if any");
-    }
-    connection.createStatement().execute(
-        String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text)", getTableName()));
-    LOG.info(String.format("Created table: %s", getTableName()));
-    if (tableOp.equals(TableOp.TruncateTable)) {
-    	connection.createStatement().execute(
-          String.format("TRUNCATE TABLE %s", getTableName()));
-      LOG.info(String.format("Truncated table: %s", getTableName()));
+      // (Re)Create the table (every run should start cleanly with an empty table).
+      if (tableOp.equals(TableOp.DropTable)) {
+          connection.createStatement().execute(
+              String.format("DROP TABLE IF EXISTS %s", getTableName()));
+          LOG.info("Dropping any table(s) left from previous runs if any");
+      }
+      connection.createStatement().execute(
+          String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text)", getTableName()));
+      LOG.info(String.format("Created table: %s", getTableName()));
+      if (tableOp.equals(TableOp.TruncateTable)) {
+      	connection.createStatement().execute(
+            String.format("TRUNCATE TABLE %s", getTableName()));
+        LOG.info(String.format("Truncated table: %s", getTableName()));
+      }
     }
   }
 

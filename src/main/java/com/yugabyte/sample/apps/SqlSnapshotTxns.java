@@ -70,24 +70,26 @@ public class SqlSnapshotTxns extends AppBase {
    */
   @Override
   public void dropTable() throws Exception {
-    Connection connection = getPostgresConnection();
-    connection.createStatement().execute("DROP TABLE IF EXISTS " + getTableName());
-    LOG.info(String.format("Dropped table: %s", getTableName()));
+    try (Connection connection = getPostgresConnection()) {
+      connection.createStatement().execute("DROP TABLE IF EXISTS " + getTableName());
+      LOG.info(String.format("Dropped table: %s", getTableName()));
+    }
   }
 
   @Override
   public void createTablesIfNeeded(TableOp tableOp) throws Exception {
-    Connection connection = getPostgresConnection();
-    connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-    connection.setAutoCommit(false);
-
-    // (Re)Create the table (every run should start cleanly with an empty table).
-    // connection.createStatement().execute(
-    //     String.format("DROP TABLE IF EXISTS %s", getTableName()));
-    LOG.info("Dropping table(s) left from previous runs if any");
-    connection.createStatement().executeUpdate(
-        String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text);", getTableName()));
-    LOG.info(String.format("Created table: %s", getTableName()));
+    try (Connection connection = getPostgresConnection()) {
+      connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+      connection.setAutoCommit(false);
+  
+      // (Re)Create the table (every run should start cleanly with an empty table).
+      // connection.createStatement().execute(
+      //     String.format("DROP TABLE IF EXISTS %s", getTableName()));
+      LOG.info("Dropping table(s) left from previous runs if any");
+      connection.createStatement().executeUpdate(
+          String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text);", getTableName()));
+      LOG.info(String.format("Created table: %s", getTableName()));
+    }
   }
 
   public String getTableName() {

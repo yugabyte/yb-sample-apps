@@ -227,56 +227,58 @@ public class MultiTableMultiIndexInserts extends AppBase {
   }
 
   public void dropTable() throws Exception {
-    Connection connection = getPostgresConnection();
-    for (String baseTableName : baseTableNames) {
-      connection.createStatement().execute(String.format("DROP TABLE IF EXISTS %s",
-          getTableName(baseTableName)));
+    try (Connection connection = getPostgresConnection()) {
+      for (String baseTableName : baseTableNames) {
+        connection.createStatement().execute(String.format("DROP TABLE IF EXISTS %s",
+            getTableName(baseTableName)));
+      }
+      LOG.info("Dropped all tables");
     }
-    LOG.info("Dropped all tables");
   }
 
   @Override
   public void createTablesIfNeeded(TableOp dropTable) throws Exception {
     dropTable();
-    Connection connection = getPostgresConnection();
-    Statement statement = connection.createStatement();
-
-    statement.execute(String.format("CREATE TABLE %s (id uuid primary key, f_id_1 uuid not null, " +
-        "f_id_2 uuid not null, t integer not null, " +
-        "seq integer not null);", getTableName("a1")));
-    statement.execute(String.format("CREATE TABLE %s (id uuid NOT NULL, a2_id uuid NOT NULL, " +
-            "t integer NOT NULL, seq integer NOT NULL);",
-        getTableName("a1a")));
-    statement.execute(String.format(
-        "CREATE TABLE %s (id uuid primary key, json jsonb, t integer, " +
-            "d_ids integer[] NOT NULL, p_t integer[] NOT NULL, " +
-            "a_t integer[] NOT NULL, l integer[] NOT NULL, " +
-            "jsons integer[] NOT NULL, seqs integer[] NOT NULL, " +
-            "sto_ids integer[] NOT NULL);", getTableName("a2")));
-    statement.execute(String.format("CREATE TABLE %s (id integer primary key, " +
-            "t character varying(100) NOT NULL, mv_id integer NOT NULL);",
-        getTableName("d")));
-    statement.execute(String.format("CREATE TABLE %s (id uuid primary key, t integer NOT NULL, " +
-            "geometry_full_geom TEXT, geometry_index TEXT);",
-        getTableName("a3")));
-    statement.execute(String.format("CREATE TABLE %s (a3_id uuid NOT NULL, a2_id uuid NOT NULL, " +
-        "t integer NOT NULL, seq integer NOT NULL);", getTableName("a3a")));
-    statement.execute(String.format("CREATE TABLE %s (m_id uuid NOT NULL, a_id text, " +
-        "m_key text NOT NULL, m_value text);", getTableName("m")));
-    statement.execute(String.format("CREATE TABLE %s (id integer primary key, " +
-        "v character varying(30) NOT NULL);", getTableName("mv")));
-    LOG.info("Created all the tables");
-
-    for (Map.Entry<String, List<String>> entry : indexes.entrySet()) {
-      String baseTableName = entry.getKey();
-      for (String index : entry.getValue()) {
-        statement.execute(String.format("CREATE INDEX %s ON %s (%s)",
-            getIndexName(index, baseTableName),
-            getTableName(baseTableName),
-            index));
+    try (Connection connection = getPostgresConnection()) {
+      Statement statement = connection.createStatement();
+  
+      statement.execute(String.format("CREATE TABLE %s (id uuid primary key, f_id_1 uuid not null, " +
+          "f_id_2 uuid not null, t integer not null, " +
+          "seq integer not null);", getTableName("a1")));
+      statement.execute(String.format("CREATE TABLE %s (id uuid NOT NULL, a2_id uuid NOT NULL, " +
+              "t integer NOT NULL, seq integer NOT NULL);",
+          getTableName("a1a")));
+      statement.execute(String.format(
+          "CREATE TABLE %s (id uuid primary key, json jsonb, t integer, " +
+              "d_ids integer[] NOT NULL, p_t integer[] NOT NULL, " +
+              "a_t integer[] NOT NULL, l integer[] NOT NULL, " +
+              "jsons integer[] NOT NULL, seqs integer[] NOT NULL, " +
+              "sto_ids integer[] NOT NULL);", getTableName("a2")));
+      statement.execute(String.format("CREATE TABLE %s (id integer primary key, " +
+              "t character varying(100) NOT NULL, mv_id integer NOT NULL);",
+          getTableName("d")));
+      statement.execute(String.format("CREATE TABLE %s (id uuid primary key, t integer NOT NULL, " +
+              "geometry_full_geom TEXT, geometry_index TEXT);",
+          getTableName("a3")));
+      statement.execute(String.format("CREATE TABLE %s (a3_id uuid NOT NULL, a2_id uuid NOT NULL, " +
+          "t integer NOT NULL, seq integer NOT NULL);", getTableName("a3a")));
+      statement.execute(String.format("CREATE TABLE %s (m_id uuid NOT NULL, a_id text, " +
+          "m_key text NOT NULL, m_value text);", getTableName("m")));
+      statement.execute(String.format("CREATE TABLE %s (id integer primary key, " +
+          "v character varying(30) NOT NULL);", getTableName("mv")));
+      LOG.info("Created all the tables");
+  
+      for (Map.Entry<String, List<String>> entry : indexes.entrySet()) {
+        String baseTableName = entry.getKey();
+        for (String index : entry.getValue()) {
+          statement.execute(String.format("CREATE INDEX %s ON %s (%s)",
+              getIndexName(index, baseTableName),
+              getTableName(baseTableName),
+              index));
+        }
       }
+      LOG.info("Created all the indexes");
     }
-    LOG.info("Created all the indexes");
   }
 
   public long doRead() {

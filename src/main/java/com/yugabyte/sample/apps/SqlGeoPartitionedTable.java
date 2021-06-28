@@ -68,9 +68,10 @@ public class SqlGeoPartitionedTable extends AppBase {
    */
   @Override
   public void dropTable() throws Exception {
-    Connection connection = getPostgresConnection();
-    connection.createStatement().execute("DROP TABLE " + getTableName());
-    LOG.info(String.format("Dropped table: %s", getTableName()));
+    try (Connection connection = getPostgresConnection()) {
+      connection.createStatement().execute("DROP TABLE " + getTableName());
+      LOG.info(String.format("Dropped table: %s", getTableName()));
+    }
   }
 
   @Override
