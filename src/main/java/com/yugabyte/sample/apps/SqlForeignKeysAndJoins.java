@@ -84,56 +84,58 @@ public class SqlForeignKeysAndJoins extends AppBase {
    */
   @Override
   public void dropTable() throws Exception {
-    Connection connection = getPostgresConnection();
-    connection.createStatement().execute("DROP TABLE IF EXISTS " + getTable2Name());
-    LOG.info(String.format("Dropped table: %s", getTable2Name()));
-    connection.createStatement().execute("DROP TABLE IF EXISTS " + getTable1Name());
-    LOG.info(String.format("Dropped table: %s", getTable1Name()));
+    try (Connection connection = getPostgresConnection()) {
+      connection.createStatement().execute("DROP TABLE IF EXISTS " + getTable2Name());
+      LOG.info(String.format("Dropped table: %s", getTable2Name()));
+      connection.createStatement().execute("DROP TABLE IF EXISTS " + getTable1Name());
+      LOG.info(String.format("Dropped table: %s", getTable1Name()));
+    }
   }
 
   @Override
   public void createTablesIfNeeded(TableOp tableOp) throws Exception {
-    Connection connection = getPostgresConnection();
-    connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-
-    // (Re)Create the table (every run should start cleanly with an empty table).
-    connection.createStatement().execute(
-        String.format("DROP TABLE IF EXISTS %s", getTable2Name()));
-    connection.createStatement().execute(
-        String.format("DROP TABLE IF EXISTS %s", getTable1Name()));
-    LOG.info("Dropping table(s) left from previous runs if any");
-
-    try {
-      // Create the "users" table.
-      connection.createStatement().executeUpdate(
-          String.format("CREATE TABLE %s (user_id TEXT PRIMARY KEY, user_details TEXT);", getTable1Name()));
-      LOG.info(String.format("Created table: %s", getTable1Name()));
-
-      // Create the "orders" table.
-      connection.createStatement().executeUpdate(
-          String.format("CREATE TABLE %s (" + 
-                        "  user_id TEXT, " +
-                        "  order_time TIMESTAMP, " +
-                        "  order_id UUID DEFAULT gen_random_uuid(), " + 
-                        "  order_details TEXT, " +
-                        "  PRIMARY KEY (user_id, order_time DESC, order_id), " +
-                        "  FOREIGN KEY (user_id) REFERENCES %s (user_id)" +
-                        ");", getTable2Name(), getTable1Name()));
-      LOG.info(String.format("Created table: %s", getTable2Name()));
-    } catch (org.postgresql.util.PSQLException e) {
-      LOG.error("Failed to create tables", e);
-      System.err.println("\n================================================");
-      System.err.println("If you hit the following:");
-      System.err.println("    ERROR: function gen_random_uuid() does not exist");
-      System.err.println("  Run this cmd in ysqlsh: CREATE EXTENSION \"pgcrypto\";");
-      System.err.println("==================================================\n");
-      System.exit(0);
-    }
-
-    // Pre-populate the users table with the desired number of users.
-    
-    for (int idx = 0; idx < NUM_USERS_AT_START; idx++) {
-      insertUser();
+    try (Connection connection = getPostgresConnection()) {
+      connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+  
+      // (Re)Create the table (every run should start cleanly with an empty table).
+      connection.createStatement().execute(
+          String.format("DROP TABLE IF EXISTS %s", getTable2Name()));
+      connection.createStatement().execute(
+          String.format("DROP TABLE IF EXISTS %s", getTable1Name()));
+      LOG.info("Dropping table(s) left from previous runs if any");
+  
+      try {
+        // Create the "users" table.
+        connection.createStatement().executeUpdate(
+            String.format("CREATE TABLE %s (user_id TEXT PRIMARY KEY, user_details TEXT);", getTable1Name()));
+        LOG.info(String.format("Created table: %s", getTable1Name()));
+  
+        // Create the "orders" table.
+        connection.createStatement().executeUpdate(
+            String.format("CREATE TABLE %s (" + 
+                          "  user_id TEXT, " +
+                          "  order_time TIMESTAMP, " +
+                          "  order_id UUID DEFAULT gen_random_uuid(), " + 
+                          "  order_details TEXT, " +
+                          "  PRIMARY KEY (user_id, order_time DESC, order_id), " +
+                          "  FOREIGN KEY (user_id) REFERENCES %s (user_id)" +
+                          ");", getTable2Name(), getTable1Name()));
+        LOG.info(String.format("Created table: %s", getTable2Name()));
+      } catch (org.postgresql.util.PSQLException e) {
+        LOG.error("Failed to create tables", e);
+        System.err.println("\n================================================");
+        System.err.println("If you hit the following:");
+        System.err.println("    ERROR: function gen_random_uuid() does not exist");
+        System.err.println("  Run this cmd in ysqlsh: CREATE EXTENSION \"pgcrypto\";");
+        System.err.println("==================================================\n");
+        System.exit(0);
+      }
+  
+      // Pre-populate the users table with the desired number of users.
+      
+      for (int idx = 0; idx < NUM_USERS_AT_START; idx++) {
+        insertUser();
+      }
     }
   }
 
