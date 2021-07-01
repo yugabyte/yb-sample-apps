@@ -381,15 +381,80 @@ public class CmdLineOpts {
     }
 
     if (appName.equals(SqlGeoPartitionedTable.class.getSimpleName())) {
+      // Find the number of partitions to be used by the app.
       if (commandLine.hasOption("num_partitions")) {
         AppBase.appConfig.numPartitions =
                 Integer.parseInt(commandLine.getOptionValue("num_partitions"));
       }
       LOG.info(String.format("SqlGeoPartitionedTable: will use %d partitions",
                              AppBase.appConfig.numPartitions));
+
+      // Either --tablespaces or --placement_policies has to be set.
+      if (!commandLine.hasOption("tablespaces") &&
+          !commandLine.hasOption("placement_policies")) {
+
+        LOG.error("Either --tablespaces or --placement_policies has to be set");
+        System.exit(1);
+      }
+
+      // Check if the tablespaces to be used for the app have already been specified.
+      if (commandLine.hasOption("tablespaces")) {
+        AppBase.appConfig.tablespaces = commandLine.getOptionValue("tablespaces").split(",");
+
+        // Each partition should be placed in a separate tablespace. Verify that number of
+        // tablespaces matches the number of partitions.
+        if (AppBase.appConfig.tablespaces.length != AppBase.appConfig.numPartitions) {
+          LOG.error(String.format("The number of tablespaces %d does not match the number of partitions",
+                    AppBase.appConfig.tablespaces.length));
+          System.exit(1);
+        }
+      }
+
+      if (commandLine.hasOption("placement_policies")) {
+        // Verify that --tablespaces has not already been set.
+        if (commandLine.hasOption("tablespaces")) {
+          LOG.error("Invalid input: Both --tablespaces and --placement_policies set. Either " +
+                    "specify --tablespaces if they have already been created. Use " +
+                    "--placement_policies if tablespaces need to be created by the app.");
+          System.exit(1);
+        }
+
+        AppBase.appConfig.placementPolicies =
+          commandLine.getOptionValue("placement_policies").split(",");
+
+        // Verify that the number of placement_policies matches the number of partitions.
+        if (AppBase.appConfig.placementPolicies.length != AppBase.appConfig.numPartitions) {
+          LOG.error(String.format("The number of placement_policies %d does not match the number of partitions",
+                    AppBase.appConfig.numPartitions));
+          System.exit(1);
+        }
+
+        // Verify that --placement_policies is well formed.
+        for (int i = 0; i < AppBase.appConfig.numPartitions; i++) {
+          // Placement policy is of the type cloud.region.zone.
+          // Split it into individual entities.
+          final String placement = AppBase.appConfig.placementPolicies[i];
+          final String[] entities = placement.split("\\.");
+
+          if (entities.length != 3) {
+            LOG.error(String.format("Placement policy %s is not valid. " +
+                                    "It must be of the form cloud.region.zone",
+                                    placement));
+            System.exit(1);
+          }
+        }
+      }
+
+      if (commandLine.hasOption("replication_factor")) {
+        AppBase.appConfig.replicationFactor =
+          Integer.parseInt(commandLine.getOptionValue("replication_factor"));
+        if (AppBase.appConfig.replicationFactor <= 0) {
+          LOG.error(String.format("Invalid value for replication_factor %d, expected a positive value",
+                                  AppBase.appConfig.replicationFactor));
+          System.exit(1);
+        }
+      }
     }
-
-
   }
 
   /**
@@ -799,6 +864,21 @@ public class CmdLineOpts {
 
     options.addOption("num_partitions", true,
                       "[SqlGeoPartitionedTable] Number of partitions to create.");
+
+    options.addOption("tablespaces", true,
+                      "[SqlGeoPartitionedTable] Comma separated list of Tablespaces " +
+                      "to be used for each partition. Number of tablespaces must match " +
+                      "num_partitions.");
+
+    options.addOption("placement_policies", true,
+                      "[SqlGeoPartitionedTable] Comma separated list of placement policies " +
+                      "to be used to create a tablespace for each partition. This option should " +
+                      "not be used along with --tablespaces");
+
+    options.addOption("replication_factor", true,
+                      "[SqlGeoPartitionedTable] Replication factor to be used to create a " +
+                      "tablespace for each partition. This option should not be used along " +
+                      "with --tablespaces");
 
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:

@@ -45,6 +45,8 @@ public class SqlGeoPartitionedTable extends AppBase {
     // The number of unique keys to write. This determines the number of inserts (as opposed to
     // updates).
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
+    // Replication factor to use for the tablespaces being created for the test.
+    appConfig.replicationFactor = 1;
   }
 
   // The default table name to create and use for CRUD ops.
@@ -86,6 +88,37 @@ public class SqlGeoPartitionedTable extends AppBase {
         LOG.info("Dropping any table(s) left from previous runs if any");
       }
 
+      // Create tablespaces if necessary.
+      if (appConfig.placementPolicies != null) {
+        appConfig.tablespaces = new String[appConfig.numPartitions];
+        for (int i = 0; i < appConfig.numPartitions; i++) {
+          // Placement policy is of the type cloud.region.zone.
+          // Split it into individual entities.
+          final String placement = appConfig.placementPolicies[i];
+          final String[] entities = placement.split("\\.");
+
+          if (entities.length != 3) {
+            LOG.error(String.format("Invalid placement info %s. It should " +
+                                    "be of the form cloud.region.zone", placement));
+            System.exit(1);
+          }
+
+          String tablespaceName = "tablespace" + String.valueOf(i);
+
+          statement.execute(" CREATE TABLESPACE " + tablespaceName +
+            "  WITH (replica_placement=" +
+            "'{\"num_replicas\":" + appConfig.replicationFactor +
+            ", \"placement_blocks\":[" +
+            "{\"cloud\":\"" + entities[0] + "\"," +
+            "\"region\":\"" + entities[1] + "\"," +
+            "\"zone\":\"" + entities[2] + "\"," +
+            "\"min_num_replicas\":" + appConfig.replicationFactor + "}]}')");
+
+          // Add to the set of tablespaces to be used by the test.
+          appConfig.tablespaces[i] = tablespaceName;
+        }
+      }
+
       // TODO Creating the primary keys on each partition because of issue #6149.
       statement.execute(
           String.format("CREATE TABLE IF NOT EXISTS %s (region text, k text, v text) " +
@@ -95,8 +128,8 @@ public class SqlGeoPartitionedTable extends AppBase {
         statement.execute(
             String.format("CREATE TABLE IF NOT EXISTS %1$s_%2$d PARTITION OF %1$s (" +
                               "region, k, v, PRIMARY KEY((region, k) HASH))" +
-                              " FOR VALUES IN ('region_%2$d')",
-                          getTableName(), i));
+                              " FOR VALUES IN ('region_%2$d') TABLESPACE %3$s",
+                          getTableName(), i, appConfig.tablespaces[i]));
       }
 
       LOG.info(String.format("Created (if not exists) table: %s", getTableName()));
@@ -208,7 +241,10 @@ public class SqlGeoPartitionedTable extends AppBase {
         "Sample app based on SqlInserts but uses a geo-partitioned table.",
         "It creates a list-partitioned table with an additional primary-key column ",
         "'region', and a configurable number of partitions.",
-        "The value(s) for the new column (region) is automatically generated for each",
+        "Each partition is placed in a separate tablespace. These tablespaces can be ",
+        "pre-created and provided with the --tablespaces option or they can be ",
+        "created within the app itself based on the --placement_policies option.",
+        "The value(s) for the column (region) is automatically generated for each",
         "read/write operation based on the randomly-generated key column ('k').");
   }
 
@@ -216,6 +252,9 @@ public class SqlGeoPartitionedTable extends AppBase {
   public List<String> getWorkloadOptionalArguments() {
     return Arrays.asList(
         "--num_partitions " + appConfig.numPartitions,
+        "--tablespaces " + appConfig.tablespaces,
+        "--replication_factor " + appConfig.replicationFactor,
+        "--placement_policies " + appConfig.placementPolicies,
         "--num_threads_read " + appConfig.numReaderThreads,
         "--num_threads_write " + appConfig.numWriterThreads,
         "--num_unique_keys " + appConfig.numUniqueKeysToWrite,
