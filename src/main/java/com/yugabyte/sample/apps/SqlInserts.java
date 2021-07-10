@@ -71,7 +71,7 @@ public class SqlInserts extends AppBase {
   @Override
   public void dropTable() throws Exception {
     try (Connection connection = getPostgresConnection()) {
-      connection.createStatement().execute("DROP TABLE " + getTableName());
+      connection.createStatement().execute("DROP TABLE IF EXISTS " + getTableName());
       LOG.info(String.format("Dropped table: %s", getTableName()));
     }
   }

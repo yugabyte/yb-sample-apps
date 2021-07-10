@@ -73,7 +73,7 @@ public class SqlDataLoad extends AppBase {
     @Override
     public void dropTable() throws Exception {
       try (Connection connection = getPostgresConnection()) {
-        connection.createStatement().execute("DROP TABLE " + getTableName());
+        connection.createStatement().execute("DROP TABLE IF EXISTS " + getTableName());
         LOG.info(String.format("Dropped table: %s", getTableName()));
         for (int i = 1; i <= appConfig.numForeignKeys; i++) {
             String fkName = getFkTableName(i);
