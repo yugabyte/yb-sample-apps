@@ -17,6 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
@@ -103,7 +105,12 @@ public class CassandraBatchTimeseries extends AppBase {
   }
 
   public String getTableName() {
-    return appConfig.tableName != null ? appConfig.tableName : DEFAULT_TABLE_NAME;
+    String tableBaseName = appConfig.tableName != null ? appConfig.tableName : DEFAULT_TABLE_NAME;
+    if (appConfig.numValueColumns > 1) {
+      return tableBaseName + String.format("_v%d", appConfig.numValueColumns);
+    } else {
+      return tableBaseName;
+    }
   }
 
   @Override
@@ -113,11 +120,17 @@ public class CassandraBatchTimeseries extends AppBase {
 
   @Override
   protected List<String> getCreateTableStatements() {
-    String create_stmt = "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
-                         " metric_id varchar" +
-                         ", ts bigint" +
-                         ", value varchar" +
-                         ", primary key (metric_id, ts))";
+    String create_stmt =
+            "CREATE TABLE IF NOT EXISTS " + getTableName() + " (" +
+                    " metric_id varchar" +
+                    ", ts bigint" +
+                    ", value varchar" +
+                    IntStream.range(0, appConfig.numValueColumns)
+                            .mapToObj(i -> {
+                              return String.format(", dummy%d varchar", i);
+                            })
+                            .collect(Collectors.joining("")) +
+                    ", primary key (metric_id, ts))";
     if (appConfig.tableTTLSeconds > 0) {
       create_stmt += " WITH default_time_to_live = " + appConfig.tableTTLSeconds;
     }
@@ -130,9 +143,28 @@ public class CassandraBatchTimeseries extends AppBase {
     if (pInsertTmp == null) {
       synchronized (prepareInitLock) {
         if (preparedInsert == null) {
+          String dummyCols = "";
+          String dummyColBindings = "";
+          if (appConfig.numValueColumns > 1) {
+            dummyCols = IntStream.range(0, appConfig.numValueColumns)
+                    .mapToObj(i -> {
+                      return String.format(", dummy%d", i);
+                    })
+                    .collect(Collectors.joining(""));
+            dummyColBindings = IntStream.range(0, appConfig.numValueColumns)
+                    .mapToObj(i -> {
+                      return String.format(", :dummy%d", i);
+                    })
+                    .collect(Collectors.joining(""));
+          }
           // Create the prepared statement object.
-          String insert_stmt = String.format("INSERT INTO %s (metric_id, ts, value) VALUES " +
-                                             "(:metric_id, :ts, :value);", getTableName());
+          String insert_stmt =
+                  String.format("INSERT INTO %s (metric_id, ts, value" +
+                          dummyCols +
+                          ") VALUES " +
+                          "(:metric_id, :ts, :value" +
+                          dummyColBindings +
+                          ");", getTableName());
           preparedInsert = getCassandraClient().prepare(insert_stmt);
         }
         pInsertTmp = preparedInsert;
@@ -222,9 +254,15 @@ public class CassandraBatchTimeseries extends AppBase {
     // Enter a batch of data points.
     long ts = dataSource.getDataEmitTs();
     for (int i = 0; i < appConfig.batchSize; i++) {
-      batch.addStatement(getPreparedInsert().bind().setString("metric_id", dataSource.getMetricId())
-                                          .setLong("ts", ts)
-                                          .setString("value", getValue(ts)));
+      BoundStatement stmt = getPreparedInsert().bind().setString("metric_id", dataSource.getMetricId())
+              .setLong("ts", ts)
+              .setString("value", getValue(ts));
+      if (appConfig.numValueColumns > 1) {
+        for (int c = 0; c < appConfig.numValueColumns; c++) {
+          stmt = stmt.setString(String.format("dummy%d", c), getValue(c));
+        }
+      }
+      batch.addStatement(stmt);
       numKeysWritten++;
       ts++;
     }

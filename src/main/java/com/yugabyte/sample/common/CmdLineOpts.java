@@ -174,6 +174,12 @@ public class CmdLineOpts {
         LOG.info("CassandraBatchTimeseries delta read: " +
                  AppBase.appConfig.readBackDeltaTimeFromNow);
       }
+      if (commandLine.hasOption("num_value_columns")) {
+        AppBase.appConfig.numValueColumns =
+                Integer.parseInt(commandLine.getOptionValue("num_value_columns"));
+      }
+      LOG.info(String.format("CassandraBatchTimeseries: will use %d value columns for the main table",
+              AppBase.appConfig.numValueColumns));
     }
     if (appName.equals(CassandraEventData.class.getSimpleName())) {
 		if (commandLine.hasOption("read_batch_size")) {
