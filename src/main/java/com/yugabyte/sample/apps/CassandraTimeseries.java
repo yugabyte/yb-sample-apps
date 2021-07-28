@@ -13,19 +13,18 @@
 
 package com.yugabyte.sample.apps;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.datastax.oss.driver.api.core.cql.*;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.CmdLineOpts;
 import com.yugabyte.sample.common.TimeseriesLoadGenerator;
 
@@ -214,8 +213,8 @@ public class CassandraTimeseries extends AppBase {
         getPreparedSelect().bind().setString("userId", dataSource.getUserId())
                                   .setString("nodeId", dataSource.getNodeId())
                                   .setString("metricId", dataSource.getRandomMetricId())
-                                  .setTimestamp("startTs", new Date(startTs))
-                                  .setTimestamp("endTs", new Date(endTs));
+                                  .setInstant("startTs", Instant.ofEpochMilli(startTs))
+                                  .setInstant("endTs", Instant.ofEpochMilli(endTs));
     // Make the query.
     ResultSet rs = getCassandraClient().execute(select);
     List<Row> rows = rs.all();
@@ -290,16 +289,16 @@ public class CassandraTimeseries extends AppBase {
         random.nextBytes(randBytesArr);
         sb.append(randBytesArr);
       }
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = new BatchStatementBuilder(BatchType.UNLOGGED);
       for (String metric : dataSource.getMetrics()) {
-        batch.add(getPreparedInsert().bind().setString("user_id", dataSource.getUserId())
+        batch.addStatement(getPreparedInsert().bind().setString("user_id", dataSource.getUserId())
                                             .setString("node_id", dataSource.getNodeId())
                                             .setString("metric_id", metric)
-                                            .setTimestamp("ts", new Date(ts))
+                                            .setInstant("ts", Instant.ofEpochMilli(ts))
                                             .setString("value", sb.toString()));
         numKeysWritten++;
       }
-      getCassandraClient().execute(batch);
+      getCassandraClient().execute(batch.build());
       dataSource.setLastEmittedTs(ts);
       ts = dataSource.getDataEmitTs();
     }

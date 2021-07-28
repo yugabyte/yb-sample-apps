@@ -17,13 +17,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.*;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
@@ -77,8 +74,7 @@ public class CassandraSecondaryIndex extends CassandraKeyValue {
   }
 
   private PreparedStatement getPreparedSelect()  {
-    return getPreparedSelect(String.format("SELECT k, v FROM %s WHERE v = ?;", getTableName()),
-                             appConfig.localReads);
+    return getPreparedSelect(String.format("SELECT k, v FROM %s WHERE v = ?;", getTableName()));
   }
 
   @Override
@@ -91,6 +87,9 @@ public class CassandraSecondaryIndex extends CassandraKeyValue {
     // Do the read from Cassandra.
     // Bind the select statement.
     BoundStatement select = getPreparedSelect().bind(key.getValueStr());
+    if (appConfig.localReads) {
+      select.setConsistencyLevel(ConsistencyLevel.ONE);
+    }
     ResultSet rs = getCassandraClient().execute(select);
     List<Row> rows = rs.all();
     if (rows.size() != 1) {
@@ -114,15 +113,15 @@ public class CassandraSecondaryIndex extends CassandraKeyValue {
 
     try {
       if (appConfig.batchWrite) {
-        BatchStatement batch = new BatchStatement();
+        BatchStatementBuilder batch = new BatchStatementBuilder(BatchType.UNLOGGED);
         PreparedStatement insert = getPreparedInsert();
         for (int i = 0; i < appConfig.batchSize; i++) {
           Key key = getSimpleLoadGenerator().getKeyToWrite();
           keys.add(key);
-          batch.add(insert.bind(key.asString(), key.getValueStr()));
+          batch.addStatement(insert.bind(key.asString(), key.getValueStr()));
         }
         // Do the write to Cassandra.
-        ResultSet resultSet = getCassandraClient().execute(batch);
+        ResultSet resultSet = getCassandraClient().execute(batch.build());
         LOG.debug("Wrote keys count: " + keys.size() + ", return code: " + resultSet.toString());
         for (Key key : keys) {
           getSimpleLoadGenerator().recordWriteSuccess(key);

@@ -17,8 +17,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLongArray;
 
-import com.datastax.driver.core.*;
-import com.datastax.driver.core.policies.RoundRobinPolicy;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.yugabyte.sample.common.SimpleLoadGenerator;
 import org.apache.log4j.Logger;
 
@@ -74,8 +77,7 @@ public class CassandraTransactionalRestartRead extends CassandraKeyValue {
   private PreparedStatement getPreparedSelect()  {
     return getPreparedSelect(String.format(
         "SELECT k, v FROM %s WHERE k = :k;",
-        getTableName()),
-        appConfig.localReads);
+        getTableName()));
   }
 
   @Override
@@ -88,6 +90,9 @@ public class CassandraTransactionalRestartRead extends CassandraKeyValue {
     // Do the read from Cassandra.
     // Bind the select statement.
     BoundStatement select = getPreparedSelect().bind(key.asString());
+    if (appConfig.localReads) {
+      select.setConsistencyLevel(ConsistencyLevel.ONE);
+    }
     long minExpected = lastValues.get((int) key.asNumber());
     ResultSet rs = getCassandraClient().execute(select);
     List<Row> rows = rs.all();
@@ -157,7 +162,4 @@ public class CassandraTransactionalRestartRead extends CassandraKeyValue {
         "--num_threads_write " + appConfig.numWriterThreads);
   }
 
-  protected void setupLoadBalancingPolicy(Cluster.Builder builder) {
-    builder.withLoadBalancingPolicy(new RoundRobinPolicy());
-  }
 }

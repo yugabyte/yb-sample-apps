@@ -1,6 +1,7 @@
 package com.yugabyte.sample.apps;
 
-import com.datastax.driver.core.*;
+import com.datastax.oss.driver.api.core.cql.*;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.yugabyte.sample.common.SimpleLoadGenerator;
 import org.apache.log4j.Logger;
 
@@ -53,17 +54,13 @@ public abstract class CassandraKeyValueBase extends AppBase {
     dropCassandraTable(getTableName());
   }
 
-  protected PreparedStatement getPreparedSelect(String selectStmt, boolean localReads)  {
+  protected PreparedStatement getPreparedSelect(String selectStmt)  {
     PreparedStatement preparedSelectLocal = preparedSelect;
     if (preparedSelectLocal == null) {
       synchronized (prepareInitLock) {
         if (preparedSelect == null) {
           // Create the prepared statement object.
           preparedSelect = getCassandraClient().prepare(selectStmt);
-          if (localReads) {
-            LOG.debug("Doing local reads");
-            preparedSelect.setConsistencyLevel(ConsistencyLevel.ONE);
-          }
         }
         preparedSelectLocal = preparedSelect;
       }
@@ -117,11 +114,11 @@ public abstract class CassandraKeyValueBase extends AppBase {
       return 1;
     }
     if (appConfig.valueSize == 0) {
-      ByteBuffer buf = rows.get(0).getBytes(1);
+      ByteBuffer buf = rows.get(0).getByteBuffer(1);
       String value = new String(buf.array());
       key.verify(value);
     } else {
-      ByteBuffer value = rows.get(0).getBytes(1);
+      ByteBuffer value = rows.get(0).getByteBuffer(1);
       byte[] bytes = new byte[value.capacity()];
       value.get(bytes);
       verifyRandomValue(key, bytes);

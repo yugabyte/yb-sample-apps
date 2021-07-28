@@ -21,10 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
+import com.datastax.oss.driver.api.core.cql.*;
 
 import com.yugabyte.sample.common.CmdLineOpts;
 
@@ -210,7 +207,7 @@ public class CassandraBatchTimeseries extends AppBase {
     if (suffixSize > 0) {
       byte[] randBytesArr = new byte[suffixSize];
       random.nextBytes(randBytesArr);
-      sb.append(randBytesArr);
+      sb.append(new String(randBytesArr));
     }
     return sb.toString();
   }
@@ -221,11 +218,11 @@ public class CassandraBatchTimeseries extends AppBase {
     DataSource dataSource = dataSources.get(random.nextInt(dataSources.size()));
     long numKeysWritten = 0;
 
-    BatchStatement batch = new BatchStatement();
+    BatchStatementBuilder batch = new BatchStatementBuilder(BatchType.UNLOGGED);
     // Enter a batch of data points.
     long ts = dataSource.getDataEmitTs();
     for (int i = 0; i < appConfig.batchSize; i++) {
-      batch.add(getPreparedInsert().bind().setString("metric_id", dataSource.getMetricId())
+      batch.addStatement(getPreparedInsert().bind().setString("metric_id", dataSource.getMetricId())
                                           .setLong("ts", ts)
                                           .setString("value", getValue(ts)));
       numKeysWritten++;
@@ -233,7 +230,7 @@ public class CassandraBatchTimeseries extends AppBase {
     }
     dataSource.setLastEmittedTs(ts);
 
-    getCassandraClient().execute(batch);
+    getCassandraClient().execute(batch.build());
 
     return numKeysWritten;
   }

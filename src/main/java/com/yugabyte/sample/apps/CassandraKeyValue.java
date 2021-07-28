@@ -19,18 +19,16 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
 /**
  * This workload writes and reads some random string keys from a CQL server. By default, this app
  * inserts a million keys, and reads/updates them indefinitely.
  */
 public class CassandraKeyValue extends CassandraKeyValueBase {
+  private static final Logger LOG = Logger.getLogger(CassandraKeyValue.class);
 
   // The default table name to create and use for CRUD ops.
   private static final String DEFAULT_TABLE_NAME = CassandraKeyValue.class.getSimpleName();
@@ -67,8 +65,14 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
   @Override
   protected BoundStatement bindSelect(String key)  {
     PreparedStatement prepared_stmt = getPreparedSelect(
-        String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()), appConfig.localReads);
-    return prepared_stmt.bind(key);
+        String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
+    BoundStatement boundStmt = prepared_stmt.bind(key);
+    if (appConfig.localReads) {
+      LOG.debug("Doing local reads");
+      boundStmt.setConsistencyLevel(ConsistencyLevel.ONE);
+    }
+
+    return boundStmt;
   }
 
   @Override

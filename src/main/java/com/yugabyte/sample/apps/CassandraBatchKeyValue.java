@@ -18,11 +18,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import com.datastax.oss.driver.api.core.cql.*;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
+
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
@@ -47,7 +46,7 @@ public class CassandraBatchKeyValue extends CassandraKeyValue {
 
   @Override
   public long doWrite(int threadIdx) {
-    BatchStatement batch = new BatchStatement();
+    BatchStatementBuilder batch = new BatchStatementBuilder(BatchType.UNLOGGED);
     HashSet<Key> keys = new HashSet<Key>();
     PreparedStatement insert = getPreparedInsert();
     try {
@@ -61,10 +60,10 @@ public class CassandraBatchKeyValue extends CassandraKeyValue {
           value = ByteBuffer.wrap(getRandomValue(key));
         }
         keys.add(key);
-        batch.add(insert.bind(key.asString(), value));
+        batch.addStatement(insert.bind(key.asString(), value));
       }
       // Do the write to Cassandra.
-      ResultSet resultSet = getCassandraClient().execute(batch);
+      ResultSet resultSet = getCassandraClient().execute(batch.build());
       LOG.debug("Wrote keys count: " + keys.size() + ", return code: " + resultSet.toString());
       for (Key key : keys) {
         getSimpleLoadGenerator().recordWriteSuccess(key);

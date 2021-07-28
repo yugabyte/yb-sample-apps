@@ -21,13 +21,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Vector;
 
+import com.datastax.oss.driver.api.core.cql.*;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
@@ -203,7 +199,7 @@ public class CassandraPersonalization extends AppBase {
 
   @Override
   public long doWrite(int threadIdx) {
-    BatchStatement batch = new BatchStatement();
+    BatchStatementBuilder batch = new BatchStatementBuilder(BatchType.UNLOGGED);
     PreparedStatement insert = getPreparedInsert();
     Key key = getSimpleLoadGenerator().getKeyToWrite();
     try {
@@ -214,12 +210,12 @@ public class CassandraPersonalization extends AppBase {
         int couponCount = appConfig.numNewCouponsPerCustomer / appConfig.numStores;
         for (int j = 0; j < couponCount; j++) {
           Coupon coupon = coupons.elementAt(j);
-          batch.add(insert.bind(customerId, storeId, coupon.code, coupon.beginDate, coupon.endDate,
+          batch.addStatement(insert.bind(customerId, storeId, coupon.code, coupon.beginDate, coupon.endDate,
                                 Double.valueOf(generateRandomRelevanceScore())));
         }
         totalCouponCount += couponCount;
       }
-      ResultSet resultSet = getCassandraClient().execute(batch);
+      ResultSet resultSet = getCassandraClient().execute(batch.build());
       LOG.debug("Wrote coupon count: " + totalCouponCount + ", return code: " +
                 resultSet.toString());
       getSimpleLoadGenerator().recordWriteSuccess(key);

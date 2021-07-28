@@ -13,7 +13,8 @@
 
 package com.yugabyte.sample.apps;
 
-import com.datastax.driver.core.*;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.*;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 import org.apache.log4j.Logger;
 
@@ -116,7 +117,7 @@ public class CassandraInserts extends CassandraKeyValue {
   }
 
   private PreparedStatement getPreparedSelect() {
-    return getPreparedSelect(selectStatement, appConfig.localReads);
+    return getPreparedSelect(selectStatement);
   }
 
   @Override
@@ -140,6 +141,9 @@ public class CassandraInserts extends CassandraKeyValue {
       return 0;
     }
     BoundStatement bound = getPreparedSelect().bind(key.asString());
+    if (appConfig.localReads) {
+      bound.setConsistencyLevel(ConsistencyLevel.ONE);
+    }
     ResultSet rs = getCassandraClient().execute(bound);
     List<Row> rows = rs.all();
     LOG.debug("Read key: " + key.asString() + " return code" + rs.toString());
@@ -155,14 +159,14 @@ public class CassandraInserts extends CassandraKeyValue {
   private int doBatchedWrite() {
     Set<Key> keys = new HashSet<Key>();
     try {
-      BatchStatement batch = new BatchStatement();
+      BatchStatementBuilder batch = new BatchStatementBuilder(BatchType.UNLOGGED);
       PreparedStatement insert = getPreparedInsert();
       for (int i = 0; i < appConfig.batchSize; i++) {
         Key key = getSimpleLoadGenerator().getKeyToWrite();
         keys.add(key);
-        batch.add(getBoundInsertStatement(insert, key));
+        batch.addStatement(getBoundInsertStatement(insert, key));
       }
-      ResultSet resultSet = getCassandraClient().execute(batch);
+      ResultSet resultSet = getCassandraClient().execute(batch.build());
       LOG.debug("Wrote keys count: " + keys.size() + ", return code: " + resultSet.toString());
       for (Key key : keys) {
         getSimpleLoadGenerator().recordWriteSuccess(key);

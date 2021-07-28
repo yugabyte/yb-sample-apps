@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -28,7 +29,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.google.common.collect.ImmutableList;
 
 // Import * so we can list the sample apps.
 import com.yugabyte.sample.apps.*;

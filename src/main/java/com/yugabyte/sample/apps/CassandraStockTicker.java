@@ -13,20 +13,20 @@
 
 package com.yugabyte.sample.apps;
 
+import java.time.Instant;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.CmdLineOpts;
 import com.yugabyte.sample.common.TimeseriesLoadGenerator;
 
@@ -250,7 +250,7 @@ public class CassandraStockTicker extends AppBase {
 
     // Insert the row.
     BoundStatement insertRaw =
-        getPreparedInsertRaw().bind(dataSource.getTickerId(), new Date(ts), value);
+        getPreparedInsertRaw().bind(dataSource.getTickerId(), Instant.ofEpochMilli(ts), value);
     ResultSet resultSet = getCassandraClient().execute(insertRaw);
     numKeysWritten++;
     dataSource.setLastEmittedTs(ts);
@@ -258,7 +258,7 @@ public class CassandraStockTicker extends AppBase {
     // With some probability, insert into the minutely table.
     if (random.nextInt(60000) < data_emit_rate_millis) {
       BoundStatement insertMin =
-          getPreparedInsertMin().bind(dataSource.getTickerId(), new Date(ts), value);
+          getPreparedInsertMin().bind(dataSource.getTickerId(), Instant.ofEpochMilli(ts), value);
       resultSet = getCassandraClient().execute(insertMin);
       numKeysWritten++;
     }

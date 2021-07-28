@@ -16,12 +16,10 @@ package com.yugabyte.sample.apps;
 import java.util.Arrays;
 import java.util.List;
 
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import org.apache.log4j.Logger;
-
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 
 /**
  * A very simple app that creates an Employees table, inserts an employee record and reads it back.
@@ -36,7 +34,7 @@ public class CassandraHelloWorld extends AppBase {
   public void run() {
     try {
       // Create a Cassandra client.
-      Session session = getCassandraClient();
+      CqlSession session = getCassandraClient();
 
       // Create the keyspace and use it.
       String createKeyspaceStatement =

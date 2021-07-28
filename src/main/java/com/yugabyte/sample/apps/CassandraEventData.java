@@ -19,12 +19,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.datastax.oss.driver.api.core.cql.*;
 import org.apache.log4j.Logger;
-
-import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
 
 import com.yugabyte.sample.common.CmdLineOpts;
 
@@ -202,11 +198,11 @@ public class CassandraEventData extends AppBase {
 		DataSource dataSource = dataSources.get(random.nextInt(dataSources.size()));
 		long numKeysWritten = 0;
 
-		BatchStatement batch = new BatchStatement();
+		BatchStatementBuilder batch = new BatchStatementBuilder(BatchType.UNLOGGED);
 		// Enter a batch of data points.
 		long ts = dataSource.getDataEmitTs();
 		for (int i = 0; i < appConfig.batchSize; i++) {
-			batch.add(getPreparedInsert().bind().setString("device_id", dataSource.getDeviceId()).setLong("ts", ts)
+			batch.addStatement(getPreparedInsert().bind().setString("device_id", dataSource.getDeviceId()).setLong("ts", ts)
 					.setString("event_type", dataSource.getEventType())
 					.setBytesUnsafe("value", getValue(dataSource.getDeviceId())));
 			numKeysWritten++;
@@ -214,7 +210,7 @@ public class CassandraEventData extends AppBase {
 		}
 		dataSource.setLastEmittedTs(ts);
 
-		getCassandraClient().execute(batch);
+		getCassandraClient().execute(batch.build());
 
 		return numKeysWritten;
 	}

@@ -13,16 +13,18 @@
 
 package com.yugabyte.sample.apps;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
@@ -36,7 +38,7 @@ public class CassandraUserId extends CassandraKeyValue {
   private final String DEFAULT_TABLE_NAME = CassandraUserId.class.getSimpleName();
 
   // The newest timestamp we have read.
-  static Date maxTimestamp = new Date(0);
+  static Instant maxTimestamp = Instant.EPOCH;
 
   // Lock for updating maxTimestamp.
   private Object updateMaxTimestampLock = new Object();
@@ -63,8 +65,7 @@ public class CassandraUserId extends CassandraKeyValue {
 
   private PreparedStatement getPreparedSelect() {
     return getPreparedSelect(String.format(
-        "SELECT user_name, password, update_time FROM %s WHERE user_name = ?;", getTableName()),
-        appConfig.localReads);
+        "SELECT user_name, password, update_time FROM %s WHERE user_name = ?;", getTableName()));
   }
 
   @Override
@@ -77,6 +78,9 @@ public class CassandraUserId extends CassandraKeyValue {
     // Do the read from Cassandra.
     // Bind the select statement.
     BoundStatement select = getPreparedSelect().bind(key.asString());
+    if (appConfig.localReads) {
+      select.setConsistencyLevel(ConsistencyLevel.ONE);
+    }
     ResultSet rs = getCassandraClient().execute(select);
     List<Row> rows = rs.all();
     if (rows.size() != 1) {
@@ -93,10 +97,10 @@ public class CassandraUserId extends CassandraKeyValue {
           ", expected: " + key.asString() +
           ", got: " + password);
     };
-    Date timestamp = rows.get(0).getTimestamp("update_time");
+    Instant timestamp = rows.get(0).getInstant("update_time");
     synchronized (updateMaxTimestampLock) {
-      if (timestamp.after(maxTimestamp)) {
-        maxTimestamp.setTime(timestamp.getTime());
+      if (timestamp.isAfter(maxTimestamp)) {
+        maxTimestamp = timestamp;
       }
     }
     LOG.debug("Read user_name: " + key.toString());

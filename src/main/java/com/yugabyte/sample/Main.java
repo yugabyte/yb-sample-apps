@@ -243,6 +243,7 @@ public class Main {
     BasicConfigurator.configure();
     Logger.getRootLogger().setLevel(Level.ERROR);
     Logger.getLogger("com.yugabyte.sample").setLevel(Level.INFO);
+    //Logger.getLogger("com.yugabyte.oss.driver.internal.core.loadbalancing").setLevel(Level.DEBUG);
     LOG.info("Starting sample app...");
     CmdLineOpts configuration = CmdLineOpts.createFromArgs(args);
     Main main = new Main(configuration);

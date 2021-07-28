@@ -17,15 +17,12 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.yugabyte.sample.common.SimpleLoadGenerator;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
 /**
  * This workload writes and reads some random string keys from a CQL server. By default, this app
@@ -57,8 +54,13 @@ public class CassandraRangeKeyValue extends CassandraKeyValueBase {
   protected BoundStatement bindSelect(String key) {
     PreparedStatement prepared_stmt = getPreparedSelect(String.format(
         "SELECT k, r1, r2, r3, v FROM %s WHERE k = ? AND r1 = ? AND r2 = ? AND r3 = ?;",
-        getTableName()), appConfig.localReads);
-    return prepared_stmt.bind(key, key, key, key);
+        getTableName()));
+    BoundStatement boundStmt = prepared_stmt.bind(key, key, key, key);
+    if (appConfig.localReads) {
+      boundStmt.setConsistencyLevel(ConsistencyLevel.ONE);
+    }
+
+    return boundStmt;
   }
 
   @Override

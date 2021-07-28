@@ -23,6 +23,7 @@ import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,27 +41,20 @@ import java.util.zip.Checksum;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
+import com.datastax.oss.driver.api.core.cql.SimpleStatementBuilder;
+import com.datastax.oss.driver.api.core.metadata.Node;
+import com.datastax.oss.driver.api.core.servererrors.UnavailableException;
+import com.yugabyte.oss.driver.internal.core.loadbalancing.PartitionAwarePolicy;
 import com.yugabyte.sample.common.metrics.Observation;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.EndPoint;
-import com.datastax.driver.core.HostDistance;
-import com.datastax.driver.core.JdkSSLOptions;
-import com.datastax.driver.core.PoolingOptions;
-import com.datastax.driver.core.QueryOptions;
-import com.datastax.driver.core.SSLOptions;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.SimpleStatement;
-import com.datastax.driver.core.SocketOptions;
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
-import com.datastax.driver.core.policies.DCAwareRoundRobinPolicy;
-import com.datastax.driver.core.policies.DefaultRetryPolicy;
-import com.datastax.driver.core.policies.LoadBalancingPolicy;
-import com.datastax.driver.core.policies.LoggingRetryPolicy;
-import com.datastax.driver.core.policies.RoundRobinPolicy;
-import com.yugabyte.driver.core.policies.PartitionAwarePolicy;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.CqlSession;
+
 import com.yugabyte.sample.common.CmdLineOpts;
 import com.yugabyte.sample.common.CmdLineOpts.ContactPoint;
 import com.yugabyte.sample.common.RedisHashLoadGenerator;
@@ -111,8 +105,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   // State variable to track if this workload has finished.
   protected AtomicBoolean hasFinished = new AtomicBoolean(false);
   // The Cassandra client variables.
-  protected static volatile Cluster cassandra_cluster = null;
-  protected static volatile Session cassandra_session = null;
+  protected static volatile CqlSession cassandra_session = null;
   // The Java redis client.
   private volatile Jedis jedisClient = null;
   private volatile YBJedis ybJedisClient = null;
@@ -142,9 +135,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * can call it without any performance penalty. If there is no client, a synchronized thread is
    * created so that exactly only one thread will create a client. If there is a pre-existing
    * client, we just return it.
-   * @return a Cassandra Session object.
+   * @return a Cassandra CqlSession object.
    */
-  protected Session getCassandraClient() {
+  protected CqlSession getCassandraClient() {
     if (cassandra_session == null) {
       createCassandraClient(configuration.getContactPoints());
     }
@@ -209,21 +202,18 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   public void initializeConnectionsAndStatements(int numThreads) { }
 
-  protected static void createKeyspace(Session session, String ks) {
+  protected static void createKeyspace(CqlSession session, String ks) {
     if (!appConfig.skipDDL) {
       String create_keyspace_stmt = "CREATE KEYSPACE IF NOT EXISTS " + ks +
               " WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 1};";
-      // Use consistency level ONE to allow cross DC requests.
       session.execute(
               session.prepare(create_keyspace_stmt)
-                      .setConsistencyLevel(ConsistencyLevel.ONE)
                       .bind());
       LOG.debug("Created a keyspace " + ks + " using query: [" + create_keyspace_stmt + "]");
     }
     String use_keyspace_stmt = "USE " + ks + ";";
     session.execute(
       session.prepare(use_keyspace_stmt)
-        .setConsistencyLevel(ConsistencyLevel.ONE)
         .bind());
     LOG.debug("Used the new keyspace " + ks + " using query: [" + use_keyspace_stmt + "]");
   }
@@ -236,7 +226,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * Private function that returns an SSL Handler when provided with a cert file.
    * Used for creating a secure connection for the app.
    */
-  private SSLOptions createSSLHandler(String certfile) {
+  private SSLContext createSSLHandler(String certfile) {
     try {
       CertificateFactory cf = CertificateFactory.getInstance("X.509");
       FileInputStream fis = new FileInputStream(certfile);
@@ -263,7 +253,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
       SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(null, tmf.getTrustManagers(), null);
-      return JdkSSLOptions.builder().withSSLContext(sslContext).build();
+      return sslContext;
     } catch (Exception e) {
       LOG.error("Exception creating sslContext: ", e);
       return null;
@@ -276,79 +266,48 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * @param contactPoints list of contact points for the client.
    */
   protected synchronized void createCassandraClient(List<ContactPoint> contactPoints) {
-    Cluster.Builder builder;
-    if (cassandra_cluster == null) {
-      builder = Cluster.builder();
+    CqlSessionBuilder builder;
+    if (cassandra_session == null) {
+      builder = CqlSession.builder();
       if (appConfig.dbUsername != null) {
         if (appConfig.dbPassword == null) {
           throw new IllegalArgumentException("Password required when providing a username");
         }
         builder = builder
-            .withCredentials(appConfig.dbUsername, appConfig.dbPassword);
+            .withAuthCredentials(appConfig.dbUsername, appConfig.dbPassword);
       }
       if (appConfig.sslCert != null) {
         builder = builder
-            .withSSL(createSSLHandler(appConfig.sslCert));
+            .withSslContext(createSSLHandler(appConfig.sslCert));
       }
-      Integer port = null;
-      SocketOptions socketOptions = new SocketOptions();
-      if (appConfig.cqlConnectTimeoutMs > 0) {
-        socketOptions.setConnectTimeoutMillis(appConfig.cqlConnectTimeoutMs);
+
+      ProgrammaticDriverConfigLoaderBuilder pBuilder =
+              DriverConfigLoader.programmaticBuilder()
+                      .withDuration(DefaultDriverOption.CONNECTION_CONNECT_TIMEOUT, Duration.ofMillis(appConfig.cqlConnectTimeoutMs))
+                      .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofMillis(appConfig.cqlReadTimeoutMs))
+                      .withInt(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, appConfig.concurrentClients)
+                      .withInt(DefaultDriverOption.CONNECTION_POOL_REMOTE_SIZE, appConfig.concurrentClients)
+                      .withString(DefaultDriverOption.REQUEST_CONSISTENCY, ConsistencyLevel.QUORUM.toString())
+                      .withBoolean(DefaultDriverOption.REQUEST_DEFAULT_IDEMPOTENCE, Boolean.TRUE);
+      if (!appConfig.disableYBLoadBalancingPolicy) {
+        pBuilder = pBuilder.withClass(DefaultDriverOption.LOAD_BALANCING_POLICY_CLASS, PartitionAwarePolicy.class)
+                .withString(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, appConfig.localDc);
       }
-      if (appConfig.cqlReadTimeoutMs > 0) {
-        socketOptions.setReadTimeoutMillis(appConfig.cqlReadTimeoutMs);
-      }
-      builder.withSocketOptions(socketOptions);
+      builder.withConfigLoader(pBuilder.build());
+
       for (ContactPoint cp : contactPoints) {
-        if (port == null) {
-          port = cp.getPort();
-          builder.withPort(port);
-        } else if (port != cp.getPort()) {
-          throw new IllegalArgumentException("Using multiple CQL ports is not supported.");
-        }
-        builder.addContactPoint(cp.getHost());
+        builder.addContactPoint(new InetSocketAddress(cp.getHost(), cp.getPort()));
       }
       LOG.info("Connecting with " + appConfig.concurrentClients + " clients to nodes: "
-          + builder.getContactPoints()
+          + contactPoints
               .stream().map(it -> it.toString()).collect(Collectors.joining(",")));
-      PoolingOptions poolingOptions = new PoolingOptions();
-      poolingOptions
-          .setCoreConnectionsPerHost(HostDistance.LOCAL, appConfig.concurrentClients)
-          .setMaxConnectionsPerHost(HostDistance.LOCAL, appConfig.concurrentClients)
-          .setCoreConnectionsPerHost(HostDistance.REMOTE, appConfig.concurrentClients)
-          .setMaxConnectionsPerHost(HostDistance.REMOTE, appConfig.concurrentClients);
-      cassandra_cluster =
-          builder.withLoadBalancingPolicy(getLoadBalancingPolicy())
-                 .withPoolingOptions(poolingOptions)
-                 .withQueryOptions(new QueryOptions()
-                     .setDefaultIdempotence(true)
-                     .setConsistencyLevel(ConsistencyLevel.QUORUM))
-                 .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
-                 .build();
-      LOG.debug("Connected to cluster: " + cassandra_cluster.getClusterName());
-    }
-    if (cassandra_session == null) {
-      LOG.debug("Creating a session...");
-      cassandra_session = cassandra_cluster.connect();
+
+      cassandra_session = builder.build();
+      LOG.debug("Connected to cluster: " + cassandra_session.getMetadata().getClusterName());
+
+      LOG.debug("Creating keyspace...");
       createKeyspace(cassandra_session, keyspace);
     }
-  }
-
-  protected LoadBalancingPolicy getLoadBalancingPolicy() {
-    LoadBalancingPolicy policy;
-    if (appConfig.localDc != null && !appConfig.localDc.isEmpty()) {
-      policy = DCAwareRoundRobinPolicy.builder()
-                                      .withUsedHostsPerRemoteDc(Integer.MAX_VALUE)
-                                      .withLocalDc(appConfig.localDc)
-                                      .allowRemoteDCsForLocalConsistencyLevel()
-                                      .build();
-    } else {
-      policy = new RoundRobinPolicy();
-    }
-    if (!appConfig.disableYBLoadBalancingPolicy) {
-      policy = new PartitionAwarePolicy(policy);
-    }
-    return policy;
   }
 
   /**
@@ -403,7 +362,6 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     jedisPipeline = null;
     jedisCluster = null;
     redisServerInUse = null;
-    cassandra_cluster = null;
     cassandra_session = null;
   }
 
@@ -565,7 +523,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   public void dropCassandraTable(String tableName) {
     String drop_stmt = String.format("DROP TABLE IF EXISTS %s;", tableName);
-    getCassandraClient().execute(new SimpleStatement(drop_stmt).setReadTimeoutMillis(60000));
+    getCassandraClient().execute(new SimpleStatementBuilder(drop_stmt).build());
     LOG.info("Dropped Cassandra table " + tableName + " using query: [" + drop_stmt + "]");
   }
 
@@ -577,11 +535,10 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   public void createTablesIfNeeded(TableOp tableOp) throws Exception {
     LOG.info("Creating YCQL tables...");
     for (String create_stmt : getCreateTableStatements()) {
-      Session session = getCassandraClient();
+      CqlSession session = getCassandraClient();
       // consistency level of one to allow cross DC requests.
       session.execute(
         session.prepare(create_stmt)
-          .setConsistencyLevel(ConsistencyLevel.ONE)
           .bind());
       LOG.info("Created a Cassandra table using query: [" + create_stmt + "]");
     }
@@ -638,9 +595,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    */
   public void reportException(Exception e) {
     LOG.info("Caught Exception: ", e);
-    if (e instanceof NoHostAvailableException) {
-      NoHostAvailableException ne = (NoHostAvailableException)e;
-      for (Map.Entry<EndPoint,Throwable> entry : ne.getErrors().entrySet()) {
+    if (e instanceof UnavailableException) {
+      UnavailableException ne = (UnavailableException) e;
+      for (Map.Entry<Node,Throwable> entry : ne.getExecutionInfo().getErrors()) {
         LOG.info("Exception encountered at host " + entry.getKey() + ": ", entry.getValue());
       }
     }
@@ -840,9 +797,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       cassandra_session.close();
       cassandra_session = null;
     }
-    if (mainInstance && cassandra_cluster != null) {
-      cassandra_cluster.close();
-      cassandra_cluster = null;
+    if (mainInstance && cassandra_session != null) {
+      cassandra_session.close();
+      cassandra_session = null;
     }
     if (jedisClient != null) {
       jedisClient.close();

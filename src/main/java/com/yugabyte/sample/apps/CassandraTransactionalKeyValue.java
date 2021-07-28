@@ -17,12 +17,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import org.apache.log4j.Logger;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
@@ -71,8 +72,7 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
 
   private PreparedStatement getPreparedSelect()  {
     return getPreparedSelect(String.format("SELECT k, v, writetime(v) FROM %s WHERE k in :k;",
-                                           getTableName()),
-                             appConfig.localReads);
+                                           getTableName()));
   }
 
   private void verifyValue(Key key, long value1, long value2) {
@@ -94,6 +94,9 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
     // Bind the select statement.
     BoundStatement select = getPreparedSelect().bind(Arrays.asList(key.asString() + "_1",
                                                                    key.asString() + "_2"));
+    if (appConfig.localReads) {
+      select.setConsistencyLevel(ConsistencyLevel.ONE);
+    }
     ResultSet rs = getCassandraClient().execute(select);
     List<Row> rows = rs.all();
     if (rows.size() != 2) {
