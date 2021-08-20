@@ -179,6 +179,16 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         ContactPoint contactPoint = getRandomContactPoint();
         Properties props = new Properties();
         props.setProperty("user", username);
+        // Check if the smart driver is there in the class path
+        boolean smartDriver = true;
+        try {
+          Class.forName("com.yugabyte.ysql.ClusterAwareLoadBalancer");
+        } catch (ClassNotFoundException cnfe) {
+          smartDriver = false;
+        }
+        if (smartDriver) {
+          props.setProperty("load-balance", String.valueOf(appConfig.loadBalance));
+        }
         if (password != null) {
           props.setProperty("password", password);
         }
