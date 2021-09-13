@@ -205,6 +205,8 @@ public class SqlInserts extends AppBase {
         "--num_writes " + appConfig.numKeysToWrite,
         "--num_threads_read " + appConfig.numReaderThreads,
         "--num_threads_write " + appConfig.numWriterThreads,
-        "--load_balance " + appConfig.loadBalance);
+        "--load_balance " + appConfig.loadBalance,
+        "--topology_keys " + appConfig.topologyKeys,
+        "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

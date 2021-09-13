@@ -260,6 +260,8 @@ public class SqlGeoPartitionedTable extends AppBase {
         "--num_unique_keys " + appConfig.numUniqueKeysToWrite,
         "--num_reads " + appConfig.numKeysToRead,
         "--num_writes " + appConfig.numKeysToWrite,
-        "--load_balance " + appConfig.loadBalance);
+        "--load_balance " + appConfig.loadBalance,
+        "--topology_keys " + appConfig.topologyKeys,
+        "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

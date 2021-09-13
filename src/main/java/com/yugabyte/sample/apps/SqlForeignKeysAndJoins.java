@@ -328,6 +328,8 @@ public class SqlForeignKeysAndJoins extends AppBase {
         "--num_threads_write " + appConfig.numWriterThreads,
         "--username " + "<DB USERNAME>",
         "--password " + "<OPTIONAL PASSWORD>",
-        "--load_balance " + appConfig.loadBalance);
+        "--load_balance " + appConfig.loadBalance,
+        "--topology_keys " + appConfig.topologyKeys,
+        "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

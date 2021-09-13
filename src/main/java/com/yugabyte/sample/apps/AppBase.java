@@ -188,7 +188,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
         if (smartDriver) {
           props.setProperty("load-balance", String.valueOf(appConfig.loadBalance));
+          if (appConfig.topologyKeys != null) {
+            props.setProperty("topology-keys", appConfig.topologyKeys);
+          }
         }
+
+        if (appConfig.enableDriverDebug) {
+          props.setProperty("loggerLevel", "debug");
+        }
+
         if (password != null) {
           props.setProperty("password", password);
         }

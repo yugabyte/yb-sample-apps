@@ -313,6 +313,8 @@ public class SqlDataLoad extends AppBase {
                 "--num_consecutive_rows_with_same_fk " + appConfig.numConsecutiveRowsWithSameFk,
                 "--batch_size " + appConfig.batchSize,
                 "--num_threads_write " + appConfig.numWriterThreads,
-                "--load_balance " + appConfig.loadBalance);
+                "--load_balance " + appConfig.loadBalance,
+                "--topology_keys " + appConfig.topologyKeys,
+                "--debug-driver " + appConfig.enableDriverDebug);
     }
 }
