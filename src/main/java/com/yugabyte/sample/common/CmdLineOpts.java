@@ -329,6 +329,15 @@ public class CmdLineOpts {
       }
       AppBase.appConfig.dbPassword = commandLine.getOptionValue("password");
     }
+    if (commandLine.hasOption("load_balance")) {
+      AppBase.appConfig.loadBalance = Boolean.valueOf(commandLine.getOptionValue("load_balance"));
+    }
+    if (commandLine.hasOption("topology_keys")) {
+      AppBase.appConfig.topologyKeys = commandLine.getOptionValue("topology_keys");
+    }
+    if (commandLine.hasOption("debug_driver")) {
+      AppBase.appConfig.enableDriverDebug = Boolean.valueOf(commandLine.getOptionValue("debug_driver"));
+    }
     if (commandLine.hasOption("concurrent_clients")) {
       AppBase.appConfig.concurrentClients = Integer.parseInt(
           commandLine.getOptionValue("concurrent_clients"));
@@ -343,6 +352,28 @@ public class CmdLineOpts {
     if (commandLine.hasOption("num_indexes")) {
       AppBase.appConfig.numIndexes =
           Integer.parseInt(commandLine.getOptionValue("num_indexes"));
+    }
+
+    if (appName.startsWith("Sql")) {
+      if (commandLine.hasOption("load_balance")) {
+        AppBase.appConfig.loadBalance =
+                Boolean.parseBoolean(commandLine.getOptionValue("load_balance"));
+      }
+      if (commandLine.hasOption("topology_keys")) {
+        AppBase.appConfig.topologyKeys =
+                commandLine.getOptionValue("topology_keys");
+      }
+      String logMsg = String.format(appName + " workload: using driver set for load-balance = "
+              + AppBase.appConfig.loadBalance);
+      if (AppBase.appConfig.topologyKeys != null) {
+        logMsg = String.format(appName + " workload: using driver set for load-balance = "
+                + AppBase.appConfig.loadBalance + " with topology_keys = " + AppBase.appConfig.topologyKeys);
+      }
+      if (commandLine.hasOption("debug_driver")) {
+        AppBase.appConfig.enableDriverDebug =
+                Boolean.parseBoolean(commandLine.getOptionValue("debug_driver"));
+      }
+      LOG.info(logMsg);
     }
 
     if (appName.equals(SqlDataLoad.class.getSimpleName())) {
@@ -740,6 +771,12 @@ public class CmdLineOpts {
     options.addOption("password", true,
         "The password to use when connecting to the database. " +
             "If this option is set, the --username option is required.");
+    options.addOption("load_balance", true,
+            "Set up YugabyteDB JDBC driver with in-built load balancing capability.");
+    options.addOption("topology_keys", true,
+            "Set up YugabyteDB JDBC driver with topology aware load balancing capability.");
+    options.addOption("debug_driver", true,
+            "Enable debug logs for YugabyteDB JDBC driver");
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
     options.addOption("ssl_cert", true,

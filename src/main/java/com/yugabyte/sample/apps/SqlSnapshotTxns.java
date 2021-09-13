@@ -199,6 +199,9 @@ public class SqlSnapshotTxns extends AppBase {
         "--num_reads " + appConfig.numKeysToRead,
         "--num_writes " + appConfig.numKeysToWrite,
         "--num_threads_read " + appConfig.numReaderThreads,
-        "--num_threads_write " + appConfig.numWriterThreads);
+        "--num_threads_write " + appConfig.numWriterThreads,
+        "--load_balance " + appConfig.loadBalance,
+        "--topology_keys " + appConfig.topologyKeys,
+        "--debug_driver " + appConfig.enableDriverDebug);
   }
 }
