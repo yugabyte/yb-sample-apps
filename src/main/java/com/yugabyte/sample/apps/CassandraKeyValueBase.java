@@ -60,7 +60,12 @@ public abstract class CassandraKeyValueBase extends AppBase {
       synchronized (prepareInitLock) {
         if (preparedSelect == null) {
           // Create the prepared statement object.
-          preparedSelect = getCassandraClient().prepare(selectStmt);
+          SimpleStatementBuilder builder = new SimpleStatementBuilder(selectStmt);
+          if (appConfig.localReads) {
+            LOG.debug("Doing local reads");
+            builder.setConsistencyLevel(ConsistencyLevel.ONE);
+          }
+          preparedSelect = getCassandraClient().prepare(builder.build());
         }
         preparedSelectLocal = preparedSelect;
       }
