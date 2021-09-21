@@ -64,15 +64,7 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
 
   @Override
   protected BoundStatement bindSelect(String key)  {
-    PreparedStatement prepared_stmt = getPreparedSelect(
-        String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
-    BoundStatement boundStmt = prepared_stmt.bind(key);
-    if (appConfig.localReads) {
-      LOG.debug("Doing local reads");
-      boundStmt.setConsistencyLevel(ConsistencyLevel.ONE);
-    }
-
-    return boundStmt;
+    return getPreparedSelect(String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName())).bind(key);
   }
 
   @Override
