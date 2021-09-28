@@ -58,7 +58,7 @@ public class SqlDatabases extends AppBase {
 
                     result = getPostgresConnection().createStatement().executeUpdate(stmtString);
 
-                    LOG.debug("Created database: " + DEFAULT_DATABASE_PREFIX + "_" + toRemove + ", Result: " + result);
+                    LOG.debug("Dropped database: " + DEFAULT_DATABASE_PREFIX + "_" + toRemove + ", Result: " + result);
                     getSimpleLoadGenerator().recordWriteSuccess(new SimpleLoadGenerator.Key(toRemove, "REMOVE"));
                 }
             }
