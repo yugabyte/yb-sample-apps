@@ -71,7 +71,8 @@ public class CmdLineOpts {
     SqlInserts.class,
     SqlSecondaryIndex.class,
     SqlSnapshotTxns.class,
-    SqlUpdates.class
+    SqlUpdates.class,
+    SqlTransactions.class
   );
 
   // The class type of the app needed to spawn new objects.
@@ -378,6 +379,44 @@ public class CmdLineOpts {
       }
       LOG.info(String.format("SqlDataLoad: Will use a new fk every %d rows",
                              AppBase.appConfig.numConsecutiveRowsWithSameFk));
+    }
+
+    if (appName.equals(SqlTransactions.class.getSimpleName())) {
+      if (commandLine.hasOption("num_value_columns")) {
+        AppBase.appConfig.numValueColumns =
+                Integer.parseInt(commandLine.getOptionValue("num_value_columns"));
+      }
+      LOG.info(String.format("SqlTransactions: will use %d value columns for the main table",
+              AppBase.appConfig.numValueColumns));
+
+
+      if (commandLine.hasOption("num_tx_operations")) {
+        AppBase.appConfig.numTxOps = Integer.parseInt(commandLine.getOptionValue("num_tx_operations"));
+      }
+      LOG.info(String.format("SqlTransactions: each transaction will contain %d operations",
+              AppBase.appConfig.numTxOps));
+
+      if (commandLine.hasOption("num_tx_savepoints")) {
+        AppBase.appConfig.numTxSavepoints = Integer.parseInt(commandLine.getOptionValue("num_tx_savepoints"));
+      }
+      LOG.info(String.format("SqlTransactions: each transactions should will contain %d savepoints",
+              AppBase.appConfig.numTxSavepoints));
+
+      if (commandLine.hasOption("num_tx_rollback_chance")) {
+        AppBase.appConfig.numTxRollbackChange = Integer.parseInt(commandLine.getOptionValue("num_tx_rollback_chance"));
+      }
+      LOG.info(String.format("SqlTransactions: each transactions has %d change on rollback",
+              AppBase.appConfig.numTxRollbackChange));
+
+      if (commandLine.hasOption("num_inserted_keys_buffer_size")) {
+        AppBase.appConfig.numInsertedKeysBufferSize = Integer.parseInt(commandLine.getOptionValue("num_inserted_keys_buffer_size"));
+        LOG.info(String.format("SqlTransactions: %s size of stored inserted keys in buffer", AppBase.appConfig.numInsertedKeysBufferSize));
+      }
+
+      if (commandLine.hasOption("num_tx_tables")) {
+        AppBase.appConfig.numTxTables = Integer.parseInt(commandLine.getOptionValue("num_tx_tables"));
+        LOG.info(String.format("SqlTransactions: %s tables in one transaction", AppBase.appConfig.numTxTables));
+      }
     }
 
     if (appName.equals(SqlGeoPartitionedTable.class.getSimpleName())) {
@@ -861,6 +900,17 @@ public class CmdLineOpts {
 
     options.addOption("num_consecutive_rows_with_same_fk", true,
                       "[SqlDataLoad] Number of secondary indexes on the target table.");
+
+    options.addOption("num_tx_operations", true,
+            "[SqlTransactions] Number of operations in one transaction.");
+    options.addOption("num_tx_savepoints", true,
+            "[SqlTransactions] Number of savepoints in one transaction.");
+    options.addOption("num_tx_rollback_chance", true,
+            "[SqlTransactions] Change in 0-100% to rollback on random savepoint in transaction.");
+    options.addOption("num_inserted_keys_buffer_size", true,
+            "[SqlTransactions] Number saved inserted keys stored in buffer.");
+    options.addOption("num_tx_tables", true,
+            "[SqlTransactions] Number of tables in one transaction.");
 
     options.addOption("num_partitions", true,
                       "[SqlGeoPartitionedTable] Number of partitions to create.");

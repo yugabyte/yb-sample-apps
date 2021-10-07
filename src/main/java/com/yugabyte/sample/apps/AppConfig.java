@@ -191,6 +191,13 @@ public class AppConfig {
   public int numForeignKeyTableRows = 1000; // Only relevant if num_foreign_keys > 0.
   public int numConsecutiveRowsWithSameFk = 500; // Only relevant if num_foreign_keys > 0.
 
+  // Configurations for SqlTransactions
+  public int numTxOps = 10;
+  public int numTxSavepoints = 2;
+  public int numTxRollbackChange = 10;
+  public int numInsertedKeysBufferSize = 100000;
+  public int numTxTables = 1;
+
   // Configurations for SqlGeoPartitionedTable workload.
   public int numPartitions = 2;
 
