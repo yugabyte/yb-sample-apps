@@ -25,32 +25,22 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * This workload writes and reads some random string keys from a postgresql table.
+ * Workload creates transaction with custom amount of operations in custom amount of tables with savepoints and change to rollback on some of it
  */
 public class SqlTransactions extends AppBase {
     private static final Logger LOG = Logger.getLogger(SqlTransactions.class);
 
-    // Static initialization of this workload's config. These are good defaults for getting a decent
-    // read dominated workload on a reasonably powered machine. Exact IOPS will of course vary
-    // depending on the machine and what resources it has to spare.
     static {
-        // Disable the read-write percentage.
         appConfig.readIOPSPercentage = -1;
-        // Set the read and write threads to 1 each.
         appConfig.numReaderThreads = 1;
         appConfig.numWriterThreads = 1;
-        // The number of keys to read.
         appConfig.numKeysToRead = -1;
-        // The number of keys to write. This is the combined total number of inserts and updates.
         appConfig.numKeysToWrite = -1;
-        // The number of unique keys to write. This determines the number of inserts (as opposed to
-        // updates).
         appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
     }
 
-    private static List<InsertedValue> insertedValues = new ArrayList<>();
+    private static List<InsertedValue> insertedValuesBuffer = new ArrayList<>();
 
-    // The default table name to create and use for CRUD ops.
     private static final String DEFAULT_TABLE_NAME = "SqlTransactions";
 
     class InsertedValue {
@@ -82,6 +72,9 @@ public class SqlTransactions extends AppBase {
             loopArray = initArray;
         }
 
+        /**
+         * Get next vale in received array. If ends then starts from the start
+         */
         String next() {
             idx++;
             if (idx == loopArray.size()) {
@@ -148,7 +141,7 @@ public class SqlTransactions extends AppBase {
 
     @Override
     public long doRead() {
-        InsertedValue insertedValue = insertedValues.size() == 0 ? null : insertedValues.get(random.nextInt(insertedValues.size()));
+        InsertedValue insertedValue = insertedValuesBuffer.size() == 0 ? null : insertedValuesBuffer.get(random.nextInt(insertedValuesBuffer.size()));
         if (insertedValue == null) {
             return 0;
         }
@@ -179,18 +172,20 @@ public class SqlTransactions extends AppBase {
 
     private PreparedData getPreparedInsert(Key key) throws Exception {
         StringBuilder stmt = new StringBuilder("BEGIN TRANSACTION; ");
-        String tableNameBase = getTableName();
         List<Savepoint> savepointsHistory = new ArrayList<>();
+
+        String tableNameBase = getTableName();
         List<String> tables = IntStream.range(1, appConfig.numTxTables + 1).mapToObj(i -> String.format("%s_%s", tableNameBase, i)).collect(Collectors.toList());
         Cycle tablesGen = new Cycle(tables);
+
         int savepointEvery = appConfig.numTxOps / appConfig.numTxSavepoints;
-        boolean applyRollback = random.nextInt(100) < appConfig.numTxRollbackChange;
 
         StringBuilder valuesSb = new StringBuilder("?");
         IntStream.range(1, appConfig.numValueColumns).forEach(i -> valuesSb.append(", ?"));
         String values = valuesSb.toString();
 
         List<InsertedValue> insertedValues = new ArrayList<>();
+        // Create transaction with inserts and savepoints distributed across it
         for (int i = 0; i < appConfig.numTxOps; i++) {
             if (i % savepointEvery == 0) {
                 Savepoint point = new Savepoint(String.format("sp_%s", i), insertedValues.size());
@@ -203,14 +198,16 @@ public class SqlTransactions extends AppBase {
             }
         }
 
+        // chance to rollback on some random savepoint
         Savepoint savepointToRollback = null;
-        if (appConfig.numTxSavepoints > 0 && applyRollback) {
+        if (appConfig.numTxSavepoints > 0 && random.nextInt(100) < appConfig.numTxRollbackChange) {
             savepointToRollback = savepointsHistory.get(random.nextInt(savepointsHistory.size()));
             stmt.append(String.format("ROLLBACK TO %s;", savepointToRollback.name));
         } else {
             stmt.append("COMMIT;");
         }
 
+        // set keys and values in prepared statement
         PreparedStatement preparedStatement = getPostgresConnection().prepareStatement(stmt.toString());
         int keysCounter = 0;
         for (InsertedValue insertedValue : insertedValues) {
@@ -221,8 +218,8 @@ public class SqlTransactions extends AppBase {
                 preparedStatement.setString(keysCounter, key.getKeyWithHashPrefix());
             }
         }
+        // if rollback then add remove rollbacked values
         if (savepointToRollback != null) {
-
             int lastOperation = savepointToRollback.lastSavepointOperationCounter;
             insertedValues = IntStream.range(0, insertedValues.size()).filter(i -> i <= lastOperation).mapToObj(insertedValues::get).collect(Collectors.toList());
         }
@@ -240,14 +237,16 @@ public class SqlTransactions extends AppBase {
         try {
             PreparedData preparedData = getPreparedInsert(key);
             preparedData.preparedStatement.executeUpdate();
-            insertedValues.addAll(preparedData.insertedValues);
+            // add inserted values in buffer
+            insertedValuesBuffer.addAll(preparedData.insertedValues);
 
             try {
-                if (insertedValues.size() > appConfig.numInsertedKeysBufferSize) {
-                    insertedValues = IntStream
-                            .range(0, insertedValues.size())
+                // clean buffer sometimes
+                if (insertedValuesBuffer.size() > appConfig.numInsertedKeysBufferSize) {
+                    insertedValuesBuffer = IntStream
+                            .range(0, insertedValuesBuffer.size())
                             .filter(i -> i % 2 == 0)
-                            .mapToObj(insertedValues::get)
+                            .mapToObj(insertedValuesBuffer::get)
                             .collect(Collectors.toList());
                 }
             } catch (IndexOutOfBoundsException ignored) {
@@ -267,7 +266,7 @@ public class SqlTransactions extends AppBase {
     public List<String> getWorkloadDescription() {
         return Arrays.asList(
                 "Sample postgresql transactions app. Create transactions with variable amount of insert operations",
-                "Each transction can set custom amount of savepoints with change to restore on random one.");
+                "Each transaction can set custom amount of savepoints with change to restore on random one.");
     }
 
     @Override
