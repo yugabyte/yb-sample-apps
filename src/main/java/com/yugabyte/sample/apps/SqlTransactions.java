@@ -342,6 +342,8 @@ public class SqlTransactions extends AppBase {
         int result = 0;
         PreparedData preparedData;
         try (Connection connection = getPostgresConnection()) {
+            connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+            connection.setAutoCommit(false);
             preparedData = getPreparedTx(connection, key);
             preparedData.preparedStatement.executeUpdate();
             // add inserted values in buffer
