@@ -173,20 +173,19 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   protected Connection getPostgresConnection(String database, String username, String password) throws Exception {
-    Class.forName("org.postgresql.Driver");
+    boolean isLoadBalanceOn = Boolean.valueOf(String.valueOf(appConfig.loadBalance));
+    if (isLoadBalanceOn) {
+      Class.forName("com.yugabyte.Driver");
+    } else {
+      Class.forName("org.postgresql.Driver");
+    }
     do {
       try {
         ContactPoint contactPoint = getRandomContactPoint();
         Properties props = new Properties();
         props.setProperty("user", username);
         // Check if the smart driver is there in the class path
-        boolean smartDriver = true;
-        try {
-          Class.forName("com.yugabyte.ysql.ClusterAwareLoadBalancer");
-        } catch (ClassNotFoundException cnfe) {
-          smartDriver = false;
-        }
-        if (smartDriver) {
+        if (isLoadBalanceOn) {
           props.setProperty("load-balance", String.valueOf(appConfig.loadBalance));
           if (appConfig.topologyKeys != null) {
             props.setProperty("topology-keys", appConfig.topologyKeys);
@@ -212,9 +211,10 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
           props.put("sslkey", appConfig.sslKey);
         }
 
-        String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
-                                                                        contactPoint.getPort(),
-                                                                        database);
+        String url = isLoadBalanceOn ? "jdbc:yugabytedb:" : "jdbc:postgresql:";
+        String connectStr = String.format("%s//%s:%d/%s", url, contactPoint.getHost(),
+                contactPoint.getPort(),
+                database);
         Connection connection = DriverManager.getConnection(connectStr, props);
         return connection;
       } catch (Exception e) {

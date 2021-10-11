@@ -16,6 +16,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
@@ -121,7 +122,7 @@ public class SqlForeignKeysAndJoins extends AppBase {
                           "  FOREIGN KEY (user_id) REFERENCES %s (user_id)" +
                           ");", getTable2Name(), getTable1Name()));
         LOG.info(String.format("Created table: %s", getTable2Name()));
-      } catch (org.postgresql.util.PSQLException e) {
+      } catch (SQLException e) {
         LOG.error("Failed to create tables", e);
         System.err.println("\n================================================");
         System.err.println("If you hit the following:");
