@@ -64,13 +64,17 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
 
   @Override
   protected BoundStatement bindSelect(String key)  {
-    PreparedStatement prepared_stmt = getPreparedSelect(
-        String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()));
-    BoundStatement boundStmt = prepared_stmt.bind(key);
-    if (appConfig.localReads) {
-      LOG.debug("Doing local reads");
-      boundStmt.setConsistencyLevel(ConsistencyLevel.ONE);
-    }
+	  
+	  
+   ConsistencyLevel selectConsistencyLevel = ConsistencyLevel.YB_STRONG;
+   if (appConfig.localReads) {
+	   selectConsistencyLevel = ConsistencyLevel.YB_CONSISTENT_PREFIX;
+   }
+   
+   BoundStatement boundStmt = getPreparedSelect(
+    String.format("SELECT k, v FROM %s WHERE k = ?;", getTableName()))
+		  .bind(key)
+		  .setConsistencyLevel(selectConsistencyLevel);
 
     return boundStmt;
   }
