@@ -405,6 +405,12 @@ public class CmdLineOpts {
       if (commandLine.hasOption("num_tx_rollback_chance")) {
         AppBase.appConfig.numTxRollbackChange = Integer.parseInt(commandLine.getOptionValue("num_tx_rollback_chance"));
       }
+      if (commandLine.hasOption("num_tx_updates")) {
+        AppBase.appConfig.numTxUpdates = Integer.parseInt(commandLine.getOptionValue("num_tx_updates"));
+      }
+      if (commandLine.hasOption("num_tx_deletes")) {
+        AppBase.appConfig.numTxDeletes = Integer.parseInt(commandLine.getOptionValue("num_tx_deletes"));
+      }
       LOG.info(String.format("SqlTransactions: each transactions has %d change on rollback",
               AppBase.appConfig.numTxRollbackChange));
 
@@ -907,6 +913,10 @@ public class CmdLineOpts {
             "[SqlTransactions] Number of savepoints in one transaction.");
     options.addOption("num_tx_rollback_chance", true,
             "[SqlTransactions] Change in 0-100% to rollback on random savepoint in transaction.");
+    options.addOption("num_tx_updates", true,
+            "[SqlTransactions] ");
+    options.addOption("num_tx_deletes", true,
+            "[SqlTransactions] ");
     options.addOption("num_inserted_keys_buffer_size", true,
             "[SqlTransactions] Number saved inserted keys stored in buffer.");
     options.addOption("num_tx_tables", true,

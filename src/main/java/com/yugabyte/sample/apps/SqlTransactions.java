@@ -20,6 +20,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -45,11 +46,16 @@ public class SqlTransactions extends AppBase {
 
     class InsertedValue {
         public String key;
+        public List<String> values;
         public String tableName;
+        public Operation operation;
+        public boolean exists = true;
 
-        InsertedValue(String key, String tableName) {
+        InsertedValue(String key, String tableName, List<String> values, Operation operation) {
             this.key = key;
             this.tableName = tableName;
+            this.values = values;
+            this.operation = operation;
         }
     }
 
@@ -62,6 +68,10 @@ public class SqlTransactions extends AppBase {
             this.name = name;
             this.lastSavepointOperationCounter = lastSavepointOperationCounter;
         }
+    }
+
+    enum Operation {
+        INSERT, DELETE, UPDATE
     }
 
     class Cycle {
@@ -115,9 +125,6 @@ public class SqlTransactions extends AppBase {
     @Override
     public void createTablesIfNeeded(TableOp tableOp) throws Exception {
         try (Connection connection = getPostgresConnection()) {
-            connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-            connection.setAutoCommit(false);
-
             for (int i = 1; i < appConfig.numTxTables + 1; i++) {
                 StringBuilder sb = new StringBuilder(String.format("CREATE TABLE IF NOT EXISTS %s_%s (k text PRIMARY KEY ", getTableName(), i));
                 IntStream.range(1, appConfig.numValueColumns + 1).forEach(z -> sb.append(String.format(", v%s text", z)));
@@ -133,10 +140,12 @@ public class SqlTransactions extends AppBase {
         return tableName.toLowerCase();
     }
 
-    private String getColumns() {
-        StringBuilder sb = new StringBuilder("v1");
-        IntStream.range(2, appConfig.numValueColumns + 1).forEach(i -> sb.append(String.format(", v%s", i)));
-        return sb.toString();
+    private List<String> getColumns() {
+        return IntStream.range(1, appConfig.numValueColumns + 1).mapToObj(i -> String.format("v%s", i)).collect(Collectors.toList());
+    }
+
+    private String getColumnsStr() {
+        return String.join(", ", getColumns());
     }
 
     @Override
@@ -146,14 +155,17 @@ public class SqlTransactions extends AppBase {
             return 0;
         }
 
-        try {
-            PreparedStatement statement = getPostgresConnection().prepareStatement(
-                    String.format("SELECT k, %s FROM %s WHERE k = ?;", getColumns(), insertedValue.tableName)
+        try (Connection connection = getPostgresConnection()) {
+            PreparedStatement statement = connection.prepareStatement(
+                    String.format("SELECT k, %s FROM %s WHERE k = ?;", getColumnsStr(), insertedValue.tableName)
             );
             statement.setString(1, insertedValue.key);
             try (ResultSet rs = statement.executeQuery()) {
                 if (!rs.next()) {
-                    LOG.error(String.format("Read key: %s expected 1 row in result, got 0", insertedValue));
+                    if (!insertedValue.exists) {
+                        return 1;
+                    }
+                    LOG.error(String.format("Read key: %s expected 1 row in result, got 0", insertedValue.key));
                     return 0;
                 }
 
@@ -170,7 +182,7 @@ public class SqlTransactions extends AppBase {
     }
 
 
-    private PreparedData getPreparedInsert(Key key) throws Exception {
+    private PreparedData getPreparedTx(Connection connection, Key key) throws Exception {
         StringBuilder stmt = new StringBuilder("BEGIN TRANSACTION; ");
         List<Savepoint> savepointsHistory = new ArrayList<>();
 
@@ -179,22 +191,88 @@ public class SqlTransactions extends AppBase {
         Cycle tablesGen = new Cycle(tables);
 
         int savepointEvery = appConfig.numTxOps / appConfig.numTxSavepoints;
+        List<Operation> operations = new ArrayList<>();
+        if (insertedValuesBuffer.size() > 0) {
+            IntStream.range(0, appConfig.numTxUpdates).forEach(i -> operations.add(Operation.UPDATE));
+            IntStream.range(0, appConfig.numTxDeletes).forEach(i -> operations.add(Operation.DELETE));
+        }
+        IntStream.range(0, appConfig.numTxOps - operations.size()).forEach(i -> operations.add(Operation.INSERT));
+        Collections.shuffle(operations);
 
         StringBuilder valuesSb = new StringBuilder("?");
         IntStream.range(1, appConfig.numValueColumns).forEach(i -> valuesSb.append(", ?"));
         String values = valuesSb.toString();
 
-        List<InsertedValue> insertedValues = new ArrayList<>();
+        List<InsertedValue> ddlOperations = new ArrayList<>();
         // Create transaction with inserts and savepoints distributed across it
-        for (int i = 0; i < appConfig.numTxOps; i++) {
-            if (i % savepointEvery == 0) {
-                Savepoint point = new Savepoint(String.format("sp_%s", i), insertedValues.size());
+        int counter = -1;
+        List<String> allColumns = getColumns();
+        String allColumnsStr = String.join(", ", allColumns);
+
+        for (Operation operation : operations) {
+            counter++;
+            if (counter % savepointEvery == 0) {
+                Savepoint point = new Savepoint(String.format("sp_%s", counter), ddlOperations.size());
                 savepointsHistory.add(point);
                 stmt.append(String.format("SAVEPOINT %s; ", point.name));
             } else {
-                InsertedValue inserted = new InsertedValue(String.format("%s_%s", key.asString(), i), tablesGen.next());
-                insertedValues.add(inserted);
-                stmt.append(String.format("INSERT INTO %s(k, %s) VALUES (?, %s); ", inserted.tableName, getColumns(), values));
+                InsertedValue value;
+                List<String> valuesToInsert = new ArrayList<>();
+                switch (operation) {
+                    case INSERT:
+                        for (int v = 0; v < appConfig.numValueColumns; v++) valuesToInsert.add(key.getKeyWithHashPrefix());
+                        value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
+                        ddlOperations.add(value);
+                        stmt.append(String.format("INSERT INTO %s(k, %s) VALUES (?, %s); ", value.tableName, allColumnsStr, values));
+                        break;
+                    case UPDATE:
+                        if (insertedValuesBuffer.size() == 0) {
+                            continue;
+                        }
+                        InsertedValue valueToUpdate = null;
+                        for (int i = 0; i < 100; i++) {
+                            valueToUpdate = insertedValuesBuffer.get(random.nextInt(insertedValuesBuffer.size()));
+                            if (valueToUpdate.exists) {
+                                break;
+                            }
+                        }
+                        if (!valueToUpdate.exists) {
+                            break;
+                        }
+
+                        String columnToUpdate = allColumns.get(random.nextInt(valueToUpdate.values.size()));
+                        valuesToInsert.add(valueToUpdate.key);
+                        valuesToInsert.add(key.getKeyWithHashPrefix());
+                        value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
+                        ddlOperations.add(value);
+                        stmt.append(String.format("UPDATE %s SET %s=? WHERE k = ?; ", valueToUpdate.tableName, columnToUpdate));
+                        break;
+                    case DELETE:
+                        if (insertedValuesBuffer.size() == 0) {
+                            continue;
+                        }
+                        InsertedValue valueToDelete = null;
+                        int idxToDelete = 0;
+                        for (int i = 0; i < 100; i++) {
+                            idxToDelete = random.nextInt(insertedValuesBuffer.size());
+                            valueToDelete = insertedValuesBuffer.get(idxToDelete);
+                            if (valueToDelete.exists) {
+                                break;
+                            }
+                        }
+                        if (!valueToDelete.exists) {
+                            break;
+                        }
+                        try {
+                            insertedValuesBuffer.get(idxToDelete).exists = false;
+                        } catch (Exception ignored) {
+                        }
+                        valuesToInsert.add(valueToDelete.key);
+                        value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
+                        ddlOperations.add(value);
+                        stmt.append(String.format("DELETE FROM %s WHERE k = ?; ", value.tableName));
+                        break;
+                }
             }
         }
 
@@ -208,22 +286,50 @@ public class SqlTransactions extends AppBase {
         }
 
         // set keys and values in prepared statement
-        PreparedStatement preparedStatement = getPostgresConnection().prepareStatement(stmt.toString());
+        PreparedStatement preparedStatement = connection.prepareStatement(stmt.toString());
         int keysCounter = 0;
-        for (InsertedValue insertedValue : insertedValues) {
-            keysCounter++;
-            preparedStatement.setString(keysCounter, insertedValue.key);
-            for (int j = 1; j < appConfig.numValueColumns + 1; j++) {
-                keysCounter++;
-                preparedStatement.setString(keysCounter, key.getKeyWithHashPrefix());
+        for (InsertedValue insertedValue : ddlOperations) {
+            switch (insertedValue.operation) {
+                case INSERT:
+                    keysCounter++;
+                    try {
+                        preparedStatement.setString(keysCounter, insertedValue.key);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    for (String valueToInsert : insertedValue.values) {
+                        keysCounter++;
+                        preparedStatement.setString(keysCounter, valueToInsert);
+                    }
+                    break;
+                case UPDATE:
+                    // WHERE
+                    keysCounter++;
+                    preparedStatement.setString(keysCounter, insertedValue.values.get(0));
+                    // SET
+                    keysCounter++;
+                    preparedStatement.setString(keysCounter, insertedValue.values.get(1));
+                    break;
+                case DELETE:
+                    keysCounter++;
+                    preparedStatement.setString(keysCounter, insertedValue.values.get(0));
+                    break;
             }
         }
         // if rollback then add remove rollbacked values
         if (savepointToRollback != null) {
             int lastOperation = savepointToRollback.lastSavepointOperationCounter;
-            insertedValues = IntStream.range(0, insertedValues.size()).filter(i -> i <= lastOperation).mapToObj(insertedValues::get).collect(Collectors.toList());
+            ddlOperations = IntStream
+                    .range(0, ddlOperations.size())
+                    .filter(i -> i <= lastOperation)
+                    .mapToObj(ddlOperations::get)
+                    .filter(o -> o.operation == Operation.INSERT)
+                    .collect(Collectors.toList());
+        } else {
+            ddlOperations = ddlOperations.stream().filter(o -> o.operation == Operation.INSERT).collect(Collectors.toList());
         }
-        return new PreparedData(preparedStatement, insertedValues);
+        return new PreparedData(preparedStatement, ddlOperations);
     }
 
     @Override
@@ -234,32 +340,29 @@ public class SqlTransactions extends AppBase {
         }
 
         int result = 0;
-        try {
-            PreparedData preparedData = getPreparedInsert(key);
+        PreparedData preparedData;
+        try (Connection connection = getPostgresConnection()) {
+            preparedData = getPreparedTx(connection, key);
             preparedData.preparedStatement.executeUpdate();
             // add inserted values in buffer
             insertedValuesBuffer.addAll(preparedData.insertedValues);
 
-            try {
-                // clean buffer sometimes
-                if (insertedValuesBuffer.size() > appConfig.numInsertedKeysBufferSize) {
-                    insertedValuesBuffer = IntStream
-                            .range(0, insertedValuesBuffer.size())
-                            .filter(i -> i % 2 == 0)
-                            .mapToObj(insertedValuesBuffer::get)
-                            .collect(Collectors.toList());
-                }
-            } catch (IndexOutOfBoundsException ignored) {
+            // clean buffer sometimes
+            if (insertedValuesBuffer.size() > appConfig.numInsertedKeysBufferSize) {
+                insertedValuesBuffer = IntStream
+                        .range(0, insertedValuesBuffer.size())
+                        .filter(i -> i % 2 == 0 || !insertedValuesBuffer.get(i).exists)
+                        .mapToObj(insertedValuesBuffer::get)
+                        .collect(Collectors.toList());
             }
-
-            LOG.debug(String.format("Wrote key: %s return code: %d", key.asString(), result));
-            getSimpleLoadGenerator().recordWriteSuccess(key);
-            return preparedData.insertedValues.size();
         } catch (Exception e) {
-            getSimpleLoadGenerator().recordWriteFailure(key);
-            LOG.info("Failed writing key: " + key.asString(), e);
+            LOG.error(String.format("failed to write %s", e.getMessage()));
+            e.printStackTrace();
         }
-        return 0;
+
+        LOG.debug(String.format("Wrote key: %s return code: %d", key.asString(), result));
+        getSimpleLoadGenerator().recordWriteSuccess(key);
+        return 1;
     }
 
     @Override
@@ -281,6 +384,8 @@ public class SqlTransactions extends AppBase {
                 "--num_tx_operations " + appConfig.numTxOps,
                 "--num_tx_savepoints " + appConfig.numTxSavepoints,
                 "--num_tx_rollback_chance " + appConfig.numTxRollbackChange,
+                "--num_tx_updates " + appConfig.numTxUpdates,
+                "--num_tx_deletes " + appConfig.numTxDeletes,
                 "--num_inserted_keys_buffer_size " + appConfig.numInsertedKeysBufferSize,
                 "--num_tx_tables " + appConfig.numTxTables
         );

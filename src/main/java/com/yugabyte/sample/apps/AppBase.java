@@ -197,8 +197,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         String connectStr = String.format("jdbc:postgresql://%s:%d/%s", contactPoint.getHost(),
                                                                         contactPoint.getPort(),
                                                                         database);
-        Connection connection = DriverManager.getConnection(connectStr, props);
-        return connection;
+        return DriverManager.getConnection(connectStr, props);
       } catch (Exception e) {
         LOG.info("Going to retrieve connection again: " + e.getMessage());
         if (!sleep(2000)) return null;

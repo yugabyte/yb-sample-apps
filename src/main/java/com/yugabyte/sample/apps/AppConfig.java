@@ -195,6 +195,8 @@ public class AppConfig {
   public int numTxOps = 10;
   public int numTxSavepoints = 2;
   public int numTxRollbackChange = 10;
+  public int numTxUpdates = 0;
+  public int numTxDeletes = 0;
   public int numInsertedKeysBufferSize = 100000;
   public int numTxTables = 1;
 
