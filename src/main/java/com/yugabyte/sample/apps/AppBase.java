@@ -200,6 +200,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         return DriverManager.getConnection(connectStr, props);
       } catch (Exception e) {
         LOG.info("Going to retrieve connection again: " + e.getMessage());
+        e.printStackTrace();
         if (!sleep(2000)) return null;
         continue;
       }

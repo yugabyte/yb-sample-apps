@@ -18,10 +18,8 @@ import org.apache.log4j.Logger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -30,6 +28,8 @@ import java.util.stream.IntStream;
  */
 public class SqlTransactions extends AppBase {
     private static final Logger LOG = Logger.getLogger(SqlTransactions.class);
+    private static final String DEFAULT_TABLE_NAME = "SqlTransactions";
+    private static List<InsertedValue> insertedValuesBuffer = new ArrayList<>();
 
     static {
         appConfig.readIOPSPercentage = -1;
@@ -40,69 +40,8 @@ public class SqlTransactions extends AppBase {
         appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
     }
 
-    private static List<InsertedValue> insertedValuesBuffer = new ArrayList<>();
-
-    private static final String DEFAULT_TABLE_NAME = "SqlTransactions";
-
-    class InsertedValue {
-        public String key;
-        public List<String> values;
-        public String tableName;
-        public Operation operation;
-        public boolean exists = true;
-
-        InsertedValue(String key, String tableName, List<String> values, Operation operation) {
-            this.key = key;
-            this.tableName = tableName;
-            this.values = values;
-            this.operation = operation;
-        }
-    }
-
-    class Savepoint {
-        public int lastSavepointOperationCounter;
-        public String name;
-        public String tableName;
-
-        Savepoint(String name, int lastSavepointOperationCounter) {
-            this.name = name;
-            this.lastSavepointOperationCounter = lastSavepointOperationCounter;
-        }
-    }
-
-    enum Operation {
-        INSERT, DELETE, UPDATE
-    }
-
-    class Cycle {
-        private List<String> loopArray;
-        private int idx = -1;
-
-        Cycle(List<String> initArray) {
-            loopArray = initArray;
-        }
-
-        /**
-         * Get next vale in received array. If ends then starts from the start
-         */
-        String next() {
-            idx++;
-            if (idx == loopArray.size()) {
-                idx = 0;
-            }
-            return loopArray.get(idx);
-        }
-    }
-
-    class PreparedData {
-        public PreparedStatement preparedStatement;
-        public List<InsertedValue> insertedValues;
-
-        PreparedData(PreparedStatement preparedStatement, List<InsertedValue> insertedKeys) {
-            this.insertedValues = insertedKeys;
-            this.preparedStatement = preparedStatement;
-        }
-    }
+    static List<ConnectionStore> connections = new ArrayList<>();
+    HashMap<String, PreparedStatement> statement = new HashMap<>();
 
     // The shared prepared insert statement for inserting the data.
     public SqlTransactions() {
@@ -114,24 +53,30 @@ public class SqlTransactions extends AppBase {
      */
     @Override
     public void dropTable() throws Exception {
-        try (Connection connection = getPostgresConnection()) {
+        ConnectionStore connectionStore = getRandomConnection();
+        try {
             for (int i = 1; i < appConfig.numTxTables + 1; i++) {
-                connection.createStatement().execute(String.format("DROP TABLE IF EXISTS %s_%s", getTableName(), i));
+                connectionStore.connection.createStatement().execute(String.format("DROP TABLE IF EXISTS %s_%s", getTableName(), i));
                 LOG.info(String.format("Dropped table: %s", getTableName()));
             }
+        } finally {
+            backConnectionStore(connectionStore);
         }
     }
 
     @Override
     public void createTablesIfNeeded(TableOp tableOp) throws Exception {
-        try (Connection connection = getPostgresConnection()) {
+        ConnectionStore connectionStore = getRandomConnection();
+        try {
             for (int i = 1; i < appConfig.numTxTables + 1; i++) {
                 StringBuilder sb = new StringBuilder(String.format("CREATE TABLE IF NOT EXISTS %s_%s (k text PRIMARY KEY ", getTableName(), i));
                 IntStream.range(1, appConfig.numValueColumns + 1).forEach(z -> sb.append(String.format(", v%s text", z)));
                 sb.append(");");
-                connection.createStatement().executeUpdate(sb.toString());
+                connectionStore.connection.createStatement().executeUpdate(sb.toString());
             }
             LOG.info(String.format("Created table: %s", getTableName()));
+        } finally {
+            backConnectionStore(connectionStore);
         }
     }
 
@@ -148,6 +93,54 @@ public class SqlTransactions extends AppBase {
         return String.join(", ", getColumns());
     }
 
+    private void prepareSelect(Connection connection, String tableName) {
+        if (!statement.containsKey(tableName)) {
+            try {
+                statement.put(tableName, connection.prepareStatement(
+                        String.format("SELECT k, %s FROM %s WHERE k = ?;", getColumnsStr(), tableName)
+                ));
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void ensureConnection() {
+        if (connections.stream().filter(c -> c.dead).count() > 10) {
+            connections.forEach(c -> {
+                try {
+                    c.connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            });
+            connections = connections.stream().filter(c -> !c.dead).collect(Collectors.toList());
+        }
+        long activeConnectionsCount = connections.stream().filter(c -> !c.active).count();
+        if (activeConnectionsCount < 10) {
+            for (int i = 0; i < 10 - activeConnectionsCount; i++) {
+                connections.add(new ConnectionStore());
+            }
+        }
+    }
+
+    private ConnectionStore getRandomConnection() {
+        while (true) {
+            ensureConnection();
+            Optional<ConnectionStore> anyConnection = connections.stream().filter(c -> !c.active).findAny();
+            if (anyConnection.isPresent()) {
+                ConnectionStore store = anyConnection.get();
+                store.active = true;
+                return store;
+            }
+        }
+    }
+
+    private void backConnectionStore(ConnectionStore store) {
+        Optional<ConnectionStore> foundStore = connections.stream().filter(s -> s.id == store.id).findAny();
+        foundStore.ifPresent(connectionStore -> connectionStore.active = false);
+    }
+
     @Override
     public long doRead() {
         InsertedValue insertedValue = insertedValuesBuffer.size() == 0 ? null : insertedValuesBuffer.get(random.nextInt(insertedValuesBuffer.size()));
@@ -155,10 +148,10 @@ public class SqlTransactions extends AppBase {
             return 0;
         }
 
-        try (Connection connection = getPostgresConnection()) {
-            PreparedStatement statement = connection.prepareStatement(
-                    String.format("SELECT k, %s FROM %s WHERE k = ?;", getColumnsStr(), insertedValue.tableName)
-            );
+        ConnectionStore connectionStore = getRandomConnection();
+        try {
+            prepareSelect(connectionStore.connection, insertedValue.tableName);
+            PreparedStatement statement = this.statement.get(insertedValue.tableName);
             statement.setString(1, insertedValue.key);
             try (ResultSet rs = statement.executeQuery()) {
                 if (!rs.next()) {
@@ -175,12 +168,15 @@ public class SqlTransactions extends AppBase {
                 LOG.debug(String.format("Read key: %s", insertedValue));
             }
         } catch (Exception e) {
-            LOG.info(String.format("Failed reading value: %s", insertedValue), e);
+            LOG.error(String.format("Failed reading value 2: %s", insertedValue));
+            insertedValuesBuffer = insertedValuesBuffer.stream().filter(b -> !b.key.equals(insertedValue.key)).collect(Collectors.toList());
+            e.printStackTrace();
             return 0;
+        } finally {
+            backConnectionStore(connectionStore);
         }
         return 1;
     }
-
 
     private PreparedData getPreparedTx(Connection connection, Key key) throws Exception {
         StringBuilder stmt = new StringBuilder("BEGIN TRANSACTION; ");
@@ -209,6 +205,9 @@ public class SqlTransactions extends AppBase {
         List<String> allColumns = getColumns();
         String allColumnsStr = String.join(", ", allColumns);
 
+        List<String> updatedKeys = new ArrayList<>();
+        List<String> deletedKeys = new ArrayList<>();
+
         for (Operation operation : operations) {
             counter++;
             if (counter % savepointEvery == 0) {
@@ -220,7 +219,7 @@ public class SqlTransactions extends AppBase {
                 List<String> valuesToInsert = new ArrayList<>();
                 switch (operation) {
                     case INSERT:
-                        for (int v = 0; v < appConfig.numValueColumns; v++) valuesToInsert.add(key.getKeyWithHashPrefix());
+                        for (int v = 0; v < appConfig.numValueColumns; v++) valuesToInsert.add(key.getValueStr());
                         value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
                         ddlOperations.add(value);
                         stmt.append(String.format("INSERT INTO %s(k, %s) VALUES (?, %s); ", value.tableName, allColumnsStr, values));
@@ -232,7 +231,7 @@ public class SqlTransactions extends AppBase {
                         InsertedValue valueToUpdate = null;
                         for (int i = 0; i < 100; i++) {
                             valueToUpdate = insertedValuesBuffer.get(random.nextInt(insertedValuesBuffer.size()));
-                            if (valueToUpdate.exists) {
+                            if (valueToUpdate.exists && !updatedKeys.contains(valueToUpdate.key) && !deletedKeys.contains(valueToUpdate.key)) {
                                 break;
                             }
                         }
@@ -241,6 +240,7 @@ public class SqlTransactions extends AppBase {
                         }
 
                         String columnToUpdate = allColumns.get(random.nextInt(valueToUpdate.values.size()));
+                        updatedKeys.add(valueToUpdate.key);
                         valuesToInsert.add(valueToUpdate.key);
                         valuesToInsert.add(key.getKeyWithHashPrefix());
                         value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
@@ -256,7 +256,7 @@ public class SqlTransactions extends AppBase {
                         for (int i = 0; i < 100; i++) {
                             idxToDelete = random.nextInt(insertedValuesBuffer.size());
                             valueToDelete = insertedValuesBuffer.get(idxToDelete);
-                            if (valueToDelete.exists) {
+                            if (valueToDelete.exists && !updatedKeys.contains(valueToDelete.key) && !deletedKeys.contains(valueToDelete.key)) {
                                 break;
                             }
                         }
@@ -267,6 +267,7 @@ public class SqlTransactions extends AppBase {
                             insertedValuesBuffer.get(idxToDelete).exists = false;
                         } catch (Exception ignored) {
                         }
+                        deletedKeys.add(valueToDelete.key);
                         valuesToInsert.add(valueToDelete.key);
                         value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
                         ddlOperations.add(value);
@@ -333,18 +334,28 @@ public class SqlTransactions extends AppBase {
     }
 
     @Override
+    public void terminate() {
+        connections.forEach(connectionStore -> {
+            try {
+                connectionStore.connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        });
+        super.terminate();
+    }
+
+    @Override
     public long doWrite(int threadIdx) {
+
         Key key = getSimpleLoadGenerator().getKeyToWrite();
         if (key == null) {
             return 0;
         }
 
-        int result = 0;
-        PreparedData preparedData;
-        try (Connection connection = getPostgresConnection()) {
-            connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-            connection.setAutoCommit(false);
-            preparedData = getPreparedTx(connection, key);
+        ConnectionStore connectionStore = getRandomConnection();
+        try {
+            PreparedData preparedData = getPreparedTx(connectionStore.connection, key);
             preparedData.preparedStatement.executeUpdate();
             // add inserted values in buffer
             insertedValuesBuffer.addAll(preparedData.insertedValues);
@@ -353,16 +364,24 @@ public class SqlTransactions extends AppBase {
             if (insertedValuesBuffer.size() > appConfig.numInsertedKeysBufferSize) {
                 insertedValuesBuffer = IntStream
                         .range(0, insertedValuesBuffer.size())
-                        .filter(i -> i % 2 == 0 || !insertedValuesBuffer.get(i).exists)
+                        .filter(i -> i % 2 == 0)
                         .mapToObj(insertedValuesBuffer::get)
+                        .filter(item -> item.exists)
                         .collect(Collectors.toList());
             }
+        } catch (SQLException e) {
+            connectionStore.dead = true;
+            LOG.error(String.format("failed to write %s %s", key.asString(), e.getMessage()));
+            e.printStackTrace();
+            sleep(2000);
         } catch (Exception e) {
             LOG.error(String.format("failed to write %s", e.getMessage()));
             e.printStackTrace();
+        } finally {
+            backConnectionStore(connectionStore);
         }
 
-        LOG.debug(String.format("Wrote key: %s return code: %d", key.asString(), result));
+        LOG.debug(String.format("Wrote key: %s return code: %d", key.asString(), 1));
         getSimpleLoadGenerator().recordWriteSuccess(key);
         return 1;
     }
@@ -391,5 +410,95 @@ public class SqlTransactions extends AppBase {
                 "--num_inserted_keys_buffer_size " + appConfig.numInsertedKeysBufferSize,
                 "--num_tx_tables " + appConfig.numTxTables
         );
+    }
+
+    enum Operation {
+        INSERT, DELETE, UPDATE
+    }
+
+    class ConnectionStore {
+        public Connection connection;
+        public boolean active;
+        public boolean dead;
+        public UUID id;
+
+        ConnectionStore() {
+            active = false;
+            dead = false;
+            id = UUID.randomUUID();
+            try {
+                connection = getPostgresConnection();
+            } catch (Exception e) {
+                LOG.error(String.format("Failed to create connection store: %s", e.getMessage()));
+                e.printStackTrace();
+            }
+        }
+    }
+
+    class InsertedValue {
+        public String key;
+        public List<String> values;
+        public String tableName;
+        public Operation operation;
+        public boolean exists = true;
+
+        InsertedValue(String key, String tableName, List<String> values, Operation operation) {
+            this.key = key;
+            this.tableName = tableName;
+            this.values = values;
+            this.operation = operation;
+        }
+
+        @Override
+        public String toString() {
+            return "InsertedValue{" +
+                    "key='" + key + '\'' +
+                    ", values=" + values +
+                    ", tableName='" + tableName + '\'' +
+                    ", operation=" + operation +
+                    ", exists=" + exists +
+                    '}';
+        }
+    }
+
+    class Savepoint {
+        public int lastSavepointOperationCounter;
+        public String name;
+        public String tableName;
+
+        Savepoint(String name, int lastSavepointOperationCounter) {
+            this.name = name;
+            this.lastSavepointOperationCounter = lastSavepointOperationCounter;
+        }
+    }
+
+    class Cycle {
+        private final List<String> loopArray;
+        private int idx = -1;
+
+        Cycle(List<String> initArray) {
+            loopArray = initArray;
+        }
+
+        /**
+         * Get next vale in received array. If ends then starts from the start
+         */
+        String next() {
+            idx++;
+            if (idx == loopArray.size()) {
+                idx = 0;
+            }
+            return loopArray.get(idx);
+        }
+    }
+
+    class PreparedData {
+        public PreparedStatement preparedStatement;
+        public List<InsertedValue> insertedValues;
+
+        PreparedData(PreparedStatement preparedStatement, List<InsertedValue> insertedKeys) {
+            this.insertedValues = insertedKeys;
+            this.preparedStatement = preparedStatement;
+        }
     }
 }
