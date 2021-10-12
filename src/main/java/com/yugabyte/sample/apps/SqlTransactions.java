@@ -29,6 +29,7 @@ import java.util.stream.IntStream;
 public class SqlTransactions extends AppBase {
     private static final Logger LOG = Logger.getLogger(SqlTransactions.class);
     private static final String DEFAULT_TABLE_NAME = "SqlTransactions";
+    static List<ConnectionStore> connections = new ArrayList<>();
     private static List<InsertedValue> insertedValuesBuffer = new ArrayList<>();
 
     static {
@@ -40,7 +41,6 @@ public class SqlTransactions extends AppBase {
         appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
     }
 
-    static List<ConnectionStore> connections = new ArrayList<>();
     HashMap<String, PreparedStatement> statement = new HashMap<>();
 
     // The shared prepared insert statement for inserting the data.
@@ -220,7 +220,7 @@ public class SqlTransactions extends AppBase {
                 switch (operation) {
                     case INSERT:
                         for (int v = 0; v < appConfig.numValueColumns; v++) valuesToInsert.add(key.getValueStr());
-                        value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
+                        value = new InsertedValue(String.format("%s_%s_%s", key.asString(), counter, UUID.randomUUID()), tablesGen.next(), valuesToInsert, operation);
                         ddlOperations.add(value);
                         stmt.append(String.format("INSERT INTO %s(k, %s) VALUES (?, %s); ", value.tableName, allColumnsStr, values));
                         break;
@@ -242,8 +242,8 @@ public class SqlTransactions extends AppBase {
                         String columnToUpdate = allColumns.get(random.nextInt(valueToUpdate.values.size()));
                         updatedKeys.add(valueToUpdate.key);
                         valuesToInsert.add(valueToUpdate.key);
-                        valuesToInsert.add(key.getKeyWithHashPrefix());
-                        value = new InsertedValue(String.format("%s_%s", key.asString(), counter), tablesGen.next(), valuesToInsert, operation);
+                        valuesToInsert.add(key.getValueStr());
+                        value = new InsertedValue(null, tablesGen.next(), valuesToInsert, operation);
                         ddlOperations.add(value);
                         stmt.append(String.format("UPDATE %s SET %s=? WHERE k = ?; ", valueToUpdate.tableName, columnToUpdate));
                         break;
@@ -347,15 +347,15 @@ public class SqlTransactions extends AppBase {
 
     @Override
     public long doWrite(int threadIdx) {
-
         Key key = getSimpleLoadGenerator().getKeyToWrite();
         if (key == null) {
             return 0;
         }
 
         ConnectionStore connectionStore = getRandomConnection();
+        PreparedData preparedData = null;
         try {
-            PreparedData preparedData = getPreparedTx(connectionStore.connection, key);
+            preparedData = getPreparedTx(connectionStore.connection, key);
             preparedData.preparedStatement.executeUpdate();
             // add inserted values in buffer
             insertedValuesBuffer.addAll(preparedData.insertedValues);
@@ -370,11 +370,13 @@ public class SqlTransactions extends AppBase {
                         .collect(Collectors.toList());
             }
         } catch (SQLException e) {
+            getSimpleLoadGenerator().recordWriteFailure(key);
             connectionStore.dead = true;
-            LOG.error(String.format("failed to write %s %s", key.asString(), e.getMessage()));
+            LOG.error(String.format("failed to write %s %s", preparedData != null ? preparedData.insertedValues.get(0).key : key, e.getMessage()));
             e.printStackTrace();
             sleep(2000);
         } catch (Exception e) {
+            getSimpleLoadGenerator().recordWriteFailure(key);
             LOG.error(String.format("failed to write %s", e.getMessage()));
             e.printStackTrace();
         } finally {
