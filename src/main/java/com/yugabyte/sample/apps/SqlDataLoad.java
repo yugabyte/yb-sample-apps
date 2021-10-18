@@ -315,6 +315,6 @@ public class SqlDataLoad extends AppBase {
                 "--num_threads_write " + appConfig.numWriterThreads,
                 "--load_balance " + appConfig.loadBalance,
                 "--topology_keys " + appConfig.topologyKeys,
-                "--debug-driver " + appConfig.enableDriverDebug);
+                "--debug_driver " + appConfig.enableDriverDebug);
     }
 }

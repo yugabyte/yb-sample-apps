@@ -184,7 +184,6 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         ContactPoint contactPoint = getRandomContactPoint();
         Properties props = new Properties();
         props.setProperty("user", username);
-        // Check if the smart driver is there in the class path
         if (isLoadBalanceOn) {
           props.setProperty("load-balance", String.valueOf(appConfig.loadBalance));
           if (appConfig.topologyKeys != null) {
