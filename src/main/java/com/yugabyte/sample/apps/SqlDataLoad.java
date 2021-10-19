@@ -312,6 +312,9 @@ public class SqlDataLoad extends AppBase {
                 "--num_foreign_key_table_rows " + appConfig.numForeignKeyTableRows,
                 "--num_consecutive_rows_with_same_fk " + appConfig.numConsecutiveRowsWithSameFk,
                 "--batch_size " + appConfig.batchSize,
-                "--num_threads_write " + appConfig.numWriterThreads);
+                "--num_threads_write " + appConfig.numWriterThreads,
+                "--load_balance " + appConfig.loadBalance,
+                "--topology_keys " + appConfig.topologyKeys,
+                "--debug_driver " + appConfig.enableDriverDebug);
     }
 }

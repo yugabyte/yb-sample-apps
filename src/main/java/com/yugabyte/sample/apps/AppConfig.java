@@ -194,6 +194,15 @@ public class AppConfig {
   // Configurations for SqlGeoPartitionedTable workload.
   public int numPartitions = 2;
 
+  // Configuration for setting load-balance in  Sql* workload.
+  public boolean loadBalance = true;
+
+  // Configuration for setting topology-keys in  Sql* workload.
+  public String topologyKeys = null;
+
+  // Configuration for setting topology-keys in  Sql* workload.
+  public boolean enableDriverDebug = false;
+
   // Determines whether we should output JSON metrics in addition to human-readable metrics.
   public boolean outputJsonMetrics = false;
 
