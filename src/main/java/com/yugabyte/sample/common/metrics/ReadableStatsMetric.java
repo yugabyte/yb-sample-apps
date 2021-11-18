@@ -16,41 +16,49 @@ package com.yugabyte.sample.common.metrics;
 import org.apache.log4j.Logger;
 
 public class ReadableStatsMetric {
-    private static final Logger LOG = Logger.getLogger(ReadableStatsMetric.class);
-    String name;
-    private final Object lock = new Object();
-    protected long curOpCount = 0;
-    protected long curOpLatencyNanos = 0;
-    protected long totalOpCount = 0;
-    private long lastSnapshotNanos;
+  private static final Logger LOG = Logger.getLogger(ReadableStatsMetric.class);
+  String name;
+  private final Object lock = new Object();
+  protected long curOpCount = 0;
+  protected long curOpLatencyNanos = 0;
+  protected long totalOpCount = 0;
+  private long lastSnapshotNanos;
+  private StatsTracker quantileStats;
 
-    public ReadableStatsMetric(String name) {
-        this.name = name;
-        lastSnapshotNanos = System.nanoTime();
-    }
+  public ReadableStatsMetric(String name) {
+    this.name = name;
+    lastSnapshotNanos = System.nanoTime();
+    quantileStats = new StatsTracker();
+  }
 
-    /**
-     * Accumulate metrics with operations processed as one batch.
-     * @param numOps number of ops processed as one batch
-     * @param batchLatencyNanos whole batch latency
-     */
-    public synchronized void accumulate(long numOps, long batchLatencyNanos) {
-        curOpCount += numOps;
-        curOpLatencyNanos += batchLatencyNanos * numOps;
-        totalOpCount += numOps;
-    }
+  public synchronized void observe(Observation o) {
+    accumulate(o.getCount(), o.getLatencyNanos());
+    quantileStats.observe(o.getLatencyMillis());
+  }
 
-    public synchronized String getMetricsAndReset() {
-        long currNanos = System.nanoTime();
-        long elapsedNanos = currNanos - lastSnapshotNanos;
-        LOG.debug("currentOpLatency: " + curOpLatencyNanos + ", currentOpCount: " + curOpCount);
-        double ops_per_sec =
-                (elapsedNanos == 0) ? 0 : (curOpCount * 1000000000 * 1.0 / elapsedNanos);
-        double latency = (curOpCount == 0) ? 0 : (curOpLatencyNanos / 1000000 * 1.0 / curOpCount);
-        curOpCount = 0;
-        curOpLatencyNanos = 0;
-        lastSnapshotNanos = currNanos;
-        return String.format("%s: %.2f ops/sec (%.2f ms/op), %d total ops",
-                name, ops_per_sec, latency, totalOpCount);
-    }
+  /**
+   * Accumulate metrics with operations processed as one batch.
+   *
+   * @param numOps number of ops processed as one batch
+   * @param batchLatencyNanos whole batch latency
+   */
+  public synchronized void accumulate(long numOps, long batchLatencyNanos) {
+    curOpCount += numOps;
+    curOpLatencyNanos += batchLatencyNanos * numOps;
+    totalOpCount += numOps;
+  }
+
+  public synchronized String getMetricsAndReset() {
+    long currNanos = System.nanoTime();
+    long elapsedNanos = currNanos - lastSnapshotNanos;
+    LOG.debug("currentOpLatency: " + curOpLatencyNanos + ", currentOpCount: " + curOpCount);
+    double ops_per_sec = (elapsedNanos == 0) ? 0 : (curOpCount * 1000000000 * 1.0 / elapsedNanos);
+    double latency = (curOpCount == 0) ? 0 : (curOpLatencyNanos / 1000000 * 1.0 / curOpCount);
+    curOpCount = 0;
+    curOpLatencyNanos = 0;
+    lastSnapshotNanos = currNanos;
+    return String.format(
+        "%s: %.2f ops/sec (%.2f ms/op, %.2f ms p99), %d total ops",
+        name, ops_per_sec, latency, quantileStats.stats.getPercentile(99), totalOpCount);
+  }
 }
