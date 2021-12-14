@@ -163,6 +163,7 @@ public class CassandraTransactionalKeyValue extends CassandraKeyValue {
       "--num_writes " + appConfig.numKeysToWrite,
       "--value_size " + appConfig.valueSize,
       "--num_threads_read " + appConfig.numReaderThreads,
-      "--num_threads_write " + appConfig.numWriterThreads);
+      "--num_threads_write " + appConfig.numWriterThreads,
+      "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

@@ -202,6 +202,7 @@ public abstract class CassandraKeyValueBase extends AppBase {
         "--value_size " + appConfig.valueSize,
         "--num_threads_read " + appConfig.numReaderThreads,
         "--num_threads_write " + appConfig.numWriterThreads,
-        "--table_ttl_seconds " + appConfig.tableTTLSeconds);
+        "--table_ttl_seconds " + appConfig.tableTTLSeconds,
+        "--debug_driver " + appConfig.enableDriverDebug);
   }
 }
