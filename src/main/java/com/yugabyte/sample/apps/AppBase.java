@@ -205,10 +205,11 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
 
         if (appConfig.sslCert != null && appConfig.sslCert.length() > 0) {
-          assert(appConfig.sslKey != null && appConfig.sslKey.length() > 0) : "The SSL key is empty.";
           props.put("sslmode", "require");
           props.put("sslcert", appConfig.sslCert);
-          props.put("sslkey", appConfig.sslKey);
+          if (appConfig.sslKey != null && appConfig.sslKey.length() > 0) {
+            props.put("sslkey", appConfig.sslKey);
+          }
         }
 
         String url = isLoadBalanceOn ? "jdbc:yugabytedb:" : "jdbc:postgresql:";
