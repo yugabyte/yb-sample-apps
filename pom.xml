@@ -70,7 +70,7 @@
     <dependency>
       <groupId>com.yugabyte</groupId>
       <artifactId>jdbc-yugabytedb</artifactId>
-      <version>42.3.0</version>
+      <version>42.3.2</version>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
