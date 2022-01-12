@@ -156,5 +156,4 @@ New load balancing features are introduced in SQL workloads. The changes resulti
     [ --load_balance true ]
     [ --topology_keys null ]
     [ --debug_driver false ]
-
   ```
