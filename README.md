@@ -11,19 +11,19 @@ The workloads here have drivers compatible with the above and emulate a number o
 
 Download yb-sample-apps JAR
 ```
-$ wget https://github.com/yugabyte/yb-sample-apps/releases/download/1.3.9/yb-sample-apps.jar
+wget https://github.com/yugabyte/yb-sample-apps/releases/download/1.3.9/yb-sample-apps.jar
 ```
 
 For help, simply run the following:
 
 ```
-$ java -jar yb-sample-apps.jar --help
+java -jar yb-sample-apps.jar --help
 ```
 You should see the set of workloads available in the app.
 
 To get details on running any app, just pass the app name as a parameter to the `--help` flag:
 ```
-$ java -jar yb-sample-apps.jar --help CassandraKeyValue
+ java -jar yb-sample-apps.jar --help CassandraKeyValue
 1 [main] INFO com.yugabyte.sample.Main  - Starting sample app...
 Usage and options for workload CassandraKeyValue in YugabyteDB Sample Apps.
 
@@ -58,18 +58,18 @@ You need the following to build:
 
 To build, simply run the following:
 ```
-$ mvn -DskipTests -DskipDockerBuild package
+mvn -DskipTests -DskipDockerBuild package
 ```
 
 You can find the executable one-jar at the following location:
 ```
-$ ls target/yb-sample-apps.jar
+ls target/yb-sample-apps.jar
 target/yb-sample-apps.jar
 ```
 
 To docker image with the package, simply run the following:
 ```
-$ mvn package
+mvn package
 ```
 
 ## Supported Workloads
