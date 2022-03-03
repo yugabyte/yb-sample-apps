@@ -31,8 +31,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.zip.Adler32;
 import java.util.zip.Checksum;
@@ -119,6 +122,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   private volatile Pipeline jedisPipeline = null;
   private List<ContactPoint> redisServerInUse = null;
   private volatile JedisCluster jedisCluster = null;
+  private final AtomicLong writeStartTimeCounter = new AtomicLong();
+  private final AtomicLong writeEndTimeCounter = new AtomicLong();
+  private final AtomicLong writeOpsCount = new AtomicLong();
+  private final AtomicLong readStartTimeCounter = new AtomicLong();
+  private final AtomicLong readEndTimeCounter = new AtomicLong();
+  private final AtomicLong readOpsCount = new AtomicLong();
+  private final Lock metricsLock = new ReentrantLock();
   // Instances of the load generator.
   private static volatile SimpleLoadGenerator simpleLoadGenerator = null;
   private static volatile RedisHashLoadGenerator redisHashLoadGenerator = null;
@@ -774,14 +784,20 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       return;
     }
     // Perform the write and track the number of successfully written keys.
-    long startTs = System.nanoTime();
+    if (writeEndTimeCounter.get() == 0) {
+      writeStartTimeCounter.set(System.nanoTime());
+      writeEndTimeCounter.set(System.nanoTime() + TimeUnit.SECONDS.toNanos(1));
+    }
     long count = doWrite(threadIdx);
-    long endTs = System.nanoTime();
-    if (count > 0) {
+    writeOpsCount.getAndAdd(count);
+    long endTime = System.nanoTime();
+    if (count > 0 && writeEndTimeCounter.get() >= endTime) {
       numKeysWritten.addAndGet(count);
       if (metricsTracker != null) {
-        Observation o = new Observation(count, startTs, endTs);
+        Observation o = new Observation(writeOpsCount.get(), writeStartTimeCounter.get(), writeEndTimeCounter.get());
         metricsTracker.getMetric(MetricName.Write).observe(o);
+        writeEndTimeCounter.set(0);
+        writeOpsCount.set(0);
       }
     }
   }
@@ -795,19 +811,25 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
     // If we have read enough keys we are done.
     if (appConfig.numKeysToRead >= 0 && numKeysRead.get() >= appConfig.numKeysToRead
-        || isOutOfTime()) {
+            || isOutOfTime()) {
       hasFinished.set(true);
       return;
     }
     // Perform the read and track the number of successfully read keys.
-    long startTs = System.nanoTime();
+    if (readEndTimeCounter.get() == 0) {
+      readStartTimeCounter.set(System.nanoTime());
+      readEndTimeCounter.set(System.nanoTime() + TimeUnit.SECONDS.toNanos(1));
+    }
     long count = doRead();
-    long endTs = System.nanoTime();
-    if (count > 0) {
+    readOpsCount.getAndAdd(count);
+    long endTime = System.nanoTime();
+    if (count > 0 && readEndTimeCounter.get() >= endTime) {
       numKeysRead.addAndGet(count);
       if (metricsTracker != null) {
-        Observation o = new Observation(count, startTs, endTs);
+        Observation o = new Observation(readOpsCount.get(), readStartTimeCounter.get(), readEndTimeCounter.get());
         metricsTracker.getMetric(MetricName.Read).observe(o);
+        readEndTimeCounter.set(0);
+        readOpsCount.set(0);
       }
     }
   }

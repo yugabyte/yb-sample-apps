@@ -46,7 +46,7 @@ public class ReadableStatsMetric {
         LOG.debug("currentOpLatency: " + curOpLatencyNanos + ", currentOpCount: " + curOpCount);
         double ops_per_sec =
                 (elapsedNanos == 0) ? 0 : (curOpCount * 1000000000 * 1.0 / elapsedNanos);
-        double latency = (curOpCount == 0) ? 0 : (curOpLatencyNanos / 1000000 * 1.0 / curOpCount);
+        double latency = (curOpCount == 0) ? 0 : (1000.0 / ops_per_sec);
         curOpCount = 0;
         curOpLatencyNanos = 0;
         lastSnapshotNanos = currNanos;
