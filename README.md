@@ -114,7 +114,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
 
    1. load_balance: It is true by default. When load_balance is `true` then YB’s smart driver is used by the sample apps. So if you have a YB cluster created with a replication factor of 3(-rf) and the total number of connections ( it is equal to the sum of reader and writer threads ) will be evenly distributed across the 3 servers. If you explicitly set load-balance to `false` then the upstream PostgreSQL JDBC driver will be used and it will be same as the current state of the sample apps.
 
-   1. topology_keys: This property needs to be set only load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
+   * `topology_keys`: This property needs to be set only load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
 
        Example topology:
        | Servers | Cloud provider | Region | Zone |
