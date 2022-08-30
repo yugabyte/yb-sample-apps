@@ -125,7 +125,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
 
        If you want all your operations to go the `us-east` region but load-balanced on the servers which are there in `us-east` then you can specify that through the topology_keys config option like `—topology_keys=aws.us-east.  us-east-1a,aws.us-east.us-east-1b`.
 
-   1. debug_driver: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
+ * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
 
    Following is the `usage` for SqlInserts workload example with the new added arguments using the `--help` flag:
 
