@@ -25,7 +25,7 @@ public class Metric {
   }
 
   public synchronized void observe(Observation o) {
-    readableStatsMetric.accumulate(o.getCount(), o.getLatencyNanos());
+    readableStatsMetric.observe(o);
     jsonStatsMetric.observe(o);
   }
 
