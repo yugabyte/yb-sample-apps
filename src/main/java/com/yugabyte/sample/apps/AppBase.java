@@ -682,6 +682,17 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    */
   public List<String> getWorkloadOptionalArguments() { return Collections.EMPTY_LIST; }
 
+  /**
+   *  Returns connection-specific optional command line options.
+   *  @return the options split in lines.
+   */
+  public List<String> getConnectionOptionalArguments() {
+    return Arrays.asList(
+        "--username " + appConfig.dbUsername,
+        "--password " + appConfig.dbPassword,
+        "--ssl_cert " + appConfig.sslCert);
+  }
+
   ////////////// The following methods framework/helper methods for subclasses. ////////////////////
 
   /**
