@@ -9,7 +9,7 @@ The workloads here have drivers compatible with the above and emulate a number o
 
 ## Running the generator
 
-Download yb-sample-apps JAR
+Download the [latest yb-sample-apps](https://github.com/yugabyte/yb-sample-apps/releases/latest) JAR. The command below downloads version 1.3.9.
 ```
 $ wget https://github.com/yugabyte/yb-sample-apps/releases/download/1.3.9/yb-sample-apps.jar
 ```
@@ -82,7 +82,7 @@ Below is a list of workloads.
 | CassandraKeyValue                | Sample key-value app built on Cassandra with concurrent reader and writer threads. |
 | CassandraBatchKeyValue           | Sample batch key-value app built on Cassandra with concurrent reader and writer threads.|
 | CassandraBatchTimeseries         | Timeseries/IoT app built that simulates metric data emitted by devices periodically.|
-| CassandraEventData			   | A sample IoT event data application with batch processing. |
+| CassandraEventData               | A sample IoT event data application with batch processing. |
 | CassandraTransactionalKeyValue   | Key-value app with multi-row transactions. Each write txn inserts a pair of unique string keys with the same value. |
 | CassandraTransactionalRestartRead| This workload writes one key per thread, each time incrementing it's value and storing it in array. |
 | CassandraStockTicker             | Sample stock ticker app built on CQL. Models stock tickers each of which emits quote data every second. |
@@ -104,17 +104,17 @@ Below is a list of workloads.
 
 New load balancing features are introduced in SQL workloads. The changes resulting from this new feature are visible in:
 
-* pom.xml: contains both the upstream PostgreSQL JDBC driver dependency as well as Yugabyte’s smart driver dependency.
+* pom.xml: contains both the upstream PostgreSQL JDBC driver dependency as well as Yugabyte's smart driver dependency.
 
-* SQL* workloads: can be started with either the Yugabyte’s smart driver or with the upstream PostgreSQL driver.
+* SQL* workloads: can be started with either the Yugabyte's smart driver or with the upstream PostgreSQL driver.
 
 * Yugabyte's smart driver: is the default driver.
 
 * Three new arguments are introduced in the SQL* workloads:
 
-  * `load_balance`: It is true by default. When load_balance is `true` then YB’s smart driver is used by the sample apps. So if you have a YB cluster created with a replication factor of 3(-rf) and the total number of connections ( it is equal to the sum of reader and writer threads ) will be evenly distributed across the 3 servers. If you explicitly set load-balance to `false` then the upstream PostgreSQL JDBC driver will be used and it will be same as the current state of the sample apps.
+  * `load_balance`: It is true by default. When load_balance is `true` then YB's smart driver is used by the sample apps. So if you have a YB cluster created with a replication factor (rf) of 3 and the total number of connections ( it is equal to the sum of reader and writer threads ) will be evenly distributed across the 3 servers. If you explicitly set load-balance to `false` then the upstream PostgreSQL JDBC driver will be used and it will be same as the current state of the sample apps.
 
-   * `topology_keys`: This property needs to be set only load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
+   * `topology_keys`: This property needs to be set only when load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
 
        Example topology:
        | Servers | Cloud provider | Region | Zone |
@@ -123,7 +123,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
        | server 1 | aws | us-east | us-east-1b|
        | server 1 | aws | us-west | us-west-1a|
 
-       If you want all your operations to go the `us-east` region but load-balanced on the servers which are there in `us-east` then you can specify that through the topology_keys config option like `—topology_keys=aws.us-east.  us-east-1a,aws.us-east.us-east-1b`.
+       If you want all your operations to go the `us-east` region but load-balanced on the servers which are there in `us-east` then you can specify that through the topology_keys config option like `--topology_keys=aws.us-east.us-east-1a,aws.us-east.us-east-1b`.
 
  * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
 
@@ -135,7 +135,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
 
    ```output
    0 [main] INFO com.yugabyte.sample.Main - Starting sample app...
-   Usage and options for workload SqlInserts in YugaByte DB Sample Apps.
+   Usage and options for workload SqlInserts in YugabyteDB Sample Apps.
 
    SqlInserts :
    Sample key-value app built on PostgreSQL with concurrent readers and writers. The app inserts unique string keys each with a string value to a postgres table with an index on the value column.

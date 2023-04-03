@@ -48,6 +48,7 @@ public class CmdLineOpts {
 
   // The various apps present in this sample.
   private final static List<Class> HELP_WORKLOADS = ImmutableList.of(
+    CassandraInserts.class,
     CassandraHelloWorld.class,
     CassandraKeyValue.class,
     CassandraRangeKeyValue.class,
@@ -68,6 +69,7 @@ public class CmdLineOpts {
     RedisYBClientKeyValue.class,
     SqlDataLoad.class,
     SqlForeignKeysAndJoins.class,
+    SqlGeoPartitionedTable.class,
     SqlInserts.class,
     SqlSecondaryIndex.class,
     SqlSnapshotTxns.class,
@@ -988,11 +990,11 @@ public class CmdLineOpts {
 
     footer.append("****************************************************************************\n");
     footer.append("*                                                                          *\n");
-    footer.append("*                     YugaByte DB Sample Apps                              *\n");
+    footer.append("*                     YugabyteDB Sample Apps                               *\n");
     footer.append("*                                                                          *\n");
     footer.append("****************************************************************************\n");
     footer.append("\n");
-    footer.append("Use this sample app to try out a variety of workloads against YugaByte DB.\n");
+    footer.append("Use this sample app to try out a variety of workloads against YugabyteDB.\n");
     footer.append("  Use the --help <app name> option to get more details on how to run it.\n");
     String optsPrefix = "\t\t\t";
     String optsSuffix = " \\\n";
