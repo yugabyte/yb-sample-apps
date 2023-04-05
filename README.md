@@ -99,6 +99,7 @@ Below is a list of workloads.
 | SqlUpdates                       | Sample key-value app built on PostgreSQL with concurrent readers and writers. The app updates existing string keys |
 | SqlSecondaryIndex                | Sample key-value app built on postgresql. The app writes out unique string keys |
 | SqlSnapshotTxns                  | Sample key-value app built on postgresql. The app writes out unique string keys |
+| SqlGeoPartitionedTable           | Sample app based on SqlInserts but uses a geo-partitioned table |
 
 ## Load balancing support in SQL workloads
 
@@ -114,7 +115,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
 
   * `load_balance`: It is true by default. When load_balance is `true` then YB's smart driver is used by the sample apps. So if you have a YB cluster created with a replication factor (rf) of 3 and the total number of connections ( it is equal to the sum of reader and writer threads ) will be evenly distributed across the 3 servers. If you explicitly set load-balance to `false` then the upstream PostgreSQL JDBC driver will be used and it will be same as the current state of the sample apps.
 
-   * `topology_keys`: This property needs to be set only when load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
+  * `topology_keys`: This property needs to be set only when load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
 
        Example topology:
        | Servers | Cloud provider | Region | Zone |
@@ -124,6 +125,39 @@ New load balancing features are introduced in SQL workloads. The changes resulti
        | server 1 | aws | us-west | us-west-1a|
 
        If you want all your operations to go the `us-east` region but load-balanced on the servers which are there in `us-east` then you can specify that through the topology_keys config option like `--topology_keys=aws.us-east.us-east-1a,aws.us-east.us-east-1b`.
+
+    * `Fallback option`: With `topology_keys`, you can also provide fallback options via preference value.
+    Using this, one can tell the driver to connect/fallback to servers in other placements in case all the servers in primary placement are unavailable/down.
+
+      The preference value, which is optional, can range from 1 (default) to 10. Value 1 means it is the primary placement, 2 means it is first fallback, 3 means it's second fallback, and so on.
+
+      The driver falls back to entire cluster even if no explicit fallback is specified in topology_keys and no servers are available in the given placements.
+
+      Example of topology_keys with preference value to specify fallback option:
+      ```
+      "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
+      ```
+  * Try it yourself:
+    - Start a 3-node cluster with separate placement for each tserver
+    ```
+    ./bin/yb-ctl start --rf 3 --placement_info "aws.us-east.us-east-1a,aws.us-east.us-east-1b,aws.us-west.us-west-1a"
+    ```
+    - Start a SQL workload with load_balance and topology_keys with preference value
+    ```
+    java -jar yb-sample-apps.jar --workload SqlInserts --nodes 127.0.0.1:5433 --load_balance true --topology_keys "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
+    ```
+    - While the workload is running, you can verify from `http://127.0.0.1:13000/rpcz` that all the connections are made to tserver-1 since it is in the primary placement zone `aws.us-east.us-east-1a`
+    - While the workload is still running, stop the tserver-1 specified in `--nodes` above
+    ```
+    ./bin/yb-ctl stop_node 1
+    ```
+    - You will see that the workload logs error messages like `FATAL: Could not reconnect to database` but subsequently continues its operations
+    - It does so because the app requests for new connections and driver falls back to node in `aws.us-west.us-west-1a`
+    - You can verify from `http://127.0.0.3:13000/rpcz` that the connections are now created on tserver-3
+    - If you specify the topology_keys without preference value (fallback option) initially as given below, and stop the first tserver, you will notice that the new connections are created across both the remaining tservers
+    ```
+    --topology_keys "aws.us-east.us-east-1a"
+    ```
 
  * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
 
