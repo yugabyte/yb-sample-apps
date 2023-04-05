@@ -9,9 +9,9 @@ The workloads here have drivers compatible with the above and emulate a number o
 
 ## Running the generator
 
-Download the [latest yb-sample-apps](https://github.com/yugabyte/yb-sample-apps/releases/latest) JAR. The command below downloads version 1.3.9.
+Download the [latest yb-sample-apps](https://github.com/yugabyte/yb-sample-apps/releases/latest) JAR. The command below downloads version 1.4.1.
 ```
-$ wget https://github.com/yugabyte/yb-sample-apps/releases/download/1.3.9/yb-sample-apps.jar
+$ wget https://github.com/yugabyte/yb-sample-apps/releases/download/v1.4.1/yb-sample-apps.jar
 ```
 
 For help, simply run the following:
@@ -79,7 +79,9 @@ Below is a list of workloads.
 | App Name                         | Description      |
 | -------------------------------- | ---------------- |
 | CassandraHelloWorld              | A very simple app that writes and reads one employee record into an 'Employee' table |
+| CassandraInserts                 | Secondary index on key-value YCQL table. Writes unique keys with an index on values.|
 | CassandraKeyValue                | Sample key-value app built on Cassandra with concurrent reader and writer threads. |
+| CassandraRangeKeyValue           | Sample key-value app built on Cassandra. The app writes out unique keys, each has one hash and three range string parts.|
 | CassandraBatchKeyValue           | Sample batch key-value app built on Cassandra with concurrent reader and writer threads.|
 | CassandraBatchTimeseries         | Timeseries/IoT app built that simulates metric data emitted by devices periodically.|
 | CassandraEventData               | A sample IoT event data application with batch processing. |
