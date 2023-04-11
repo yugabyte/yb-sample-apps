@@ -140,7 +140,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
       "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
       ```
       The steps to demonstrate usage of fallback option is given at the end.
- * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
+  * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
 
    Following is the `usage` for SqlInserts workload example with the new added arguments using the `--help` flag:
 
