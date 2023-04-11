@@ -9,9 +9,9 @@ The workloads here have drivers compatible with the above and emulate a number o
 
 ## Running the generator
 
-Download yb-sample-apps JAR
+Download the [latest yb-sample-apps](https://github.com/yugabyte/yb-sample-apps/releases/latest) JAR. The command below downloads version 1.4.1.
 ```
-$ wget https://github.com/yugabyte/yb-sample-apps/releases/download/1.3.9/yb-sample-apps.jar
+$ wget https://github.com/yugabyte/yb-sample-apps/releases/download/v1.4.1/yb-sample-apps.jar
 ```
 
 For help, simply run the following:
@@ -79,10 +79,12 @@ Below is a list of workloads.
 | App Name                         | Description      |
 | -------------------------------- | ---------------- |
 | CassandraHelloWorld              | A very simple app that writes and reads one employee record into an 'Employee' table |
+| CassandraInserts                 | Secondary index on key-value YCQL table. Writes unique keys with an index on values.|
 | CassandraKeyValue                | Sample key-value app built on Cassandra with concurrent reader and writer threads. |
+| CassandraRangeKeyValue           | Sample key-value app built on Cassandra. The app writes out unique keys, each has one hash and three range string parts.|
 | CassandraBatchKeyValue           | Sample batch key-value app built on Cassandra with concurrent reader and writer threads.|
 | CassandraBatchTimeseries         | Timeseries/IoT app built that simulates metric data emitted by devices periodically.|
-| CassandraEventData			   | A sample IoT event data application with batch processing. |
+| CassandraEventData               | A sample IoT event data application with batch processing. |
 | CassandraTransactionalKeyValue   | Key-value app with multi-row transactions. Each write txn inserts a pair of unique string keys with the same value. |
 | CassandraTransactionalRestartRead| This workload writes one key per thread, each time incrementing it's value and storing it in array. |
 | CassandraStockTicker             | Sample stock ticker app built on CQL. Models stock tickers each of which emits quote data every second. |
@@ -99,22 +101,23 @@ Below is a list of workloads.
 | SqlUpdates                       | Sample key-value app built on PostgreSQL with concurrent readers and writers. The app updates existing string keys |
 | SqlSecondaryIndex                | Sample key-value app built on postgresql. The app writes out unique string keys |
 | SqlSnapshotTxns                  | Sample key-value app built on postgresql. The app writes out unique string keys |
+| SqlGeoPartitionedTable           | Sample app based on SqlInserts but uses a geo-partitioned table |
 
 ## Load balancing support in SQL workloads
 
 New load balancing features are introduced in SQL workloads. The changes resulting from this new feature are visible in:
 
-* pom.xml: contains both the upstream PostgreSQL JDBC driver dependency as well as Yugabyte’s smart driver dependency.
+* pom.xml: contains both the upstream PostgreSQL JDBC driver dependency as well as Yugabyte's smart driver dependency.
 
-* SQL* workloads: can be started with either the Yugabyte’s smart driver or with the upstream PostgreSQL driver.
+* SQL* workloads: can be started with either the Yugabyte's smart driver or with the upstream PostgreSQL driver.
 
 * Yugabyte's smart driver: is the default driver.
 
 * Three new arguments are introduced in the SQL* workloads:
 
-  * `load_balance`: It is true by default. When load_balance is `true` then YB’s smart driver is used by the sample apps. So if you have a YB cluster created with a replication factor of 3(-rf) and the total number of connections ( it is equal to the sum of reader and writer threads ) will be evenly distributed across the 3 servers. If you explicitly set load-balance to `false` then the upstream PostgreSQL JDBC driver will be used and it will be same as the current state of the sample apps.
+  * `load_balance`: It is true by default. When load_balance is `true` then YB's smart driver is used by the sample apps. So if you have a YB cluster created with a replication factor (rf) of 3 and the total number of connections ( it is equal to the sum of reader and writer threads ) will be evenly distributed across the 3 servers. If you explicitly set load-balance to `false` then the upstream PostgreSQL JDBC driver will be used and it will be same as the current state of the sample apps.
 
-   * `topology_keys`: This property needs to be set only load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
+  * `topology_keys`: This property needs to be set only when load_balance is `true` and ignored when it is `false`. You can setup a cluster with different servers in different availability zones and then can configure the `yb-sample-apps` Sql* workloads to only create connections on servers which belong to a specific topology.
 
        Example topology:
        | Servers | Cloud provider | Region | Zone |
@@ -123,9 +126,21 @@ New load balancing features are introduced in SQL workloads. The changes resulti
        | server 1 | aws | us-east | us-east-1b|
        | server 1 | aws | us-west | us-west-1a|
 
-       If you want all your operations to go the `us-east` region but load-balanced on the servers which are there in `us-east` then you can specify that through the topology_keys config option like `—topology_keys=aws.us-east.  us-east-1a,aws.us-east.us-east-1b`.
+       If you want all your operations to go the `us-east` region but load-balanced on the servers which are there in `us-east` then you can specify that through the topology_keys config option like `--topology_keys=aws.us-east.us-east-1a,aws.us-east.us-east-1b`.
 
- * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
+    * `Fallback option`: With `topology_keys`, you can also provide fallback options via preference value.
+    Using this, one can tell the driver to connect/fallback to servers in other placements in case all the servers in primary placement are unavailable/down.
+
+      The preference value, which is optional, can range from 1 (default) to 10 and is specified with the prefix `:`. Value 1 means it is the primary placement, 2 means it is first fallback, 3 means it's second fallback, and so on.
+
+      The driver falls back to entire cluster even if no explicit fallback is specified in topology_keys and no servers are available in the given placements.
+
+      Example of topology_keys value which specifies `aws.us-west.us-west-1a` as the first fallback:
+      ```
+      "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
+      ```
+      The steps to demonstrate usage of fallback option is given at the end.
+  * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
 
    Following is the `usage` for SqlInserts workload example with the new added arguments using the `--help` flag:
 
@@ -135,7 +150,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
 
    ```output
    0 [main] INFO com.yugabyte.sample.Main - Starting sample app...
-   Usage and options for workload SqlInserts in YugaByte DB Sample Apps.
+   Usage and options for workload SqlInserts in YugabyteDB Sample Apps.
 
    SqlInserts :
    Sample key-value app built on PostgreSQL with concurrent readers and writers. The app inserts unique string keys each with a string value to a postgres table with an index on the value column.
@@ -157,3 +172,26 @@ New load balancing features are introduced in SQL workloads. The changes resulti
     [ --topology_keys null ]
     [ --debug_driver false ]
   ```
+
+### Try SQL workload with fallback option
+
+1. Start a 3-node cluster with separate placement for each tserver
+    ```
+    ./bin/yb-ctl start --rf 3 --placement_info "aws.us-east.us-east-1a,aws.us-east.us-east-1b,aws.us-west.us-west-1a"
+    ```
+2. Start a SQL workload with load_balance and topology_keys with preference value
+    ```
+    java -jar yb-sample-apps.jar --workload SqlInserts --nodes 127.0.0.1:5433 --load_balance true --topology_keys "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
+    ```
+3. While the workload is running, you can verify from `http://127.0.0.1:13000/rpcz` that all the connections are made to tserver-1 since it is in the primary placement zone `aws.us-east.us-east-1a`
+4. While the workload is still running, stop the tserver-1 specified in `--nodes` above
+    ```
+    ./bin/yb-ctl stop_node 1
+    ```
+5. You will see that the workload logs error messages like `FATAL: Could not reconnect to database` but subsequently continues its operations
+6. It does so because the app requests for new connections and driver falls back to node in `aws.us-west.us-west-1a`
+7. You can verify from `http://127.0.0.3:13000/rpcz` that the connections are now created on tserver-3
+8. In step 2 above, if you specify the topology_keys without the preference value (fallback option) instead, as given below, and stop the first tserver while the workload is running, you will notice that the new connections are created across both the remaining tservers
+    ```
+    --topology_keys "aws.us-east.us-east-1a"
+    ```
