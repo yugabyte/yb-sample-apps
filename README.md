@@ -131,36 +131,15 @@ New load balancing features are introduced in SQL workloads. The changes resulti
     * `Fallback option`: With `topology_keys`, you can also provide fallback options via preference value.
     Using this, one can tell the driver to connect/fallback to servers in other placements in case all the servers in primary placement are unavailable/down.
 
-      The preference value, which is optional, can range from 1 (default) to 10. Value 1 means it is the primary placement, 2 means it is first fallback, 3 means it's second fallback, and so on.
+      The preference value, which is optional, can range from 1 (default) to 10 and is specified with the prefix `:`. Value 1 means it is the primary placement, 2 means it is first fallback, 3 means it's second fallback, and so on.
 
       The driver falls back to entire cluster even if no explicit fallback is specified in topology_keys and no servers are available in the given placements.
 
-      Example of topology_keys with preference value to specify fallback option:
+      Example of topology_keys value which specifies `aws.us-west.us-west-1a` as the first fallback:
       ```
       "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
       ```
-  * Try it yourself:
-    - Start a 3-node cluster with separate placement for each tserver
-    ```
-    ./bin/yb-ctl start --rf 3 --placement_info "aws.us-east.us-east-1a,aws.us-east.us-east-1b,aws.us-west.us-west-1a"
-    ```
-    - Start a SQL workload with load_balance and topology_keys with preference value
-    ```
-    java -jar yb-sample-apps.jar --workload SqlInserts --nodes 127.0.0.1:5433 --load_balance true --topology_keys "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
-    ```
-    - While the workload is running, you can verify from `http://127.0.0.1:13000/rpcz` that all the connections are made to tserver-1 since it is in the primary placement zone `aws.us-east.us-east-1a`
-    - While the workload is still running, stop the tserver-1 specified in `--nodes` above
-    ```
-    ./bin/yb-ctl stop_node 1
-    ```
-    - You will see that the workload logs error messages like `FATAL: Could not reconnect to database` but subsequently continues its operations
-    - It does so because the app requests for new connections and driver falls back to node in `aws.us-west.us-west-1a`
-    - You can verify from `http://127.0.0.3:13000/rpcz` that the connections are now created on tserver-3
-    - If you specify the topology_keys without preference value (fallback option) initially as given below, and stop the first tserver, you will notice that the new connections are created across both the remaining tservers
-    ```
-    --topology_keys "aws.us-east.us-east-1a"
-    ```
-
+      The steps to demonstrate usage of fallback option is given at the end.
  * `debug_driver`: This property is set to debug the smart driver behaviour. It will be ignored if load-balance property is set to `false`.
 
    Following is the `usage` for SqlInserts workload example with the new added arguments using the `--help` flag:
@@ -193,3 +172,26 @@ New load balancing features are introduced in SQL workloads. The changes resulti
     [ --topology_keys null ]
     [ --debug_driver false ]
   ```
+
+### Try SQL workload with fallback option
+
+1. Start a 3-node cluster with separate placement for each tserver
+    ```
+    ./bin/yb-ctl start --rf 3 --placement_info "aws.us-east.us-east-1a,aws.us-east.us-east-1b,aws.us-west.us-west-1a"
+    ```
+2. Start a SQL workload with load_balance and topology_keys with preference value
+    ```
+    java -jar yb-sample-apps.jar --workload SqlInserts --nodes 127.0.0.1:5433 --load_balance true --topology_keys "aws.us-east.us-east-1a:1,aws.us-west.us-west-1a:2"
+    ```
+3. While the workload is running, you can verify from `http://127.0.0.1:13000/rpcz` that all the connections are made to tserver-1 since it is in the primary placement zone `aws.us-east.us-east-1a`
+4. While the workload is still running, stop the tserver-1 specified in `--nodes` above
+    ```
+    ./bin/yb-ctl stop_node 1
+    ```
+5. You will see that the workload logs error messages like `FATAL: Could not reconnect to database` but subsequently continues its operations
+6. It does so because the app requests for new connections and driver falls back to node in `aws.us-west.us-west-1a`
+7. You can verify from `http://127.0.0.3:13000/rpcz` that the connections are now created on tserver-3
+8. In step 2 above, if you specify the topology_keys without the preference value (fallback option) instead, as given below, and stop the first tserver while the workload is running, you will notice that the new connections are created across both the remaining tservers
+    ```
+    --topology_keys "aws.us-east.us-east-1a"
+    ```
