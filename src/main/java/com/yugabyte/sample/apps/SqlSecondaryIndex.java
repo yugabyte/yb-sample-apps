@@ -39,9 +39,9 @@ public class SqlSecondaryIndex extends AppBase {
     appConfig.numReaderThreads = 1;
     appConfig.numWriterThreads = 1;
     // The number of keys to read.
-    appConfig.numKeysToRead = -1;
+    appConfig.numKeysToRead = NUM_UNIQUE_KEYS;
     // The number of keys to write. This is the combined total number of inserts and updates.
-    appConfig.numKeysToWrite = -1;
+    appConfig.numKeysToWrite = NUM_UNIQUE_KEYS;
     // The number of unique keys to write. This determines the number of inserts (as opposed to
     // updates).
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS;
@@ -87,13 +87,13 @@ public class SqlSecondaryIndex extends AppBase {
       connection.createStatement().executeUpdate(
           String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text);", getTableName()));
       LOG.info(String.format("Created table: %s", getTableName()));
-  
+
       if (tableOp.equals(TableOp.TruncateTable)) {
       	connection.createStatement().execute(
             String.format("TRUNCATE TABLE %s", getTableName()));
         LOG.info(String.format("Truncated table: %s", getTableName()));
       }
-  
+
       // Create an index on the table.
       connection.createStatement().executeUpdate(
           String.format("CREATE INDEX IF NOT EXISTS %s_index ON %s(v);",
@@ -155,7 +155,7 @@ public class SqlSecondaryIndex extends AppBase {
   private PreparedStatement getPreparedInsert() throws Exception {
     if (preparedInsert == null) {
       preparedInsert = getPostgresConnection().prepareStatement(
-          String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
+          String.format("INSERT INTO %s (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v;", getTableName()));
     }
     return preparedInsert;
   }

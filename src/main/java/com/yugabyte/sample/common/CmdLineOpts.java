@@ -72,6 +72,7 @@ public class CmdLineOpts {
     SqlGeoPartitionedTable.class,
     SqlInserts.class,
     SqlSecondaryIndex.class,
+    SqlHdrSimpleSelects.class,
     SqlSnapshotTxns.class,
     SqlUpdates.class
   );

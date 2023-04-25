@@ -100,6 +100,7 @@ Below is a list of workloads.
 | SqlInserts                       | Sample key-value app built on PostgreSQL with concurrent readers and writers. The app inserts unique string keys |
 | SqlUpdates                       | Sample key-value app built on PostgreSQL with concurrent readers and writers. The app updates existing string keys |
 | SqlSecondaryIndex                | Sample key-value app built on postgresql. The app writes out unique string keys |
+| SqlHdrSimpleSelects              | Sample key-value app built on postgresql. The app writes out select 1 |
 | SqlSnapshotTxns                  | Sample key-value app built on postgresql. The app writes out unique string keys |
 | SqlGeoPartitionedTable           | Sample app based on SqlInserts but uses a geo-partitioned table |
 

@@ -85,16 +85,16 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   private static final Logger LOG = Logger.getLogger(AppBase.class);
 
   // Number of uniques keys to insert by default.
-  public static final int NUM_UNIQUE_KEYS = 1000000;
+  public static final int NUM_UNIQUE_KEYS = 10000;
 
   // Number of uniques keys to insert by default for YSQL and YCQL.
-  public static final int NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL = 2000000;
+  public static final int NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL = 20000;
 
   // Default Number of keys to write for YSQL and YCQL.
-  public static final int NUM_KEYS_TO_WRITE_FOR_YSQL_AND_YCQL = 2000000;
+  public static final int NUM_KEYS_TO_WRITE_FOR_YSQL_AND_YCQL = 20000;
 
   // Default Number of keys to read for YSQL and YCQL.
-  public static final int NUM_KEYS_TO_READ_FOR_YSQL_AND_YCQL = 1500000;
+  public static final int NUM_KEYS_TO_READ_FOR_YSQL_AND_YCQL = 15000;
 
   // Variable to track start time of the workload.
   private long workloadStartTime = -1;
