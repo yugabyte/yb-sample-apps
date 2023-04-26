@@ -14,10 +14,12 @@
 package com.yugabyte.sample.common.metrics;
 
 import com.google.gson.JsonObject;
+import com.yugabyte.sample.apps.AppBase;
 
 public class Metric {
-  private ReadableStatsMetric readableStatsMetric;
-  private JsonStatsMetric jsonStatsMetric;
+
+  private final ReadableStatsMetric readableStatsMetric;
+  private final JsonStatsMetric jsonStatsMetric;
 
   public Metric(String name) {
     readableStatsMetric = new ReadableStatsMetric(name);
@@ -26,7 +28,7 @@ public class Metric {
 
   public synchronized void observe(Observation o) {
     readableStatsMetric.accumulate(o.getCount(), o.getLatencyNanos());
-    jsonStatsMetric.observe(o);
+    if (AppBase.appConfig.outputJsonMetrics) jsonStatsMetric.observe(o);
   }
 
   public String getReadableMetricsAndReset() {
