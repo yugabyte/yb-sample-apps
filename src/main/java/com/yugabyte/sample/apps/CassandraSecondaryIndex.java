@@ -168,6 +168,7 @@ public class CassandraSecondaryIndex extends CassandraKeyValue {
       "--num_threads_read " + appConfig.numReaderThreads,
       "--num_threads_write " + appConfig.numWriterThreads,
       "--batch_write",
-      "--batch_size " + appConfig.batchSize);
+      "--batch_size " + appConfig.batchSize,
+      "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

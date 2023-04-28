@@ -297,6 +297,7 @@ public class CassandraEventData extends AppBase {
 				"--num_threads_write " + appConfig.numWriterThreads, "--num_devices " + appConfig.num_devices,
 				"--num_event_types " + appConfig.num_event_types, "--table_ttl_seconds " + appConfig.tableTTLSeconds,
 				"--batch_size " + appConfig.batchSize,
-				"--read_batch_size " + appConfig.cassandraReadBatchSize);
+				"--read_batch_size " + appConfig.cassandraReadBatchSize,
+				"--debug_driver " + appConfig.enableDriverDebug);
 	}
 }

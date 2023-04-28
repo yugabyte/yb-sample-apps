@@ -41,6 +41,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
 import com.yugabyte.sample.common.metrics.Observation;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
@@ -302,6 +303,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
         builder = builder
             .withCredentials(appConfig.dbUsername, appConfig.dbPassword);
+      }
+      if (appConfig.enableDriverDebug) {
+        Logger.getLogger("com.datastax.driver").setLevel(Level.DEBUG);
       }
       if (appConfig.sslCert != null) {
         builder = builder
