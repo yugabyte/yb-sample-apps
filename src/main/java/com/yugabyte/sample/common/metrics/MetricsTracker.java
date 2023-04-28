@@ -52,7 +52,7 @@ public class MetricsTracker extends Thread {
 
   public synchronized void createMetric(MetricName metricName) {
     if (!metrics.containsKey(metricName)) {
-      metrics.put(metricName, new Metric(metricName.name()));
+      metrics.put(metricName, new Metric(metricName.name(), outputJsonMetrics));
     }
   }
 

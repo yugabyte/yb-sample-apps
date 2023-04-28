@@ -16,17 +16,21 @@ package com.yugabyte.sample.common.metrics;
 import com.google.gson.JsonObject;
 
 public class Metric {
-  private ReadableStatsMetric readableStatsMetric;
-  private JsonStatsMetric jsonStatsMetric;
+  private final boolean outputJsonMetrics;
 
-  public Metric(String name) {
+  private final ReadableStatsMetric readableStatsMetric;
+  private final JsonStatsMetric jsonStatsMetric;
+
+  public Metric(String name, boolean outputJsonMetrics) {
+    this.outputJsonMetrics = outputJsonMetrics;
+
     readableStatsMetric = new ReadableStatsMetric(name);
     jsonStatsMetric = new JsonStatsMetric(name);
   }
 
   public synchronized void observe(Observation o) {
     readableStatsMetric.accumulate(o.getCount(), o.getLatencyNanos());
-    jsonStatsMetric.observe(o);
+    if (outputJsonMetrics) jsonStatsMetric.observe(o);
   }
 
   public String getReadableMetricsAndReset() {
