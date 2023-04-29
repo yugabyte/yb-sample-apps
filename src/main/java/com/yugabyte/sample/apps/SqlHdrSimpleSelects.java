@@ -30,14 +30,14 @@ public class SqlHdrSimpleSelects extends AppBase {
         appConfig.readIOPSPercentage = -1;
         // Set the read and write threads to 1 each.
         appConfig.numReaderThreads = 100;
-        appConfig.numWriterThreads = 1;
+        appConfig.numWriterThreads = -1;
         // The number of keys to read.
         appConfig.numKeysToRead = 300000;
         // The number of keys to write. This is the combined total number of inserts and updates.
-        appConfig.numKeysToWrite = 0;
+        appConfig.numKeysToWrite = -1;
         // The number of unique keys to write. This determines the number of inserts (as opposed to
         // updates).
-        appConfig.numUniqueKeysToWrite = 0;
+        appConfig.numUniqueKeysToWrite = -1;
         }
 
         // The default table name to create and use for CRUD ops.
