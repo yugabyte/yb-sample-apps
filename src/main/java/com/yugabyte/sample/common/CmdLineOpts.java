@@ -73,6 +73,7 @@ public class CmdLineOpts {
     SqlInserts.class,
     SqlSecondaryIndex.class,
     SqlHdrSimpleSelects.class,
+    SqlHdrPGSSmax.class,
     SqlSnapshotTxns.class,
     SqlUpdates.class
   );

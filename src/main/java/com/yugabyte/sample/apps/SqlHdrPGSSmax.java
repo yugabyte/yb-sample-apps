@@ -23,36 +23,38 @@ import org.apache.log4j.Logger;
 import com.yugabyte.sample.apps.AppBase.TableOp;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
-public class SqlHdrSimpleSelects extends AppBase {
-    private static final Logger LOG = Logger.getLogger(SqlHdrSimpleSelects.class);
+public class SqlHdrPGSSmax extends AppBase {
+    private static final Logger LOG = Logger.getLogger(SqlHdrPGSSmax.class);
     static {
         // Disable the read-write percentage.
         appConfig.readIOPSPercentage = -1;
         // Set the read and write threads to 1 each.
-        appConfig.numReaderThreads = 100;
-        appConfig.numWriterThreads = 1;
+        appConfig.numReaderThreads = 0;
+        appConfig.numWriterThreads = 100;
         // The number of keys to read.
-        appConfig.numKeysToRead = 300000;
+        appConfig.numKeysToRead = 0;
         // The number of keys to write. This is the combined total number of inserts and updates.
-        appConfig.numKeysToWrite = 0;
+        appConfig.numKeysToWrite = 100;
         // The number of unique keys to write. This determines the number of inserts (as opposed to
         // updates).
         appConfig.numUniqueKeysToWrite = 0;
         }
 
         // The default table name to create and use for CRUD ops.
-        private static final String DEFAULT_TABLE_NAME = "SqlHdrSimpleSelects";
+        private static final String DEFAULT_TABLE_NAME = "SqlHdrPGSSmax";
 
         // The shared prepared select statement for fetching the data.
         private volatile PreparedStatement preparedSelect = null;
 
         // The shared prepared insert statement for inserting the data.
         private volatile PreparedStatement preparedInsert = null;
+        // The shared prepared insert statement for inserting the data.
+        private volatile Connection insConnection = null;
 
         // Lock for initializing prepared statement objects.
         private static final Object prepareInitLock = new Object();
 
-        public SqlHdrSimpleSelects() {
+        public SqlHdrPGSSmax() {
         buffer = new byte[appConfig.valueSize];
         }
 
@@ -72,14 +74,15 @@ public class SqlHdrSimpleSelects extends AppBase {
         try (Connection connection = getPostgresConnection()) {
 
             // (Re)Create the table (every run should start cleanly with an empty table).
-            // if (tableOp.equals(TableOp.DropTable)) {
-            //     connection.createStatement().execute(
-            //         String.format("DROP TABLE IF EXISTS %s", getTableName()));
-            //     LOG.info("Dropping table(s) left from previous runs if any");
-            // }
-            // connection.createStatement().executeUpdate(
-            //     String.format("CREATE TABLE IF NOT EXISTS %s (k text PRIMARY KEY, v text);", getTableName()));
-            // LOG.info(String.format("Created table: %s", getTableName()));
+            tableOp = TableOp.DropTable;
+            if (tableOp.equals(TableOp.DropTable)) {
+                connection.createStatement().execute(
+                    String.format("DROP TABLE IF EXISTS %s", getTableName()));
+                LOG.info("Dropping table(s) left from previous runs if any");
+            }
+            connection.createStatement().executeUpdate(
+                String.format("CREATE TABLE IF NOT EXISTS %s ();", getTableName()));
+            LOG.info(String.format("Created table: %s", getTableName()));
 
             // if (tableOp.equals(TableOp.TruncateTable)) {
             //     connection.createStatement().execute(
@@ -106,6 +109,49 @@ public class SqlHdrSimpleSelects extends AppBase {
                 String.format("SELECT 1;"));
         }
         return preparedSelect;
+        }
+
+        private PreparedStatement getPreparedInsert() throws Exception {
+            if (preparedInsert == null) {
+                close(insConnection);
+                insConnection = getPostgresConnection();
+                preparedInsert = insConnection.prepareStatement(
+                    String.format("ALTER TABLE %s ADD COLUMN \"?\" INT;", getTableName()));
+            }
+            return preparedInsert;
+        }
+
+        @Override
+        public long doWrite(int threadIdx) {
+            Key key = getSimpleLoadGenerator().getKeyToWrite();
+            if (key == null) {
+              return 0;
+            }
+
+            int result = 0;
+            try {
+            // PreparedStatement statement = getPreparedInsert();
+            String q = String.format("create table if not exists \"%s\" ();", Integer.toString(threadIdx));
+            String d = String.format("drop table if exists \"%s\";", Integer.toString(threadIdx));
+            getPostgresConnection().createStatement().execute(d);
+            getPostgresConnection().createStatement().execute(q);
+            getPostgresConnection().createStatement().execute(d);
+
+            // Prefix hashcode to ensure generated keys are random and not sequential.
+            // statement.setString(1, key.asString());
+            // statement.setString(1, Integer.toString(threadIdx));
+            // result = statement.executeUpdate();
+            LOG.info("Created and dropped table: " + Integer.toString(threadIdx) + ", return code: " +
+                result);
+            getSimpleLoadGenerator().recordWriteSuccess(key);
+            } catch (Exception e) {
+            getSimpleLoadGenerator().recordWriteFailure(key);
+            LOG.info("Failed creating/deleting table: " + Integer.toString(threadIdx), e);
+            close(preparedInsert);
+            preparedInsert = null;
+            return 0;
+            }
+            return 1;
         }
 
         @Override
