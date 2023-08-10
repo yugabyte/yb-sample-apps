@@ -312,6 +312,7 @@ public class CassandraBatchTimeseries extends AppBase {
       "--max_metrics_count " + max_metrics_count,
       "--table_ttl_seconds " + appConfig.tableTTLSeconds,
       "--batch_size " + appConfig.batchSize,
-      "--read_batch_size " + appConfig.cassandraReadBatchSize);
+      "--read_batch_size " + appConfig.cassandraReadBatchSize,
+      "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

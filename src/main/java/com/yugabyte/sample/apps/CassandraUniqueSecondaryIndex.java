@@ -67,6 +67,7 @@ public class CassandraUniqueSecondaryIndex extends CassandraSecondaryIndex {
       "--num_reads " + appConfig.numKeysToRead,
       "--num_writes " + appConfig.numKeysToWrite,
       "--num_threads_read " + appConfig.numReaderThreads,
-      "--num_threads_write " + appConfig.numWriterThreads);
+      "--num_threads_write " + appConfig.numWriterThreads,
+      "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

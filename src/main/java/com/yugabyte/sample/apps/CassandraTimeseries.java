@@ -395,6 +395,7 @@ public class CassandraTimeseries extends AppBase {
       "--min_metrics_count " + min_metrics_count,
       "--max_metrics_count " + max_metrics_count,
       "--data_emit_rate_millis " + data_emit_rate_millis,
-      "--table_ttl_seconds " + appConfig.tableTTLSeconds);
+      "--table_ttl_seconds " + appConfig.tableTTLSeconds,
+      "--debug_driver " + appConfig.enableDriverDebug);
   }
 }
