@@ -202,7 +202,9 @@ public class SqlGeoPartitionedTable extends AppBase {
 
   private PreparedStatement getPreparedInsert() throws Exception {
     if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection().prepareStatement(
+      Connection connection = getPostgresConnection();
+      connection.createStatement().execute("set yb_enable_upsert_mode = true");
+      preparedInsert = connection.prepareStatement(
           String.format("INSERT INTO %s (region, k, v) VALUES (?, ?, ?)",
                         getTableName()));
     }

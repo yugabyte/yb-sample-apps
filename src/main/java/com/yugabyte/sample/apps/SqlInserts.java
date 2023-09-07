@@ -154,8 +154,9 @@ public class SqlInserts extends AppBase {
     if (preparedInsert == null) {
       close(insConnection);
       insConnection = getPostgresConnection();
+      insConnection.createStatement().execute("set yb_enable_upsert_mode = true");
       preparedInsert = insConnection.prepareStatement(
-          String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
+          String.format("INSERT INTO %s (k, v) VALUES (?, ?) on conflict(k) do update set v=excluded.v;", getTableName()));
     }
     return preparedInsert;
   }
