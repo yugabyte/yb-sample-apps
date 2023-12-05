@@ -186,6 +186,7 @@ public class Main {
                                        IOType.Read, app.appConfig.printAllExceptions));
       }
 
+      app.recordExistingRowCount();
       // Start the reader and writer threads.
       for (IOPSThread iopsThread : iopsThreads) {
         iopsThread.start();
@@ -201,6 +202,7 @@ public class Main {
           LOG.error("Error waiting for thread join()", e);
         }
       }
+      app.verifyTotalRowsWritten();
     } finally {
       terminate();
     }

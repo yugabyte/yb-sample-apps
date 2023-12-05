@@ -12,21 +12,18 @@
 //
 package com.yugabyte.sample.apps;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.yugabyte.sample.apps.AppBase.TableOp;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
  * This workload writes and reads some random string keys from a postgresql table.
  */
-public class SqlInserts extends AppBase {
+public class SqlInserts extends SQLAppBase {
   private static final Logger LOG = Logger.getLogger(SqlInserts.class);
 
   // Static initialization of this workload's config. These are good defaults for getting a decent
