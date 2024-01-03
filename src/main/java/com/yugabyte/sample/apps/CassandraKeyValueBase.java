@@ -110,7 +110,7 @@ public abstract class CassandraKeyValueBase extends AppBase {
     ResultSet rs = getCassandraClient().execute(select);
     List<Row> rows = rs.all();
     if (rows.size() != 1) {
-      // If TTL is enabled, turn off correctness validation.
+      // If TTL is disabled, turn on correctness validation.
       if (appConfig.tableTTLSeconds <= 0) {
         LOG.fatal("Read key: " + key.asString() + " expected 1 row in result, got " + rows.size());
       }
@@ -171,6 +171,14 @@ public abstract class CassandraKeyValueBase extends AppBase {
       getSimpleLoadGenerator().recordWriteFailure(key);
       throw e;
     }
+  }
+
+  protected long getRowCount() {
+    ResultSet rs = getCassandraClient().execute("SELECT COUNT(*) FROM " + getTableName());
+    List<Row> rows = rs.all();
+    long actual = rows.get(0).getLong(0);
+    LOG.info("Found " + actual + " rows in " + getTableName());
+    return actual;
   }
 
   @Override

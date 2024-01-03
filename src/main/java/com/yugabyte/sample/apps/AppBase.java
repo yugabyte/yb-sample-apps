@@ -20,9 +20,7 @@ import java.net.UnknownHostException;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -810,6 +808,18 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         metricsTracker.getMetric(MetricName.Read).observe(o);
       }
     }
+  }
+
+  public void verifyTotalRowsWritten() throws Exception {
+    throw new UnsupportedOperationException("Row count check is not supported for this workload");
+  }
+
+  public void recordExistingRowCount() throws Exception {
+    throw new UnsupportedOperationException("Row count check is not supported for this workload");
+  }
+
+  public String getTableName() {
+    return "AppBaseTable";
   }
 
   @Override

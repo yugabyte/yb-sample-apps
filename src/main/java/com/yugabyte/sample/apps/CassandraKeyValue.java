@@ -17,13 +17,12 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import org.apache.log4j.Logger;
+
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 
 /**
@@ -32,6 +31,7 @@ import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
  */
 public class CassandraKeyValue extends CassandraKeyValueBase {
 
+  private static final Logger LOG = Logger.getLogger(CassandraKeyValueBase.class);
   // The default table name to create and use for CRUD ops.
   private static final String DEFAULT_TABLE_NAME = CassandraKeyValue.class.getSimpleName();
   static {
@@ -43,6 +43,8 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
     // updates).
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL;
   }
+  private long initialRowCount = 0;
+
   @Override
   public List<String> getCreateTableStatements() {
     String create_stmt = String.format(
@@ -74,7 +76,26 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
   @Override
   protected BoundStatement bindInsert(String key, ByteBuffer value)  {
     return getPreparedInsert().bind(key, value);
-   }
+  }
+
+  @Override
+  public void verifyTotalRowsWritten() throws Exception {
+    if (appConfig.numKeysToWrite >= 0) {
+      long actual = getRowCount();
+      LOG.info("Total rows count in table " + getTableName() + ": " + actual);
+      long expected = numKeysWritten.get();
+      if (actual != (expected + initialRowCount)) {
+        LOG.fatal("New rows count does not match! Expected: " + (expected + initialRowCount) + ", actual: " + actual);
+      } else {
+        LOG.info("Table row count verified successfully");
+      }
+    }
+  }
+
+  @Override
+  public void recordExistingRowCount() throws Exception {
+    initialRowCount = getRowCount();
+  }
 
   @Override
   public List<String> getWorkloadDescription() {
