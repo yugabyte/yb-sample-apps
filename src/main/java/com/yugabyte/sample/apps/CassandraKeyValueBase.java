@@ -176,13 +176,6 @@ public abstract class CassandraKeyValueBase extends AppBase {
   protected long getRowCount() {
     ResultSet rs = getCassandraClient().execute("SELECT COUNT(*) FROM " + getTableName());
     List<Row> rows = rs.all();
-    if (rows.size() != 1) {
-      // If TTL is disabled, turn on correctness validation.
-      if (appConfig.tableTTLSeconds <= 0) {
-        LOG.fatal("Expected 1 row in result, got " + rows.size());
-      }
-      return 0;
-    }
     long actual = rows.get(0).getLong(0);
     LOG.info("Found " + actual + " rows in " + getTableName());
     return actual;
