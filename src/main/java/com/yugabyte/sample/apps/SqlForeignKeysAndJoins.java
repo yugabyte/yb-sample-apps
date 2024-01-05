@@ -218,7 +218,9 @@ public class SqlForeignKeysAndJoins extends AppBase {
         if (preparedInsertUser == null) {
           String stmt = String.format("INSERT INTO %s (user_id, user_details) VALUES (?, ?);", getTable1Name());
           if (preparedInsertUser == null) {
-            preparedInsertUser = getPostgresConnection().prepareStatement(stmt);
+            Connection connection = getPostgresConnection();
+            connection.createStatement().execute("set yb_enable_upsert_mode = true");
+            preparedInsertUser = connection.prepareStatement(stmt);
           }
         }
         preparedInsertUserLocal = preparedInsertUser;
@@ -236,6 +238,7 @@ public class SqlForeignKeysAndJoins extends AppBase {
                                       getTable2Name());
           if (preparedInsertOrder == null) {
             Connection connection = getPostgresConnection();
+            connection.createStatement().execute("set yb_enable_upsert_mode = true");
             connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             preparedInsertOrder = connection.prepareStatement(stmt);
           }
