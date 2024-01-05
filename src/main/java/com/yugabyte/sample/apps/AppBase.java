@@ -811,11 +811,11 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   public void verifyTotalRowsWritten() throws Exception {
-    throw new UnsupportedOperationException("Row count check is not supported for this workload");
+    LOG.info("Row count check is not supported for this workload");
   }
 
   public void recordExistingRowCount() throws Exception {
-    throw new UnsupportedOperationException("Row count check is not supported for this workload");
+    LOG.info("Row count check is not supported for this workload");
   }
 
   public String getTableName() {
