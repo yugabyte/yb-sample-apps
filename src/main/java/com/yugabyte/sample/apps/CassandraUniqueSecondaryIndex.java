@@ -25,7 +25,7 @@ import org.apache.log4j.Logger;
  * which is indexed.
  */
 public class CassandraUniqueSecondaryIndex extends CassandraSecondaryIndex {
-  private static final Logger LOG = Logger.getLogger(CassandraSecondaryIndex.class);
+  private static final Logger LOG = Logger.getLogger(CassandraUniqueSecondaryIndex.class);
 
   // The default table name to create and use for CRUD ops.
   private static final String DEFAULT_TABLE_NAME =
