@@ -25,7 +25,7 @@ import java.util.*;
  * which is indexed.
  */
 public class CassandraInserts extends CassandraKeyValue {
-  private static final Logger LOG = Logger.getLogger(CassandraSecondaryIndex.class);
+  private static final Logger LOG = Logger.getLogger(CassandraInserts.class);
 
   static {
     appConfig.readIOPSPercentage = -1;

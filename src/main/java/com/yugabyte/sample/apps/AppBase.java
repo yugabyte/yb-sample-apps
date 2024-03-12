@@ -98,7 +98,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   public static final int NUM_KEYS_TO_READ_FOR_YSQL_AND_YCQL = 1500000;
 
   // Variable to track start time of the workload.
-  private long workloadStartTime = -1;
+  protected long workloadStartTime = -1;
   // Instance of the workload configuration.
   public static AppConfig appConfig = new AppConfig();
   // The configuration of the load tester.
@@ -445,8 +445,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     cassandra_session = null;
   }
 
-  Random random = new Random();
-  byte[] buffer;
+  protected Random random = new Random();
+  protected byte[] buffer;
   Checksum checksum = new Adler32();
 
   // For binary values we store checksum in bytes.
@@ -869,7 +869,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   /**
    * Close the Connection.
    */
-  static void close(Connection c) {
+  protected static void close(Connection c) {
     if (c != null) {
       try {
         c.close();
@@ -882,7 +882,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   /**
    * Close the PreparedStatement.
    */
-  static void close(PreparedStatement ps) {
+  protected static void close(PreparedStatement ps) {
     if (ps != null) {
       try {
         ps.close();

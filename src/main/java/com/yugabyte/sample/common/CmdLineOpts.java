@@ -13,10 +13,12 @@
 
 package com.yugabyte.sample.common;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.cli.BasicParser;
@@ -33,6 +35,10 @@ import com.google.common.collect.ImmutableList;
 // Import * so we can list the sample apps.
 import com.yugabyte.sample.apps.*;
 import com.yugabyte.sample.apps.AppBase.TableOp;
+import com.yugabyte.sample.apps.anomalies.PlanAnomaly;
+import com.yugabyte.sample.apps.anomalies.PlanAnomalyV2;
+import com.yugabyte.sample.apps.anomalies.SqlInsertTablets;
+import com.yugabyte.sample.apps.anomalies.SqlInsertTabletsSkewQuery;
 
 /**
  * This is a helper class to parse the user specified command-line options if they were specified,
@@ -45,6 +51,10 @@ public class CmdLineOpts {
   // various apps to make the keys unique. This allows us to run multiple instances of the app
   // safely.
   public static UUID loadTesterUUID;
+
+  private static final List<String> WORKLOAD_PACKAGES = ImmutableList.of(
+      "com.yugabyte.sample.apps.",
+      "com.yugabyte.sample.apps.anomalies");
 
   // The various apps present in this sample.
   private final static List<Class> HELP_WORKLOADS = ImmutableList.of(
@@ -74,7 +84,11 @@ public class CmdLineOpts {
     SqlSecondaryIndex.class,
     SqlSnapshotTxns.class,
     SqlUpdates.class,
-    SqlStaleReadDetector.class
+    SqlStaleReadDetector.class,
+    SqlInsertTablets.class,
+    SqlInsertTabletsSkewQuery.class,
+    PlanAnomaly.class,
+    PlanAnomalyV2.class
   );
 
   // The class type of the app needed to spawn new objects.
@@ -588,11 +602,17 @@ public class CmdLineOpts {
     return AppBase.appConfig.appName;
   }
 
-  private static Class<? extends AppBase> getAppClass(String workloadType)
-      throws ClassNotFoundException {
-    // Get the workload class.
-    return Class.forName("com.yugabyte.sample.apps." + workloadType)
-                         .asSubclass(AppBase.class);
+  private static Class<? extends AppBase> getAppClass(String workloadType) {
+    for (String pkg : WORKLOAD_PACKAGES) {
+      try {
+        Class<? extends AppBase> result = Class.forName(pkg + workloadType)
+            .asSubclass(AppBase.class);
+        return result;
+      } catch (ClassNotFoundException e) {
+        LOG.debug("Workload class not found in package " + pkg);
+      }
+    }
+    throw new RuntimeException("Workload " + workloadType + " not found");
   }
 
   private void initializeThreadCount(CommandLine cmd) {
