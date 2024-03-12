@@ -33,6 +33,8 @@ import com.google.common.collect.ImmutableList;
 // Import * so we can list the sample apps.
 import com.yugabyte.sample.apps.*;
 import com.yugabyte.sample.apps.AppBase.TableOp;
+import com.yugabyte.sample.apps.anomalies.SqlInsertTablets;
+import com.yugabyte.sample.apps.anomalies.SqlInsertTabletsSkewQuery;
 
 /**
  * This is a helper class to parse the user specified command-line options if they were specified,
@@ -73,7 +75,9 @@ public class CmdLineOpts {
     SqlInserts.class,
     SqlSecondaryIndex.class,
     SqlSnapshotTxns.class,
-    SqlUpdates.class
+    SqlUpdates.class,
+    SqlInsertTablets.class,
+    SqlInsertTabletsSkewQuery.class
   );
 
   // The class type of the app needed to spawn new objects.
@@ -565,8 +569,15 @@ public class CmdLineOpts {
   private static Class<? extends AppBase> getAppClass(String workloadType)
       throws ClassNotFoundException {
     // Get the workload class.
+    try {
     return Class.forName("com.yugabyte.sample.apps." + workloadType)
                          .asSubclass(AppBase.class);
+    }
+    catch (ClassNotFoundException e) {
+      LOG.error("Workload " + workloadType + " not found under com.yugabyte.sample.apps.");
+      return Class.forName("com.yugabyte.sample.apps.anomalies." + workloadType)
+                         .asSubclass(AppBase.class);      
+    }
   }
 
   private void initializeThreadCount(CommandLine cmd) {

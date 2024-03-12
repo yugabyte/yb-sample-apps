@@ -17,13 +17,10 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import org.apache.log4j.Logger;
 
-import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.PreparedStatement;
 
 /**
  * This workload writes and reads some random string keys from a CQL server. By default, this app
@@ -31,7 +28,7 @@ import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
  */
 public class CassandraKeyValue extends CassandraKeyValueBase {
 
-  private static final Logger LOG = Logger.getLogger(CassandraKeyValueBase.class);
+  private static final Logger LOG = Logger.getLogger(CassandraKeyValue.class);
   // The default table name to create and use for CRUD ops.
   private static final String DEFAULT_TABLE_NAME = CassandraKeyValue.class.getSimpleName();
   static {

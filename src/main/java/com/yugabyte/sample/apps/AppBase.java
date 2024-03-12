@@ -13,34 +13,6 @@
 
 package com.yugabyte.sample.apps;
 
-import java.io.FileInputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.security.KeyStore;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.zip.Adler32;
-import java.util.zip.Checksum;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-
-import com.yugabyte.sample.common.metrics.Observation;
-import org.apache.log4j.Logger;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.EndPoint;
@@ -66,7 +38,31 @@ import com.yugabyte.sample.common.SimpleLoadGenerator;
 import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 import com.yugabyte.sample.common.metrics.MetricsTracker;
 import com.yugabyte.sample.common.metrics.MetricsTracker.MetricName;
-
+import com.yugabyte.sample.common.metrics.Observation;
+import java.io.FileInputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.zip.Adler32;
+import java.util.zip.Checksum;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import org.apache.log4j.Logger;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
@@ -74,10 +70,10 @@ import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.YBJedis;
 
 /**
- * Abstract base class for all apps. This class does the following:
- *   - Provides various helper methods including methods for creating Redis and Cassandra clients.
- *   - Has a metrics tracker object, and internally tracks reads and writes.
- *   - Has the abstract methods that are implemented by the various apps.
+ * Abstract base class for all apps. This class does the following: - Provides various helper
+ * methods including methods for creating Redis and Cassandra clients. - Has a metrics tracker
+ * object, and internally tracks reads and writes. - Has the abstract methods that are implemented
+ * by the various apps.
  */
 public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   private static final Logger LOG = Logger.getLogger(AppBase.class);
@@ -101,9 +97,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   // The configuration of the load tester.
   protected CmdLineOpts configuration;
   // The number of keys written so far.
-  protected static AtomicLong numKeysWritten = new AtomicLong(0);
+  public static AtomicLong numKeysWritten = new AtomicLong(0);
   // The number of keys that have been read so far.
-  protected static AtomicLong numKeysRead = new AtomicLong(0);
+  public static AtomicLong numKeysRead = new AtomicLong(0);
   // Object to track read and write metrics.
   private static volatile MetricsTracker metricsTracker;
   // State variable to track if this workload has finished.
@@ -140,6 +136,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    * can call it without any performance penalty. If there is no client, a synchronized thread is
    * created so that exactly only one thread will create a client. If there is a pre-existing
    * client, we just return it.
+   *
    * @return a Cassandra Session object.
    */
   protected Session getCassandraClient() {
@@ -162,15 +159,16 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   // Returns false if the sleep is interrupted
   static boolean sleep(int durationMs) {
-  	try {
+    try {
       Thread.sleep(durationMs);
     } catch (InterruptedException ie) {
-  	  return false;
+      return false;
     }
-  	return true;
+    return true;
   }
 
-  protected Connection getPostgresConnection(String database, String username, String password) throws Exception {
+  protected Connection getPostgresConnection(String database, String username, String password)
+      throws Exception {
     boolean isLoadBalanceOn = Boolean.valueOf(String.valueOf(appConfig.loadBalance));
     if (isLoadBalanceOn) {
       Class.forName("com.yugabyte.Driver");
@@ -202,16 +200,17 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
 
         if (appConfig.sslCert != null && appConfig.sslCert.length() > 0) {
-          assert(appConfig.sslKey != null && appConfig.sslKey.length() > 0) : "The SSL key is empty.";
+          assert (appConfig.sslKey != null && appConfig.sslKey.length() > 0)
+              : "The SSL key is empty.";
           props.put("sslmode", "require");
           props.put("sslcert", appConfig.sslCert);
           props.put("sslkey", appConfig.sslKey);
         }
 
         String url = isLoadBalanceOn ? "jdbc:yugabytedb:" : "jdbc:postgresql:";
-        String connectStr = String.format("%s//%s:%d/%s", url, contactPoint.getHost(),
-                contactPoint.getPort(),
-                database);
+        String connectStr =
+            String.format(
+                "%s//%s:%d/%s", url, contactPoint.getHost(), contactPoint.getPort(), database);
         Connection connection = DriverManager.getConnection(connectStr, props);
         return connection;
       } catch (Exception e) {
@@ -222,24 +221,22 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     } while (true);
   }
 
-  public void initializeConnectionsAndStatements(int numThreads) { }
+  public void initializeConnectionsAndStatements(int numThreads) {}
 
   protected static void createKeyspace(Session session, String ks) {
     if (!appConfig.skipDDL) {
-      String create_keyspace_stmt = "CREATE KEYSPACE IF NOT EXISTS " + ks +
-              " WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 1};";
+      String create_keyspace_stmt =
+          "CREATE KEYSPACE IF NOT EXISTS "
+              + ks
+              + " WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 1};";
       // Use consistency level ONE to allow cross DC requests.
       session.execute(
-              session.prepare(create_keyspace_stmt)
-                      .setConsistencyLevel(ConsistencyLevel.ONE)
-                      .bind());
+          session.prepare(create_keyspace_stmt).setConsistencyLevel(ConsistencyLevel.ONE).bind());
       LOG.debug("Created a keyspace " + ks + " using query: [" + create_keyspace_stmt + "]");
     }
     String use_keyspace_stmt = "USE " + ks + ";";
     session.execute(
-      session.prepare(use_keyspace_stmt)
-        .setConsistencyLevel(ConsistencyLevel.ONE)
-        .bind());
+        session.prepare(use_keyspace_stmt).setConsistencyLevel(ConsistencyLevel.ONE).bind());
     LOG.debug("Used the new keyspace " + ks + " using query: [" + use_keyspace_stmt + "]");
   }
 
@@ -248,8 +245,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   /**
-   * Private function that returns an SSL Handler when provided with a cert file.
-   * Used for creating a secure connection for the app.
+   * Private function that returns an SSL Handler when provided with a cert file. Used for creating
+   * a secure connection for the app.
    */
   private SSLOptions createSSLHandler(String certfile) {
     try {
@@ -288,6 +285,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   /**
    * Private method that is thread-safe and creates the Cassandra client. Exactly one calling thread
    * will succeed in creating the client. This method does nothing for the other threads.
+   *
    * @param contactPoints list of contact points for the client.
    */
   protected synchronized void createCassandraClient(List<ContactPoint> contactPoints) {
@@ -298,12 +296,10 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         if (appConfig.dbPassword == null) {
           throw new IllegalArgumentException("Password required when providing a username");
         }
-        builder = builder
-            .withCredentials(appConfig.dbUsername, appConfig.dbPassword);
+        builder = builder.withCredentials(appConfig.dbUsername, appConfig.dbPassword);
       }
       if (appConfig.sslCert != null) {
-        builder = builder
-            .withSSL(createSSLHandler(appConfig.sslCert));
+        builder = builder.withSSL(createSSLHandler(appConfig.sslCert));
       }
       Integer port = null;
       SocketOptions socketOptions = new SocketOptions();
@@ -323,9 +319,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
         builder.addContactPoint(cp.getHost());
       }
-      LOG.info("Connecting with " + appConfig.concurrentClients + " clients to nodes: "
-          + builder.getContactPoints()
-              .stream().map(it -> it.toString()).collect(Collectors.joining(",")));
+      LOG.info(
+          "Connecting with "
+              + appConfig.concurrentClients
+              + " clients to nodes: "
+              + builder.getContactPoints().stream()
+                  .map(it -> it.toString())
+                  .collect(Collectors.joining(",")));
       PoolingOptions poolingOptions = new PoolingOptions();
       poolingOptions
           .setCoreConnectionsPerHost(HostDistance.LOCAL, appConfig.concurrentClients)
@@ -333,13 +333,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
           .setCoreConnectionsPerHost(HostDistance.REMOTE, appConfig.concurrentClients)
           .setMaxConnectionsPerHost(HostDistance.REMOTE, appConfig.concurrentClients);
       cassandra_cluster =
-          builder.withLoadBalancingPolicy(getLoadBalancingPolicy())
-                 .withPoolingOptions(poolingOptions)
-                 .withQueryOptions(new QueryOptions()
-                     .setDefaultIdempotence(true)
-                     .setConsistencyLevel(ConsistencyLevel.QUORUM))
-                 .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
-                 .build();
+          builder
+              .withLoadBalancingPolicy(getLoadBalancingPolicy())
+              .withPoolingOptions(poolingOptions)
+              .withQueryOptions(
+                  new QueryOptions()
+                      .setDefaultIdempotence(true)
+                      .setConsistencyLevel(ConsistencyLevel.QUORUM))
+              .withRetryPolicy(new LoggingRetryPolicy(DefaultRetryPolicy.INSTANCE))
+              .build();
       LOG.debug("Connected to cluster: " + cassandra_cluster.getClusterName());
     }
     if (cassandra_session == null) {
@@ -352,11 +354,12 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   protected LoadBalancingPolicy getLoadBalancingPolicy() {
     LoadBalancingPolicy policy;
     if (appConfig.localDc != null && !appConfig.localDc.isEmpty()) {
-      policy = DCAwareRoundRobinPolicy.builder()
-                                      .withUsedHostsPerRemoteDc(Integer.MAX_VALUE)
-                                      .withLocalDc(appConfig.localDc)
-                                      .allowRemoteDCsForLocalConsistencyLevel()
-                                      .build();
+      policy =
+          DCAwareRoundRobinPolicy.builder()
+              .withUsedHostsPerRemoteDc(Integer.MAX_VALUE)
+              .withLocalDc(appConfig.localDc)
+              .allowRemoteDCsForLocalConsistencyLevel()
+              .build();
     } else {
       policy = new RoundRobinPolicy();
     }
@@ -368,14 +371,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * Helper method to create a Jedis client.
+   *
    * @return a Jedis (Redis client) object.
    */
   protected synchronized Jedis getJedisClient() {
     if (jedisClient == null) {
       CmdLineOpts.ContactPoint contactPoint = getRandomContactPoint();
       // Set the timeout to something more than the timeout in the proxy layer.
-      jedisClient = new Jedis(contactPoint.getHost(), contactPoint.getPort(),
-          appConfig.jedisSocketTimeout);
+      jedisClient =
+          new Jedis(contactPoint.getHost(), contactPoint.getPort(), appConfig.jedisSocketTimeout);
       redisServerInUse = Arrays.asList(contactPoint);
     }
     return jedisClient;
@@ -383,12 +387,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * Helper method to create a YBJedis client.
+   *
    * @return a YBJedis (Redis client) object.
    */
   protected synchronized YBJedis getYBJedisClient() {
     if (ybJedisClient == null) {
-      Set<HostAndPort> hosts = configuration.getContactPoints().stream()
-          .map(cp -> new HostAndPort(cp.getHost(), cp.getPort())).collect(Collectors.toSet());
+      Set<HostAndPort> hosts =
+          configuration.getContactPoints().stream()
+              .map(cp -> new HostAndPort(cp.getHost(), cp.getPort()))
+              .collect(Collectors.toSet());
       // Set the timeout to something more than the timeout in the proxy layer.
       ybJedisClient = new YBJedis(hosts, appConfig.jedisSocketTimeout);
       redisServerInUse = configuration.getContactPoints();
@@ -406,8 +413,10 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   protected synchronized JedisCluster getRedisCluster() {
     if (jedisCluster == null) {
       LOG.info("Creating a new jedis cluster");
-      Set<HostAndPort> hosts = configuration.getContactPoints().stream()
-          .map(cp -> new HostAndPort(cp.getHost(), cp.getPort())).collect(Collectors.toSet());
+      Set<HostAndPort> hosts =
+          configuration.getContactPoints().stream()
+              .map(cp -> new HostAndPort(cp.getHost(), cp.getPort()))
+              .collect(Collectors.toSet());
       jedisCluster = new JedisCluster(hosts);
     }
     return jedisCluster;
@@ -423,7 +432,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   Random random = new Random();
-  byte[] buffer;
+  public byte[] buffer;
   Checksum checksum = new Adler32();
 
   // For binary values we store checksum in bytes.
@@ -456,8 +465,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   protected void getRandomValue(Key key, int valueSize, byte[] outBuffer) {
-	  final byte[] keyValueBytes = key.getValueStr().getBytes();
-	  getRandomValue(keyValueBytes, valueSize, outBuffer);
+    final byte[] keyValueBytes = key.getValueStr().getBytes();
+    getRandomValue(keyValueBytes, valueSize, outBuffer);
   }
 
   protected void getRandomValue(byte[] keyValueBytes, int valueSize, byte[] outBuffer) {
@@ -484,16 +493,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         long r = (long) (random.nextInt() & 0xffffffff);
         // Hack to minimize number of calls to random.nextInt() in order to reduce CPU load.
         // This makes distribution non-uniform, but should be OK for load tests.
-        for (int n = Math.min(Integer.BYTES, contentSize - i); n > 0;
-          r /= ASCII_RANGE_SIZE, n--) {
+        for (int n = Math.min(Integer.BYTES, contentSize - i); n > 0; r /= ASCII_RANGE_SIZE, n--) {
           outBuffer[i++] = (byte) (ASCII_START + r % ASCII_RANGE_SIZE);
         }
       }
     } else {
       while (i < contentSize) {
-        for (int r = random.nextInt(), n = Math.min(Integer.BYTES, contentSize - i); n > 0;
-             r >>= Byte.SIZE, n--)
-            outBuffer[i++] = (byte) r;
+        for (int r = random.nextInt(), n = Math.min(Integer.BYTES, contentSize - i);
+            n > 0;
+            r >>= Byte.SIZE, n--) outBuffer[i++] = (byte) r;
       }
     }
 
@@ -523,14 +531,20 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     final boolean hasChecksum = isUseChecksum(value.length, checksumSize);
     if (isUsePrefix(value.length)) {
       final String keyValueStr = key.getValueStr();
-      final int prefixSize = Math.min(keyValueStr.length(), value.length -
-                             (hasChecksum ? checksumSize : 0) - 1 /* marker */);
+      final int prefixSize =
+          Math.min(
+              keyValueStr.length(),
+              value.length - (hasChecksum ? checksumSize : 0) - 1 /* marker */);
       final String prefix = new String(value, 1, prefixSize);
       // Check prefix.
       if (!prefix.equals(keyValueStr.substring(0, prefixSize))) {
-        LOG.fatal("Value mismatch for key: " + key.toString() +
-                  ", expected to start with: " + keyValueStr +
-                  ", got: " + prefix);
+        LOG.fatal(
+            "Value mismatch for key: "
+                + key.toString()
+                + ", expected to start with: "
+                + keyValueStr
+                + ", got: "
+                + prefix);
         return false;
       }
     }
@@ -550,9 +564,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
       }
       if (checksum.getValue() != expectedCs) {
-        LOG.fatal("Value mismatch for key: " + key.toString() +
-                  ", expected checksum: " + expectedCs +
-                  ", got: " + checksum.getValue());
+        LOG.fatal(
+            "Value mismatch for key: "
+                + key.toString()
+                + ", expected checksum: "
+                + expectedCs
+                + ", got: "
+                + checksum.getValue());
         return false;
       }
     }
@@ -568,12 +586,14 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   /**
    * This method is called to allow the app to initialize itself with the various command line
    * options.
+   *
    * @param configuration Configuration object for the application.
    */
   public void initialize(CmdLineOpts configuration) {}
 
   /**
    * The apps extending this base should drop all the tables they create when this method is called.
+   *
    * @throws java.lang.Exception in case of DROP statement errors.
    */
   public void dropTable() throws Exception {}
@@ -586,6 +606,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * The apps extending this base should create all the necessary tables in this method.
+   *
    * @param tableOp operation on table, e.g. drop the table at beginning of application launch
    * @throws java.lang.Exception in case of CREATE statement errors.
    */
@@ -595,9 +616,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       Session session = getCassandraClient();
       // consistency level of one to allow cross DC requests.
       session.execute(
-        session.prepare(create_stmt)
-          .setConsistencyLevel(ConsistencyLevel.ONE)
-          .bind());
+          session.prepare(create_stmt).setConsistencyLevel(ConsistencyLevel.ONE).bind());
       LOG.info("Created a Cassandra table using query: [" + create_stmt + "]");
     }
   }
@@ -607,34 +626,38 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   /**
-   * Returns the redis server that we are currently talking to.
-   * Used for debug purposes. Returns "" for non-redis workloads.
+   * Returns the redis server that we are currently talking to. Used for debug purposes. Returns ""
+   * for non-redis workloads.
+   *
    * @return String format of redis server that we are talking t.
    */
   public String getRedisServerInUse() {
     if (redisServerInUse == null) {
       return "";
     }
-    return redisServerInUse.stream().map(ContactPoint::ToString)
-        .collect(Collectors.joining(", "));
+    return redisServerInUse.stream().map(ContactPoint::ToString).collect(Collectors.joining(", "));
   }
 
   /**
    * This call models an OLTP read for the app to perform read operations.
+   *
    * @return Number of reads done, a value of 0 or less indicates no ops were done.
    */
-  public long doRead() { return 0; }
+  public long doRead() {
+    return 0;
+  }
 
   /**
    * This call models an OLTP write for the app to perform write operations.
+   *
    * @return Number of writes done, a value of 0 or less indicates no ops were done.
    * @param threadIdx index of thread that invoked this write.
    */
-  public long doWrite(int threadIdx) { return 0; }
+  public long doWrite(int threadIdx) {
+    return 0;
+  }
 
-  /**
-   * This call should implement the main logic in non-OLTP apps. Not called for OLTP apps.
-   */
+  /** This call should implement the main logic in non-OLTP apps. Not called for OLTP apps. */
   public void run() {}
 
   /**
@@ -649,13 +672,13 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   /**
    * Report exception.
    *
-   * @param e  the exception
+   * @param e the exception
    */
   public void reportException(Exception e) {
     LOG.info("Caught Exception: ", e);
     if (e instanceof NoHostAvailableException) {
-      NoHostAvailableException ne = (NoHostAvailableException)e;
-      for (Map.Entry<EndPoint,Throwable> entry : ne.getErrors().entrySet()) {
+      NoHostAvailableException ne = (NoHostAvailableException) e;
+      for (Map.Entry<EndPoint, Throwable> entry : ne.getErrors().entrySet()) {
         LOG.info("Exception encountered at host " + entry.getKey() + ": ", entry.getValue());
       }
     }
@@ -663,28 +686,37 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * Returns the description of the app.
+   *
    * @return the description splitted in lines.
    */
-  public List<String> getWorkloadDescription() { return Collections.EMPTY_LIST; }
-
+  public List<String> getWorkloadDescription() {
+    return Collections.EMPTY_LIST;
+  }
 
   /**
    * Returns any workload-specific required command line options.
+   *
    * @return the options split in lines.
    */
-  public List<String> getWorkloadRequiredArguments() {return Collections.EMPTY_LIST; }
+  public List<String> getWorkloadRequiredArguments() {
+    return Collections.EMPTY_LIST;
+  }
 
   /**
    * Returns any workload-specific optional command line options.
+   *
    * @return the options split in lines.
    */
-  public List<String> getWorkloadOptionalArguments() { return Collections.EMPTY_LIST; }
+  public List<String> getWorkloadOptionalArguments() {
+    return Collections.EMPTY_LIST;
+  }
 
   ////////////// The following methods framework/helper methods for subclasses. ////////////////////
 
   /**
    * The load tester framework call this method of the base class. This in turn calls the
    * 'initialize()' method which the plugins should implement.
+   *
    * @param configuration configuration of the load tester framework.
    * @param enableMetrics Should metrics tracker be enabled.
    */
@@ -713,6 +745,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * Helper method to get a random proxy-service contact point to do io against.
+   *
    * @return a random proxy-service contact point.
    */
   public ContactPoint getRandomContactPoint() {
@@ -721,6 +754,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * Returns a list of Inet address objects in the proxy tier. This is needed by Cassandra clients.
+   *
    * @return a list of Inet address objects.
    */
   public List<InetSocketAddress> getNodesAsInet() {
@@ -731,8 +765,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
           inetSocketAddresses.add(new InetSocketAddress(addr, contactPoint.getPort()));
         }
       } catch (UnknownHostException e) {
-        throw new IllegalArgumentException("Failed to resolve address: " + contactPoint.getHost(),
-            e);
+        throw new IllegalArgumentException(
+            "Failed to resolve address: " + contactPoint.getHost(), e);
       }
     }
     return inetSocketAddresses;
@@ -746,22 +780,23 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   }
 
   /**
-   * Stops the workload running for this app. The purpose of this method is to allow a clean stop
-   * of the workload from external inputs.
+   * Stops the workload running for this app. The purpose of this method is to allow a clean stop of
+   * the workload from external inputs.
    */
   public void stopApp() {
     hasFinished.set(true);
   }
 
   private boolean isOutOfTime() {
-    return appConfig.runTimeSeconds > 0 &&
-        (System.currentTimeMillis() - workloadStartTime > appConfig.runTimeSeconds * 1000);
+    return appConfig.runTimeSeconds > 0
+        && (System.currentTimeMillis() - workloadStartTime > appConfig.runTimeSeconds * 1000);
   }
 
   /**
    * Called by the framework to perform write operations - internally measures the time taken to
    * perform the write op and keeps track of the number of keys written, so that we are able to
    * report the metrics to the user.
+   *
    * @param threadIdx index of thread that invoked this write.
    */
   public void performWrite(int threadIdx) {
@@ -786,8 +821,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   /**
    * Called by the framework to perform read operations - internally measures the time taken to
-   * perform the read op and keeps track of the number of keys read, so that we are able to
-   * report the metrics to the user.
+   * perform the read op and keeps track of the number of keys read, so that we are able to report
+   * the metrics to the user.
    */
   public void performRead() {
 
@@ -827,10 +862,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     return this.getClass().getSimpleName();
   }
 
-  /**
-   * Close the Connection.
-   */
-  static void close(Connection c) {
+  /** Close the Connection. */
+  public static void close(Connection c) {
     if (c != null) {
       try {
         c.close();
@@ -840,10 +873,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     }
   }
 
-  /**
-   * Close the PreparedStatement.
-   */
-  static void close(PreparedStatement ps) {
+  /** Close the PreparedStatement. */
+  public static void close(PreparedStatement ps) {
     if (ps != null) {
       try {
         ps.close();
@@ -853,9 +884,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     }
   }
 
-  /**
-   * Terminate the workload (tear down connections if needed, etc).
-   */
+  /** Terminate the workload (tear down connections if needed, etc). */
   public void terminate() {
     destroyClients();
   }
@@ -881,9 +910,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     if (sLoadGeneratorTmp == null) {
       synchronized (AppBase.class) {
         if (simpleLoadGenerator == null) {
-          simpleLoadGenerator = new SimpleLoadGenerator(0,
-              appConfig.numUniqueKeysToWrite,
-              appConfig.maxWrittenKey);
+          simpleLoadGenerator =
+              new SimpleLoadGenerator(0, appConfig.numUniqueKeysToWrite, appConfig.maxWrittenKey);
         }
         sLoadGeneratorTmp = simpleLoadGenerator;
       }
@@ -896,10 +924,15 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     if (redisHashLoadGeneratorTmp == null) {
       synchronized (AppBase.class) {
         if (redisHashLoadGenerator == null) {
-          redisHashLoadGenerator = new RedisHashLoadGenerator(appConfig.uuid,
-              (int)appConfig.numUniqueKeysToWrite, appConfig.numSubkeysPerKey,
-              appConfig.keyUpdateFreqZipfExponent, appConfig.subkeyUpdateFreqZipfExponent,
-              appConfig.numSubkeysPerWrite, appConfig.numSubkeysPerRead);
+          redisHashLoadGenerator =
+              new RedisHashLoadGenerator(
+                  appConfig.uuid,
+                  (int) appConfig.numUniqueKeysToWrite,
+                  appConfig.numSubkeysPerKey,
+                  appConfig.keyUpdateFreqZipfExponent,
+                  appConfig.subkeyUpdateFreqZipfExponent,
+                  appConfig.numSubkeysPerWrite,
+                  appConfig.numSubkeysPerRead);
         }
         redisHashLoadGeneratorTmp = redisHashLoadGenerator;
       }
