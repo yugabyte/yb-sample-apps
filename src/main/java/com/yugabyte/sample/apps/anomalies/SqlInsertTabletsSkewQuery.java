@@ -1,5 +1,6 @@
 package com.yugabyte.sample.apps.anomalies;
 
+import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 
@@ -14,10 +15,16 @@ public class SqlInsertTabletsSkewQuery extends SqlInsertTablets {
   public Thread readSkewThreadInstance = null;
   public Thread writeSkewThreadInstance = null;
 
+  public int writeCounter = 0;
+  public boolean writeSkewThreadStarted = false;
+  public int readCounter = 0;
+  public boolean readSkewThreadStarted = false;
+
   public void setupReadThread() {
     if (readSkewSetup.get() > 10) return;
     if (readSkewSetup.incrementAndGet() == 1) {
-      LOG.info("This is a read skew thread");
+      LOG.info("This is a read skew thread " + " - keys to read: " + appConfig.numKeysToRead);
+      long limit = appConfig.numKeysToRead / configuration.getNumReaderThreads() / 2;
       readSkewThread = true;
 
       readSkewThreadInstance =
@@ -25,18 +32,19 @@ public class SqlInsertTabletsSkewQuery extends SqlInsertTablets {
               new Runnable() {
                 @Override
                 public void run() {
-                  LOG.info("Beginning read skew thread");
-                  for (int i = 0; i < appConfig.numKeysToRead / 2; i++) {
+                  LOG.info("Beginning read skew thread up to " + limit + " keys.");
+                  SqlInsertTabletsSkewQuery app = new SqlInsertTabletsSkewQuery();
+                  for (int i = 0; i < limit; i++) {
                     if (i % 1000 == 0) {
-                      LOG.info("Iteration: " + i + " / " + appConfig.numKeysToRead / 2 + " done.");
+                      LOG.info("Read Skew Iteration: " + i + " / " + limit + " done.");
                     }
                     try {
-                      doReadNoBarrier(
-                          getSimpleLoadGenerator().generateKey(-appConfig.numKeysToRead));
+                      app.doReadNoBarrier(getSimpleLoadGenerator().getKeyToRead());
                     } catch (Exception e) {
                       LOG.info("Failed reading key: ", e);
                     }
                   }
+                  LOG.info("Read Skew thread done");
                 }
               });
     }
@@ -45,7 +53,12 @@ public class SqlInsertTabletsSkewQuery extends SqlInsertTablets {
   public void setupWriteThread(int threadIdx) {
     if (writeSkewSetup.get() > 10) return;
     if (writeSkewSetup.incrementAndGet() == 1) {
-      LOG.info("This is a write skew thread");
+      LOG.info(
+          "This is a write skew thread for "
+              + threadIdx
+              + " - keys to write: "
+              + appConfig.numKeysToWrite);
+      long limit = appConfig.numKeysToWrite / configuration.getNumWriterThreads() / 2;
       writeSkewThread = true;
 
       writeSkewThreadInstance =
@@ -53,18 +66,21 @@ public class SqlInsertTabletsSkewQuery extends SqlInsertTablets {
               new Runnable() {
                 @Override
                 public void run() {
-                  LOG.info("Beginning write skew thread");
-                  for (int i = 0; i < appConfig.numKeysToWrite / 2; i++) {
+                  LOG.info("Beginning write skew thread with " + limit + " keys.");
+                  String th = "Thread" + threadIdx;
+                  SqlInsertTabletsSkewQuery app = new SqlInsertTabletsSkewQuery();
+                  for (int i = 0; i < limit; i++) {
                     if (i % 1000 == 0) {
-                      LOG.info("Iteration: " + i + " / " + appConfig.numKeysToWrite / 2 + " done.");
+                      LOG.info("Write Skew Iteration: " + i + " / " + limit + " done.");
                     }
                     try {
-                      doWriteNoBarrier(
-                          0, getSimpleLoadGenerator().generateKey(-appConfig.numKeysToWrite));
+                      Key key = new Key(i, th);
+                      app.doWriteNoBarrier(0, key);
                     } catch (Exception e) {
                       LOG.info("Failed writing key: ", e);
                     }
                   }
+                  LOG.info("Write Skew thread done");
                 }
               });
     }
@@ -74,11 +90,16 @@ public class SqlInsertTabletsSkewQuery extends SqlInsertTablets {
   public long doRead() {
     try {
 
-      setupReadThread();
       long ret = super.doRead();
+      readCounter++;
+      setupReadThread();
 
-      if (readSkewThread && numKeysRead.get() == appConfig.numKeysToRead * 0.5) {
+      if (readSkewThread
+          && !readSkewThreadStarted
+          && readCounter
+              >= ((appConfig.numKeysToRead / configuration.getNumReaderThreads()) * 0.3)) {
         readSkewThreadInstance.start();
+        readSkewThreadStarted = true;
       }
 
       return ret;
@@ -92,12 +113,17 @@ public class SqlInsertTabletsSkewQuery extends SqlInsertTablets {
   public long doWrite(int threadIdx) {
     try {
 
-      setupWriteThread(threadIdx);
       long ret = super.doWrite(threadIdx);
+      writeCounter++;
+      setupWriteThread(threadIdx);
 
-      if (writeSkewThread && numKeysWritten.get() == appConfig.numKeysToWrite * 0.5) {
+      if (writeSkewThread
+          && !writeSkewThreadStarted
+          && writeCounter
+              >= ((appConfig.numKeysToWrite / configuration.getNumWriterThreads()) * 0.3)) {
         LOG.info("Starting write skew thread");
         writeSkewThreadInstance.start();
+        writeSkewThreadStarted = true;
       }
 
       return ret;

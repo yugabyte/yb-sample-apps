@@ -241,7 +241,10 @@ public class SqlInsertTablets extends SqlInserts {
   @Override
   public long doWrite(int threadIdx) {
     try {
-      return doWriteNoBarrier(threadIdx, getSimpleLoadGenerator().getKeyToWrite());
+      Key key = getSimpleLoadGenerator().getKeyToWrite();
+      long a = doWriteNoBarrier(threadIdx, key);
+      getSimpleLoadGenerator().recordWriteSuccess(key);
+      return a;
     } finally {
       try {
         writeBarrier.await(1000, TimeUnit.MILLISECONDS);
@@ -265,7 +268,6 @@ public class SqlInsertTablets extends SqlInserts {
       result = statement.executeUpdate();
       LOG.debug(
           "Wrote key: " + key.asString() + ", " + key.getValueStr() + ", return code: " + result);
-      getSimpleLoadGenerator().recordWriteSuccess(key);
     } catch (Exception e) {
       getSimpleLoadGenerator().recordWriteFailure(key);
       LOG.info("Failed writing key: " + key.asString(), e);
