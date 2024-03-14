@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 // Import * so we can list the sample apps.
 import com.yugabyte.sample.apps.*;
 import com.yugabyte.sample.apps.AppBase.TableOp;
+import com.yugabyte.sample.apps.anomalies.PlanAnomaly;
 import com.yugabyte.sample.apps.anomalies.SqlInsertTablets;
 import com.yugabyte.sample.apps.anomalies.SqlInsertTabletsSkewQuery;
 
@@ -77,7 +78,8 @@ public class CmdLineOpts {
     SqlSnapshotTxns.class,
     SqlUpdates.class,
     SqlInsertTablets.class,
-    SqlInsertTabletsSkewQuery.class
+    SqlInsertTabletsSkewQuery.class,
+    PlanAnomaly.class
   );
 
   // The class type of the app needed to spawn new objects.

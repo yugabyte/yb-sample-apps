@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
@@ -29,13 +30,20 @@ public class SqlInsertTablets extends SqlInserts {
   public static CyclicBarrier writeBarrier;
   public static AtomicBoolean setupLock = new AtomicBoolean(false);
 
+  public static int WAIT_TIMEOUT_MS = 1000;
+
   @Override
   public void initialize(CmdLineOpts configuration) {
     LOG.info("Initializing workload " + this.getClass().getSimpleName());
 
     boolean shouldSetup = setupLock.compareAndSet(false, true);
     if (shouldSetup) {
-      LOG.info("Setting up iteration synchronization barriers");
+      LOG.info(
+          "Setting up iteration synchronization barriers for "
+              + configuration.getNumReaderThreads()
+              + " reader threads and "
+              + configuration.getNumWriterThreads()
+              + " writer threads.");
       readBarrier = new CyclicBarrier(configuration.getNumReaderThreads());
       writeBarrier = new CyclicBarrier(configuration.getNumWriterThreads());
     }
@@ -106,25 +114,9 @@ public class SqlInsertTablets extends SqlInserts {
         String dbName = appConfig.defaultPostgresDatabase;
         String dbUser = appConfig.dbUsername;
         String dbPass = appConfig.dbPassword;
-
-        // Use the PG driver
-        Class.forName("org.postgresql.Driver");
-
-        Properties props = new Properties();
-        props.setProperty("user", dbUser);
-        props.setProperty("password", dbPass);
-        if (appConfig.enableDriverDebug) {
-          props.setProperty("loggerLevel", "debug");
-        }
-        props.setProperty("reWriteBatchedInserts", "true");
-
-        String connectStr =
-            String.format(
-                "%s//%s:%d/%s",
-                "jdbc:postgresql:", minContactPoint.getHost(), minContactPoint.getPort(), dbName);
-
-        LOG.info("Establishing connection to host: " + connectStr);
-        Connection connection = DriverManager.getConnection(connectStr, props);
+        Connection connection =
+            getRawConnection(
+                minContactPoint.getHost(), minContactPoint.getPort(), dbName, dbUser, dbPass);
 
         contactPointUsage.put(minContactPoint, minUsage + 1);
         return connection;
@@ -133,6 +125,27 @@ public class SqlInsertTablets extends SqlInserts {
         return null;
       }
     }
+  }
+
+  public Connection getRawConnection(
+      String hostname, int port, String dbName, String dbUser, String dbPass)
+      throws SQLException, ClassNotFoundException {
+    // Use the PG driver
+    Class.forName("org.postgresql.Driver");
+
+    Properties props = new Properties();
+    props.setProperty("user", dbUser);
+    props.setProperty("password", dbPass);
+    if (appConfig.enableDriverDebug) {
+      props.setProperty("loggerLevel", "debug");
+    }
+    props.setProperty("reWriteBatchedInserts", "true");
+
+    String connectStr = String.format("%s//%s:%d/%s", "jdbc:postgresql:", hostname, port, dbName);
+
+    LOG.info("Establishing connection to host: " + connectStr);
+    Connection connection = DriverManager.getConnection(connectStr, props);
+    return connection;
   }
 
   @Override
@@ -183,12 +196,14 @@ public class SqlInsertTablets extends SqlInserts {
       return doReadNoBarrier(getSimpleLoadGenerator().getKeyToRead());
     } finally {
       try {
-        readBarrier.await(1000, TimeUnit.MILLISECONDS);
+        readBarrier.await(WAIT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
       } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
         LOG.error("Read barrier - expected for last iteration", e);
       }
     }
   }
+
+  int i = 0;
 
   public long doReadNoBarrier(Key key) {
     if (key == null) {
@@ -247,7 +262,7 @@ public class SqlInsertTablets extends SqlInserts {
       return a;
     } finally {
       try {
-        writeBarrier.await(1000, TimeUnit.MILLISECONDS);
+        writeBarrier.await(WAIT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
       } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
         LOG.error("Write barrier - expected for last iteration", e);
       }
