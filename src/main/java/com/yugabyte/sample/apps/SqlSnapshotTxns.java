@@ -148,7 +148,9 @@ public class SqlSnapshotTxns extends AppBase {
                   String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()) +
                   "COMMIT;";
     if (preparedInsert == null) {
-      preparedInsert = getPostgresConnection().prepareStatement(stmt);
+      Connection connection = getPostgresConnection();
+      connection.createStatement().execute("set yb_enable_upsert_mode = true");
+      preparedInsert = connection.prepareStatement(stmt);
     }
     return preparedInsert;
   }

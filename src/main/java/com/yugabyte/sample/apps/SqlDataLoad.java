@@ -225,6 +225,7 @@ public class SqlDataLoad extends AppBase {
 
             close(insConnection);
             insConnection = getPostgresConnection();
+            insConnection.createStatement().execute("set yb_enable_upsert_mode = true");
             preparedInsert = insConnection.prepareStatement(sb.toString());
         }
         return preparedInsert;

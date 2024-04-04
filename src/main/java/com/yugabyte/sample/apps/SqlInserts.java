@@ -151,6 +151,7 @@ public class SqlInserts extends SQLAppBase {
     if (preparedInsert == null) {
       close(insConnection);
       insConnection = getPostgresConnection();
+      insConnection.createStatement().execute("set yb_enable_upsert_mode = true");
       preparedInsert = insConnection.prepareStatement(
           String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
     }
