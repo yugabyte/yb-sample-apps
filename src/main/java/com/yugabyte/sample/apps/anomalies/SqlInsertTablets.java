@@ -44,8 +44,12 @@ public class SqlInsertTablets extends SqlInserts {
               + " reader threads and "
               + configuration.getNumWriterThreads()
               + " writer threads.");
-      readBarrier = new CyclicBarrier(configuration.getNumReaderThreads());
-      writeBarrier = new CyclicBarrier(configuration.getNumWriterThreads());
+      if (configuration.getNumReaderThreads() >= 1) {
+        readBarrier = new CyclicBarrier(configuration.getNumReaderThreads());
+      }
+      if (configuration.getNumWriterThreads() >= 1) {
+        writeBarrier = new CyclicBarrier(configuration.getNumWriterThreads());
+      }
     }
   }
 
