@@ -340,6 +340,10 @@ public class PlanAnomaly extends SqlInsertTablets {
     }
   }
 
+  public void executeQuery(PreparedStatement statement) throws Exception {
+    try (ResultSet rs1 = statement.executeQuery()) {}
+  }
+
   @Override
   public long doReadNoBarrier(Key key) {
     PreparedStatement statement = null;
@@ -379,12 +383,11 @@ public class PlanAnomaly extends SqlInsertTablets {
         statement = getPreparedSelect();
       }
 
-      try (ResultSet rs1 = statement.executeQuery()) {}
+      executeQuery(statement);
       readCounter++;
 
     } catch (Exception e) {
       LOG.info("Failed reading value: ", e);
-      LOG.error(" AAAAA " + statement.toString());
       close(preparedSelect);
       preparedSelect = null;
       return 0;

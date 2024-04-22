@@ -2,12 +2,15 @@ package com.yugabyte.sample.apps.anomalies;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.log4j.Logger;
 
 public class PlanAnomalyV2 extends PlanAnomaly {
 
   private static final Logger LOG = Logger.getLogger(PlanAnomalyV2.class);
+  private static AtomicLong keySequence = new AtomicLong();
 
   public PlanAnomalyV2() {
     buffer = new byte[appConfig.valueSize];
@@ -36,7 +39,7 @@ public class PlanAnomalyV2 extends PlanAnomaly {
       s.addBatch(
           String.format(
               "CREATE TABLE IF NOT EXISTS %s (k1 int, k2 int, v1 int, v2 int, v3 int, PRIMARY"
-                  + " KEY(k1,k2));",
+                  + " KEY(k1,k2)) SPLIT INTO 3 TABLETS;",
               getTableName()));
 
       s.addBatch(
@@ -78,7 +81,12 @@ public class PlanAnomalyV2 extends PlanAnomaly {
       close(selConnection);
       selConnection = getPostgresConnectionFair();
 
-      String query = String.format("select * from %s where v1 = 1 and k1 = 1;", getTableName());
+      Statement s = selConnection.createStatement();
+      s.addBatch("select pg_stat_statements_reset();");
+      LOG.info("PSS reset. Executing");
+      s.executeBatch();
+
+      String query = String.format("select * from %s where v1 = ? and k1 = ?;", getTableName());
       String hint = String.format("/*+IndexScan(%s %s_v1_v2)*/", getTableName(), getTableName());
 
       LOG.info("sel " + hint + query);
@@ -86,10 +94,22 @@ public class PlanAnomalyV2 extends PlanAnomaly {
 
       preparedSelect = selConnection.prepareStatement(hint + query);
       preparedSelectNoHint = selConnection.prepareStatement(query);
-      preparedSelectNoHint.executeQuery();
+      // preparedSelectNoHint.executeQuery();
       LOG.info("Prepared SELECT statement");
     }
 
     return preparedSelect;
+  }
+
+  @Override
+  public void executeQuery(PreparedStatement statement) throws Exception {
+    long key = getNextKey();
+    statement.setLong(1, key / 10);
+    statement.setLong(2, key / 100000);
+    try (ResultSet rs1 = statement.executeQuery()) {}
+  }
+
+  public long getNextKey() {
+    return keySequence.incrementAndGet();
   }
 }
