@@ -4,13 +4,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Random;
 import org.apache.log4j.Logger;
 
 public class PlanAnomalyV2 extends PlanAnomaly {
 
   private static final Logger LOG = Logger.getLogger(PlanAnomalyV2.class);
-  private static AtomicLong keySequence = new AtomicLong();
+  private static Random r = new Random();
+  private static int highLimit = 1000000;
 
   public PlanAnomalyV2() {
     buffer = new byte[appConfig.valueSize];
@@ -110,6 +111,6 @@ public class PlanAnomalyV2 extends PlanAnomaly {
   }
 
   public long getNextKey() {
-    return keySequence.incrementAndGet();
+    return r.nextInt(highLimit);
   }
 }
