@@ -778,7 +778,7 @@ public class CmdLineOpts {
     options.addOption("topology_keys", true,
             "Set up YugabyteDB JDBC driver with topology aware load balancing capability.");
     options.addOption("debug_driver", true,
-            "Enable debug logs for YugabyteDB JDBC driver");
+            "Enable debug logs for YugabyteDB YSQL and YCQL drivers");
     options.addOption("concurrent_clients", true,
         "The number of client connections to establish to each host in the YugaByte DB cluster.");
     options.addOption("ssl_cert", true,

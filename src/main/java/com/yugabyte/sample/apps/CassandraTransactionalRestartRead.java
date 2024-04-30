@@ -154,7 +154,8 @@ public class CassandraTransactionalRestartRead extends CassandraKeyValue {
         "--num_reads " + appConfig.numKeysToRead,
         "--num_writes " + appConfig.numKeysToWrite,
         "--num_threads_read " + appConfig.numReaderThreads,
-        "--num_threads_write " + appConfig.numWriterThreads);
+        "--num_threads_write " + appConfig.numWriterThreads,
+        "--debug_driver " + appConfig.enableDriverDebug);
   }
 
   protected void setupLoadBalancingPolicy(Cluster.Builder builder) {

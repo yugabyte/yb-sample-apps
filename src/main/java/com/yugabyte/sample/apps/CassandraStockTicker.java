@@ -327,6 +327,7 @@ public class CassandraStockTicker extends AppBase {
       "--num_threads_write " + appConfig.numWriterThreads,
       "--num_ticker_symbols " + num_ticker_symbols,
       "--data_emit_rate_millis " + data_emit_rate_millis,
-      "--table_ttl_seconds " + appConfig.tableTTLSeconds);
+      "--table_ttl_seconds " + appConfig.tableTTLSeconds,
+      "--debug_driver " + appConfig.enableDriverDebug);
   }
 }
