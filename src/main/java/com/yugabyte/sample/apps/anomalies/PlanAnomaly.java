@@ -349,43 +349,73 @@ public class PlanAnomaly extends SqlInsertTablets {
     PreparedStatement statement = null;
     try {
 
+      boolean timeBased = appConfig.runTimeSeconds > 0;
+
       if (readSkewSetup.get() < 10) {
         if (readSkewSetup.incrementAndGet() == 1) {
           readSkewThread = true;
-          long queriesPerThread = appConfig.numKeysToRead / configuration.getNumReaderThreads();
-          lowerBound = queriesPerThread / beginRatio;
-          // Lower bound determines when we start making slow queries.
-          // Upper bound determines how many queries we make.
-          // In our case, the unhinted query takes ~8s and the hinted query 400ms.
-          // This means that the unhinted query is 20x slower than the hinted query.
-          // So, while the slow thread makes 1 call, the other 2 threads make 20 calls each.
-          upperBound = lowerBound + queriesPerThread / percentage;
+          if (timeBased) {
+            // 6/8 normal traffic + 1/8 high latency traffic + 1/8 normal traffic
+            lowerBound = appConfig.runTimeSeconds / 8 * 6;
+            upperBound = appConfig.runTimeSeconds / 8 * 7;
 
-          LOG.info(
-              "Setting up read skew thread appConfig.numKeysToRead = "
-                  + appConfig.numKeysToRead
-                  + " configuration.getNumReaderThreads() = "
-                  + configuration.getNumReaderThreads()
-                  + " queriesPerThread = "
-                  + queriesPerThread
-                  + " lowerBound = "
-                  + lowerBound
-                  + " upperBound = "
-                  + upperBound);
+            LOG.info(
+                "Setting up read skew thread appConfig.runTimeSeconds = "
+                    + appConfig.runTimeSeconds
+                    + " configuration.getNumReaderThreads() = "
+                    + configuration.getNumReaderThreads()
+                    + " lowerBound = "
+                    + lowerBound
+                    + " upperBound = "
+                    + upperBound);
+          } else {
+            long queriesPerThread = appConfig.numKeysToRead / configuration.getNumReaderThreads();
+            lowerBound = queriesPerThread / beginRatio;
+            // Lower bound determines when we start making slow queries.
+            // Upper bound determines how many queries we make.
+            // In our case, the unhinted query takes ~8s and the hinted query 400ms.
+            // This means that the unhinted query is 20x slower than the hinted query.
+            // So, while the slow thread makes 1 call, the other 2 threads make 20 calls each.
+            upperBound = lowerBound + queriesPerThread / percentage;
+
+            LOG.info(
+                "Setting up read skew thread appConfig.numKeysToRead = "
+                    + appConfig.numKeysToRead
+                    + " configuration.getNumReaderThreads() = "
+                    + configuration.getNumReaderThreads()
+                    + " queriesPerThread = "
+                    + queriesPerThread
+                    + " lowerBound = "
+                    + lowerBound
+                    + " upperBound = "
+                    + upperBound);
+          }
         }
       }
-      if (readSkewThread && readCounter > lowerBound && readCounter < upperBound) {
-        if (readCounter % 100 == 0) {
-          LOG.info("Read Skew Iteration: " + readCounter + " / " + upperBound + " done.");
-        }
-        statement = preparedSelectNoHint;
-      } else {
-        statement = getPreparedSelect();
-      }
 
+      statement = getPreparedSelect();
+      if (readSkewThread) {
+        if (timeBased) {
+          long currentTimeSec = (System.currentTimeMillis() - workloadStartTime) / 1000;
+          if (currentTimeSec > lowerBound && currentTimeSec < upperBound) {
+            if (readCounter % 100 == 0) {
+              LOG.info(
+                  "Read Skew Iteration: " + (currentTimeSec - lowerBound)
+                      + " / " + (upperBound - lowerBound) + " sec done.");
+            }
+            statement = preparedSelectNoHint;
+          }
+        } else {
+          if (readCounter > lowerBound && readCounter < upperBound) {
+            if (readCounter % 100 == 0) {
+              LOG.info("Read Skew Iteration: " + readCounter + " / " + upperBound + " done.");
+            }
+            statement = preparedSelectNoHint;
+          }
+        }
+      }
       executeQuery(statement);
       readCounter++;
-
     } catch (Exception e) {
       LOG.info("Failed reading value: ", e);
       close(preparedSelect);

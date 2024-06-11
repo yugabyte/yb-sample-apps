@@ -91,7 +91,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   public static final int NUM_KEYS_TO_READ_FOR_YSQL_AND_YCQL = 1500000;
 
   // Variable to track start time of the workload.
-  private long workloadStartTime = -1;
+  protected long workloadStartTime = -1;
   // Instance of the workload configuration.
   public static AppConfig appConfig = new AppConfig();
   // The configuration of the load tester.
