@@ -70,10 +70,10 @@ import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.YBJedis;
 
 /**
- * Abstract base class for all apps. This class does the following: - Provides various helper
- * methods including methods for creating Redis and Cassandra clients. - Has a metrics tracker
- * object, and internally tracks reads and writes. - Has the abstract methods that are implemented
- * by the various apps.
+ * Abstract base class for all apps. This class does the following:
+ *   - Provides various helper methods including methods for creating Redis and Cassandra clients.
+ *   - Has a metrics tracker object, and internally tracks reads and writes.
+ *   - Has the abstract methods that are implemented by the various apps.
  */
 public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   private static final Logger LOG = Logger.getLogger(AppBase.class);
@@ -97,9 +97,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
   // The configuration of the load tester.
   protected CmdLineOpts configuration;
   // The number of keys written so far.
-  public static AtomicLong numKeysWritten = new AtomicLong(0);
+  protected static AtomicLong numKeysWritten = new AtomicLong(0);
   // The number of keys that have been read so far.
-  public static AtomicLong numKeysRead = new AtomicLong(0);
+  protected static AtomicLong numKeysRead = new AtomicLong(0);
   // Object to track read and write metrics.
   private static volatile MetricsTracker metricsTracker;
   // State variable to track if this workload has finished.
