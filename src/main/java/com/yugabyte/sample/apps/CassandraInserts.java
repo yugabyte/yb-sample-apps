@@ -220,6 +220,7 @@ public class CassandraInserts extends CassandraKeyValue {
         "--num_threads_write " + appConfig.numWriterThreads,
         "--batch_size " + appConfig.batchSize,
         "--num_indexes" + appConfig.numIndexes,
-        "--value_size " + appConfig.valueSize);
+        "--value_size " + appConfig.valueSize,
+        "--debug_driver " + appConfig.enableDriverDebug);
   }
 }

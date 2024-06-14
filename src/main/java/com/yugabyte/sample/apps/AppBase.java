@@ -39,6 +39,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
 import com.yugabyte.sample.common.metrics.Observation;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
@@ -202,10 +203,11 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
 
         if (appConfig.sslCert != null && appConfig.sslCert.length() > 0) {
-          assert(appConfig.sslKey != null && appConfig.sslKey.length() > 0) : "The SSL key is empty.";
           props.put("sslmode", "require");
           props.put("sslcert", appConfig.sslCert);
-          props.put("sslkey", appConfig.sslKey);
+          if (appConfig.sslKey != null && appConfig.sslKey.length() > 0) {
+            props.put("sslkey", appConfig.sslKey);
+          }
         }
 
         String url = isLoadBalanceOn ? "jdbc:yugabytedb:" : "jdbc:postgresql:";
@@ -300,6 +302,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         }
         builder = builder
             .withCredentials(appConfig.dbUsername, appConfig.dbPassword);
+      }
+      if (appConfig.enableDriverDebug) {
+        Logger.getLogger("com.datastax.driver").setLevel(Level.DEBUG);
       }
       if (appConfig.sslCert != null) {
         builder = builder

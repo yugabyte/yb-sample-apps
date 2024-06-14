@@ -277,6 +277,7 @@ public class CassandraPersonalization extends AppBase {
       "--num_threads_write " + appConfig.numWriterThreads,
       "--num_stores " + appConfig.numStores,
       "--num_new_coupons_per_customer " + appConfig.numNewCouponsPerCustomer,
-      "--max_coupons_per_customer " + appConfig.maxCouponsPerCustomer);
+      "--max_coupons_per_customer " + appConfig.maxCouponsPerCustomer,
+      "--debug_driver " + appConfig.enableDriverDebug);
   }
 }
