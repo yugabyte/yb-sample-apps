@@ -82,11 +82,6 @@ public class PlanAnomalyV2 extends PlanAnomaly {
       close(selConnection);
       selConnection = getPostgresConnectionFair();
 
-      Statement s = selConnection.createStatement();
-      s.addBatch("select pg_stat_statements_reset();");
-      LOG.info("PSS reset. Executing");
-      s.executeBatch();
-
       String query = String.format("select * from %s where v1 = ? and k1 = ?;", getTableName());
       String hint = String.format("/*+IndexScan(%s %s_v1_v2)*/", getTableName(), getTableName());
 
