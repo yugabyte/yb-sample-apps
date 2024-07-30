@@ -13,6 +13,8 @@
 
 package com.yugabyte.sample.common;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.log4j.Logger;
 
 import com.yugabyte.sample.apps.AppBase;
@@ -47,11 +49,30 @@ public class IOPSThread extends Thread {
 
   private final boolean printAllExceptions;
 
-  public IOPSThread(int threadIdx, AppBase app, IOType ioType, boolean printAllExceptions) {
+  // Flag to disable concurrency, i.e. execute ops in lock step.
+  private final boolean concurrencyDisabled;
+
+  // Lock to disable concurrency.
+  // Construct a fair lock to prevent one thread from hogging the lock.
+  private static final ReentrantLock lock = new ReentrantLock(true);
+
+  // Throttle reads or writes in this thread.
+  private final Throttler throttler;
+
+  public IOPSThread(int threadIdx, AppBase app, IOType ioType, boolean printAllExceptions,
+                    boolean concurrencyDisabled, double maxThroughput) {
     this.threadIdx = threadIdx;
     this.app = app;
     this.ioType = ioType;
     this.printAllExceptions = printAllExceptions;
+    this.concurrencyDisabled = concurrencyDisabled;
+    if (maxThroughput > 0) {
+        LOG.info("Throttling " + (ioType == IOType.Read ? "read" : "write") +
+                 " ops to " + maxThroughput + " ops/sec.");
+        this.throttler = new Throttler(maxThroughput);
+    } else {
+        this.throttler = null;
+    }
   }
 
   public int getNumExceptions() {
@@ -82,7 +103,14 @@ public class IOPSThread extends Thread {
       LOG.debug("Starting " + ioType.toString() + " IOPS thread #" + threadIdx);
       int numConsecutiveExceptions = 0;
       while (!app.hasFinished()) {
+        if (concurrencyDisabled) {
+          // Wait for the previous thread to execute its step.
+          lock.lock();
+        }
         try {
+          if (throttler != null) {
+            throttler.traceOp();
+          }
           switch (ioType) {
             case Write: app.performWrite(threadIdx); break;
             case Read: app.performRead(); break;
@@ -112,6 +140,15 @@ public class IOPSThread extends Thread {
             LOG.error("Sleep interrupted.", ie);
             ioThreadFailed = true;
             return;
+          }
+        } finally {
+          if (concurrencyDisabled) {
+            // Signal the next thread in the wait queue to resume.
+            lock.unlock();
+          }
+          if (throttler != null) {
+            // Sleep only after releasing the lock above.
+            throttler.throttleOp();
           }
         }
       }

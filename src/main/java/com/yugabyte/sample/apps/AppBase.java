@@ -14,6 +14,7 @@
 package com.yugabyte.sample.apps;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -39,6 +40,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
 import com.yugabyte.sample.common.metrics.Observation;
+import com.yugabyte.sample.common.metrics.PromMetrics;
+
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
@@ -75,7 +78,7 @@ import redis.clients.jedis.YBJedis;
 
 /**
  * Abstract base class for all apps. This class does the following:
- *   - Provides various helper methods including methods for creating Redis and Cassandra clients.
+ *   - Provides various helper methods including methods for creating YSQL, YCQL and Redis clients.
  *   - Has a metrics tracker object, and internally tracks reads and writes.
  *   - Has the abstract methods that are implemented by the various apps.
  */
@@ -126,6 +129,9 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 
   // YCQL keyspace name.
   public static String keyspace = "ybdemo_keyspace";
+
+  // Prometheus metrics.
+  private static PromMetrics promMetrics;
 
   public enum TableOp {
     NoOp,
@@ -643,6 +649,12 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
    */
   @Override
   public void appendMessage(StringBuilder sb) {
+    if (promMetrics != null) {
+      sb.append(
+          "Num restart read requests: " +
+          promMetrics.getCounter("restart_read_requests", getTableName()) +
+          " | ");
+    }
     sb.append("Uptime: " + (System.currentTimeMillis() - workloadStartTime) + " ms | ");
   }
 
@@ -707,6 +719,16 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         metricsTracker.createMetric(MetricName.Write);
         metricsTracker.registerStatusMessageAppender(this);
         metricsTracker.start();
+
+        if (appConfig.restartReadsReported) {
+          LOG.info("Reporting restart read requests.");
+          try {
+            promMetrics = new PromMetrics(getNodesAsInet());
+          } catch (IOException e) {
+            LOG.error("Failed to create prometheus metrics tracker with exception: ", e);
+            promMetrics = null;
+          }
+        }
       }
     }
   }

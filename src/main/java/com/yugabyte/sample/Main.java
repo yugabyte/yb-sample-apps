@@ -39,7 +39,7 @@ import com.yugabyte.sample.common.IOPSThread.IOType;
  * |__ Main.java
  * |__ apps/
  *     |__ AppBase.java              : Base class for all the apps. Has helper methods for creating
- *                                     Cassandra and Redis clients.
+ *                                     YSQL, YCQL and Redis clients.
  *     |__ AppConfig.java            : Configuration for all the apps.
  *     |__ CassandraHelloWorld.java  : The simplest app that writes one employee record. Good
  *                                     starting point to understand how to write a Cassandra app.
@@ -51,6 +51,7 @@ import com.yugabyte.sample.common.IOPSThread.IOType;
  *     |__ RedisPipelinedKeyValue.java : Similar to RedisKeyValue but uses pipelined mode.
  *     |__ RedisHashPipelined        : Similar to RedisPipelinedKeyValue. Uses HMSET/HMGET instead.
  *     |__ RedisYBClientKeyValue.java : Similar to RedisKeyValue but uses YBJedis client.
+ *     |__ SqlStaleReadDetector.java : Sample SQL app that detects any stale reads.
  *
  *
  * Usage
@@ -176,14 +177,21 @@ public class Main {
       }
 
       // Create the reader and writer threads.
+      if (AppBase.appConfig.concurrencyDisabled) {
+        LOG.info("Concurrency is disabled. Executing threads in lock step.");
+      }
       int idx = 0;
       for (; idx < cmdLineOpts.getNumWriterThreads(); idx++) {
         iopsThreads.add(new IOPSThread(idx, cmdLineOpts.createAppInstance(),
-                                       IOType.Write, app.appConfig.printAllExceptions));
+                                       IOType.Write, app.appConfig.printAllExceptions,
+                                       app.appConfig.concurrencyDisabled,
+                                       app.appConfig.maxWriteThreadThroughput));
       }
       for (; idx < cmdLineOpts.getNumWriterThreads() + cmdLineOpts.getNumReaderThreads(); idx++) {
         iopsThreads.add(new IOPSThread(idx, cmdLineOpts.createAppInstance(),
-                                       IOType.Read, app.appConfig.printAllExceptions));
+                                       IOType.Read, app.appConfig.printAllExceptions,
+                                       app.appConfig.concurrencyDisabled,
+                                       app.appConfig.maxReadThreadThroughput));
       }
 
       app.recordExistingRowCount();
@@ -222,7 +230,9 @@ public class Main {
     LOG.info("Using " + num_writers + " writer threads for pure read setup.");
     for (int idx = 0; idx < num_writers; idx++) {
       writeThreads.add(new IOPSThread(idx, cmdLineOpts.createAppInstance(false),
-                                      IOType.Write, app.appConfig.printAllExceptions));
+                                      IOType.Write, app.appConfig.printAllExceptions,
+                                      app.appConfig.concurrencyDisabled,
+                                      app.appConfig.maxWriteThreadThroughput));
     }
     // Start the reader and writer threads.
     for (IOPSThread writeThread : writeThreads) {
