@@ -214,4 +214,16 @@ public class AppConfig {
 
   // Replication factor to be used for the SqlGeoPartitionedTable workload.
   public int replicationFactor;
+
+  // Throttle number of reads per second per thread.
+  public double maxReadThreadThroughput = -1;
+
+  // Throttle number of writes per second per thread.
+  public double maxWriteThreadThroughput = -1;
+
+  // Disable concurrent execution, i.e. exec only a single operation at a time.
+  public boolean concurrencyDisabled = false;
+
+  // Flag to report restart read requests.
+  public boolean restartReadsReported = false;
 }

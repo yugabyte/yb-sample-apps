@@ -73,7 +73,8 @@ public class CmdLineOpts {
     SqlInserts.class,
     SqlSecondaryIndex.class,
     SqlSnapshotTxns.class,
-    SqlUpdates.class
+    SqlUpdates.class,
+    SqlStaleReadDetector.class
   );
 
   // The class type of the app needed to spawn new objects.
@@ -146,6 +147,24 @@ public class CmdLineOpts {
         LOG.error("uuid (or nouuid) needs to be provided when using --read-only");
         System.exit(1);
       }
+    }
+
+    if (commandLine.hasOption("read_rate")) {
+      AppBase.appConfig.maxReadThreadThroughput =
+          Double.parseDouble(commandLine.getOptionValue("read_rate"));
+    }
+
+    if (commandLine.hasOption("write_rate")) {
+      AppBase.appConfig.maxWriteThreadThroughput =
+          Double.parseDouble(commandLine.getOptionValue("write_rate"));
+    }
+
+    if (commandLine.hasOption("lock_step")) {
+      AppBase.appConfig.concurrencyDisabled = true;
+    }
+
+    if (commandLine.hasOption("report_read_restarts")) {
+      AppBase.appConfig.restartReadsReported = true;
     }
 
     // Set the number of threads.
@@ -918,6 +937,21 @@ public class CmdLineOpts {
                       "[SqlGeoPartitionedTable] Replication factor to be used to create a " +
                       "tablespace for each partition. This option should not be used along " +
                       "with --tablespaces");
+
+    options.addOption("read_rate", true,
+                      "Throttle read throughput.");
+
+    options.addOption("write_rate", true,
+                      "Throttle write throughput.");
+
+    options.addOption("lock_step", false,
+                      "Execute read and write threads in lock step.");
+
+    options.addOption("report_read_restarts", false,
+                      "Report restart read requests.");
+
+    options.addOption("sum_in_app", false,
+                      "[SqlStaleReadDetector] Sum the counters in the app.");
 
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:

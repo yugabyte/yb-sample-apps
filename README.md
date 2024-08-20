@@ -10,19 +10,19 @@ The workloads here have drivers compatible with the above and emulate a number o
 ## Running the generator
 
 Download the [latest yb-sample-apps](https://github.com/yugabyte/yb-sample-apps/releases/latest) JAR. The command below downloads version 1.4.1.
-```
+```console
 $ wget https://github.com/yugabyte/yb-sample-apps/releases/download/v1.4.1/yb-sample-apps.jar
 ```
 
 For help, simply run the following:
 
-```
+```console
 $ java -jar yb-sample-apps.jar --help
 ```
 You should see the set of workloads available in the app.
 
 To get details on running any app, just pass the app name as a parameter to the `--help` flag:
-```
+```console
 $ java -jar yb-sample-apps.jar --help CassandraKeyValue
 1 [main] INFO com.yugabyte.sample.Main  - Starting sample app...
 Usage and options for workload CassandraKeyValue in YugabyteDB Sample Apps.
@@ -57,18 +57,18 @@ You need the following to build:
 * Maven version 3.3.9 or above
 
 To build, simply run the following:
-```
+```console
 $ mvn -DskipTests -DskipDockerBuild package
 ```
 
 You can find the executable one-jar at the following location:
-```
+```console
 $ ls target/yb-sample-apps.jar
 target/yb-sample-apps.jar
 ```
 
 To docker image with the package, simply run the following:
-```
+```console
 $ mvn package
 ```
 
@@ -102,6 +102,7 @@ Below is a list of workloads.
 | SqlSecondaryIndex                | Sample key-value app built on postgresql. The app writes out unique string keys |
 | SqlSnapshotTxns                  | Sample key-value app built on postgresql. The app writes out unique string keys |
 | SqlGeoPartitionedTable           | Sample app based on SqlInserts but uses a geo-partitioned table |
+| SqlStaleReadDetector             | Sample app that detects stale reads. Also, useful for benchmarking restart read requests. |
 
 ## Load balancing support in SQL workloads
 
@@ -195,3 +196,7 @@ New load balancing features are introduced in SQL workloads. The changes resulti
     ```
     --topology_keys "aws.us-east.us-east-1a"
     ```
+
+## Throttling IO Throughput
+
+Throttle operation throughput of read and write threads using the `--read_rate` and `--write_rate` options respectively. To run the workload in lock step mode (where only one operation occurs at a time), use the option `--lock_step`.
