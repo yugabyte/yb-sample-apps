@@ -955,11 +955,15 @@ public class CmdLineOpts {
 
     // Options for CustomSchema1ReadOnly
     options.addOption("start_customer_id", true,
-                      "[CustomSchema1ReadOnly] The starting customer id.");
+                      "[CustomSchemaRW] The starting customer id.");
     options.addOption("end_customer_id", true,
-                      "[CustomSchema1ReadOnly] The ending customer id.");
+                      "[CustomSchemaRW] The ending customer id.");
     options.addOption("num_days_to_read", true, 
-                     "[CustomSchema1ReadOnly] The number of days to read.");
+                     "[CustomSchemaRW] The number of days to read.");
+    options.addOption("codacctno", true, 
+                     "[CustomSchemaRW] The codacctno.");
+    options.addOption("codacctno_prefix", true,
+                      "[CustomSchemaRW] The codacctno prefix.");
 
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:

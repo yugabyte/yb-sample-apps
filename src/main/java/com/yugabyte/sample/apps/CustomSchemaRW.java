@@ -27,9 +27,9 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.CmdLineOpts;
 
-public class CustomSchema1ReadOnly extends AppBase {
+public class CustomSchemaRW extends AppBase {
 
-    private static final Logger LOG = Logger.getLogger(CustomSchema1ReadOnly.class);
+    private static final Logger LOG = Logger.getLogger(CustomSchemaRW.class);
 
     static{
 
@@ -49,18 +49,21 @@ public class CustomSchema1ReadOnly extends AppBase {
     private static int start_customer_id = 1;
     // End customer Id
     private static int end_customer_id = 10;
+    // Static codacctno 
+    private static String codacctno = null ;
+    // Static codacctno prefix 
+    private static String codacctno_prefix = null;
 
 
     private static volatile PreparedStatement preparedSelect;
 
-    // Lock for initializing prepared statement objects.
-    private static final Object prepareInitLock = new Object();
-
-    private static final String DEFAULT_SELECT_QUERY = "select * from stmnt_reeng.customer_transactions where codacctno =  ? and txndate >= '%s' and txndate < '%s';";
+    private static final String DEFAULT_SELECT_QUERY = "select * from stmnt_reeng.customer_transactions ";
     // private static final String DEFAULT_SELECT_QUERY = " SELECT count(*) from ycsb.usertable ;";
+    // where codacctno =  ? and txndate >= '%s' and txndate < '%s';
+
 
     private static final String DEFAULT_START_DATE = "2023-01-01";
-    private static String END_DATE = "2024-01-01";
+    private static String END_DATE = null;
 
 
 
@@ -81,7 +84,11 @@ public class CustomSchema1ReadOnly extends AppBase {
         if (cmd.hasOption("num_days_to_read")) {
          int num_days_to_read = Integer.parseInt(cmd.getOptionValue("num_days_to_read"));
          updateEndDare(num_days_to_read);
-         
+        }
+        if (cmd.hasOption("codacctno")) {
+            codacctno = cmd.getOptionValue("codacctno");
+        }else if(cmd.hasOption("codacctno_prefix")){
+            codacctno_prefix = cmd.getOptionValue("codacctno_prefix");
         }
     }
 
@@ -100,19 +107,25 @@ public class CustomSchema1ReadOnly extends AppBase {
     protected PreparedStatement getPreparedSelect()  {
         PreparedStatement preparedSelectLocal = preparedSelect;
         if (preparedSelectLocal == null) {
-            synchronized (prepareInitLock) {
-                if (preparedSelect == null) {
-                String selectQuery = String.format(DEFAULT_SELECT_QUERY, DEFAULT_START_DATE, END_DATE);
-                preparedSelect = getCassandraClient().prepare(selectQuery);
-                preparedSelectLocal = preparedSelect;
-                }
+            String selectQuery = null;
+            if(codacctno != null){
+                selectQuery = DEFAULT_SELECT_QUERY + String.format(" where codacctno = '%s' ", codacctno);
+            }else{
+                 selectQuery = DEFAULT_SELECT_QUERY + " where codacctno = ? " ;
             }
+            if(END_DATE != null){
+                selectQuery = selectQuery + String.format(" and txndate >= '%s' and txndate < '%s' ", DEFAULT_START_DATE, END_DATE);
+            }                
+            preparedSelect = getCassandraClient().prepare(selectQuery);
+            preparedSelectLocal = preparedSelect;
+            
         }
         return preparedSelectLocal;
     }
 
-    private int getRandomAccountId() {
-        return start_customer_id + (int) (Math.random() * (end_customer_id - start_customer_id));
+    private String getRandomAccountId() {
+        int random_id =  start_customer_id + (int) (Math.random() * (end_customer_id - start_customer_id));
+        return codacctno_prefix + random_id;
     }
 
     
@@ -120,21 +133,19 @@ public class CustomSchema1ReadOnly extends AppBase {
     @Override
     public long doRead() {
 
-        String accountId =  "mqexptfacct2108aug"+ getRandomAccountId();
-
-        BoundStatement select = getPreparedSelect().bind(accountId);
-
+        BoundStatement select = null;
+        if(codacctno != null){
+            select = getPreparedSelect().bind();
+        }else{
+            String accountId = getRandomAccountId();
+            select = getPreparedSelect().bind(accountId);
+        }
         ResultSet rs = getCassandraClient().execute(select);
         List<Row> rows = rs.all();
-
-        // if (rows.size() != 1) {
-        //     LOG.fatal("Expected 1 row in result, got " + rows.size());
-        // }
-
-        // Print the result
-        // Row row = rows.get(0);
-        // System.out.println("Count: " + row.getLong(0));
-    
+        if (rows.size() == 0) {
+            LOG.debug("No rows found for the query");
+        }
+       
         return 1;
     }
 
