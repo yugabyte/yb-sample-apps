@@ -953,6 +953,14 @@ public class CmdLineOpts {
     options.addOption("sum_in_app", false,
                       "[SqlStaleReadDetector] Sum the counters in the app.");
 
+    // Options for CustomSchema1ReadOnly
+    options.addOption("start_customer_id", true,
+                      "[CustomSchema1ReadOnly] The starting customer id.");
+    options.addOption("end_customer_id", true,
+                      "[CustomSchema1ReadOnly] The ending customer id.");
+    options.addOption("num_days_to_read", true, 
+                     "[CustomSchema1ReadOnly] The number of days to read.");
+
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:
     // https://stackoverflow.com/questions/36720946/apache-cli-required-options-contradicts-with-help-option
