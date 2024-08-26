@@ -120,7 +120,7 @@ public class CustomSchema1ReadOnly extends AppBase {
     @Override
     public long doRead() {
 
-        String accountId = Integer.toString(getRandomAccountId());
+        String accountId =  "mqexptfacct2108aug"+ getRandomAccountId();
 
         BoundStatement select = getPreparedSelect().bind(accountId);
 
