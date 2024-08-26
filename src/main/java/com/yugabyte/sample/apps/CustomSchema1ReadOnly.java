@@ -56,7 +56,7 @@ public class CustomSchema1ReadOnly extends AppBase {
     // Lock for initializing prepared statement objects.
     private static final Object prepareInitLock = new Object();
 
-    private static final String DEFAULT_SELECT_QUERY = "select count(*) from stmnt_reeng.customer_transactions where codacctno in(?) and txndate >= '%s' and txndate < '%s';";
+    private static final String DEFAULT_SELECT_QUERY = "select * from stmnt_reeng.customer_transactions where codacctno =  ? and txndate >= '%s' and txndate < '%s';";
     // private static final String DEFAULT_SELECT_QUERY = " SELECT count(*) from ycsb.usertable ;";
 
     private static final String DEFAULT_START_DATE = "2023-01-01";
@@ -127,9 +127,9 @@ public class CustomSchema1ReadOnly extends AppBase {
         ResultSet rs = getCassandraClient().execute(select);
         List<Row> rows = rs.all();
 
-        if (rows.size() != 1) {
-            LOG.fatal("Expected 1 row in result, got " + rows.size());
-        }
+        // if (rows.size() != 1) {
+        //     LOG.fatal("Expected 1 row in result, got " + rows.size());
+        // }
 
         // Print the result
         // Row row = rows.get(0);
