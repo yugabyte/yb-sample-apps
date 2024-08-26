@@ -67,10 +67,6 @@ public class CustomSchemaRW extends AppBase {
 
 
 
-
-
-
-
     @Override
     public void initialize(CmdLineOpts configuration) {
         super.initialize(configuration);
