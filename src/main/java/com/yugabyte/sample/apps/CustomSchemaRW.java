@@ -54,6 +54,9 @@ public class CustomSchemaRW extends AppBase {
     // Static codacctno prefix 
     private static String codacctno_prefix = null;
 
+    private static final Object prepareInitLock = new Object();
+
+
 
     private static volatile PreparedStatement preparedSelect;
 
@@ -103,18 +106,19 @@ public class CustomSchemaRW extends AppBase {
     protected PreparedStatement getPreparedSelect()  {
         PreparedStatement preparedSelectLocal = preparedSelect;
         if (preparedSelectLocal == null) {
-            String selectQuery = null;
-            if(codacctno != null){
-                selectQuery = DEFAULT_SELECT_QUERY + String.format(" where codacctno = '%s' ", codacctno);
-            }else{
-                 selectQuery = DEFAULT_SELECT_QUERY + " where codacctno = ? " ;
+             synchronized (prepareInitLock) {
+                String selectQuery = null;
+                if(codacctno != null){
+                    selectQuery = DEFAULT_SELECT_QUERY + String.format(" where codacctno = '%s' ", codacctno);
+                }else{
+                    selectQuery = DEFAULT_SELECT_QUERY + " where codacctno = ? " ;
+                }
+                if(END_DATE != null){
+                    selectQuery = selectQuery + String.format(" and txndate >= '%s' and txndate < '%s' ", DEFAULT_START_DATE, END_DATE);
+                }                
+                preparedSelect = getCassandraClient().prepare(selectQuery);
+                preparedSelectLocal = preparedSelect;
             }
-            if(END_DATE != null){
-                selectQuery = selectQuery + String.format(" and txndate >= '%s' and txndate < '%s' ", DEFAULT_START_DATE, END_DATE);
-            }                
-            preparedSelect = getCassandraClient().prepare(selectQuery);
-            preparedSelectLocal = preparedSelect;
-            
         }
         return preparedSelectLocal;
     }
@@ -139,7 +143,7 @@ public class CustomSchemaRW extends AppBase {
         ResultSet rs = getCassandraClient().execute(select);
         List<Row> rows = rs.all();
         if (rows.size() == 0) {
-            LOG.debug("No rows found for the query");
+            LOG.info("No rows found for the query");
         }
        
         return 1;
