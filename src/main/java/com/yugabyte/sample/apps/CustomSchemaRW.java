@@ -124,7 +124,6 @@ public class CustomSchemaRW extends AppBase {
                 if(start_date != null && end_date != null){
                     selectQuery = selectQuery + String.format(" and txndate >= '%s' and txndate < '%s' ", start_date, end_date);
                 } 
-                System.out.println("Select Query : " + selectQuery);               
                 preparedSelect = getCassandraClient().prepare(selectQuery);
                 preparedSelectLocal = preparedSelect;
             }
