@@ -13,19 +13,24 @@
 
 package com.yugabyte.sample.apps;
 
-import java.time.LocalDate;
+// import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.math.BigDecimal;
+
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.log4j.Logger;
 
+import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.yugabyte.sample.common.CmdLineOpts;
+import com.datastax.driver.core.LocalDate;
+
 
 public class CustomSchemaRW extends AppBase {
 
@@ -34,11 +39,13 @@ public class CustomSchemaRW extends AppBase {
     static{
         appConfig.readIOPSPercentage = -1;
         appConfig.numWriterThreads = 0;
-        appConfig.numReaderThreads = 1;
+        appConfig.numReaderThreads = 0;
    
         appConfig.numKeysToWrite = -1;
         appConfig.numKeysToRead = -1;
-         appConfig.runTimeSeconds = 100;
+        appConfig.runTimeSeconds = 100;
+
+        // appConfig.batchSize = 256;
 
         // appConfig.numKeysToWrite = 0;
         // appConfig.numKeysToRead = 30;        
@@ -57,9 +64,14 @@ public class CustomSchemaRW extends AppBase {
 
     private static final Object prepareInitLock = new Object();
 
+    private long currentValue = 0;
+    private int divide = 0;
+
 
 
     private static volatile PreparedStatement preparedSelect;
+      // The shared prepared statement for inserting into the table.
+    private static volatile PreparedStatement preparedInsert;
 
     private static final String DEFAULT_SELECT_QUERY = "select * from stmnt_reeng.customer_transactions ";
     // private static final String DEFAULT_SELECT_QUERY = " SELECT count(*) from ycsb.usertable ;";
@@ -81,16 +93,18 @@ public class CustomSchemaRW extends AppBase {
         if (cmd.hasOption("end_customer_id")) {
          end_customer_id = Long.parseLong(cmd.getOptionValue("end_customer_id"));
         }
-        if (cmd.hasOption("num_days_to_read")) {
-         int num_days_to_read = Integer.parseInt(cmd.getOptionValue("num_days_to_read"));
-        //  updateEndDare(num_days_to_read);
-        }
+        
          if (cmd.hasOption("start_date")) {
             start_date = cmd.getOptionValue("start_date");
         }
         if (cmd.hasOption("end_date")) {
             end_date = cmd.getOptionValue("end_date");
         }
+        if(cmd.hasOption("num_threads_write")){
+            appConfig.numWriterThreads = Integer.parseInt(cmd.getOptionValue("num_threads_write"));  
+             divide = (int) ((end_customer_id - start_customer_id) / appConfig.numWriterThreads);
+        }
+        
 
         if (cmd.hasOption("codacctno")) {
             codacctno = cmd.getOptionValue("codacctno");
@@ -131,12 +145,102 @@ public class CustomSchemaRW extends AppBase {
         return preparedSelectLocal;
     }
 
+    private PreparedStatement getPreparedInsert()  {
+        PreparedStatement pInsertTmp = preparedInsert;
+        if (pInsertTmp == null) {
+            synchronized (prepareInitLock) {
+                if (preparedInsert == null) {
+                // Create the prepared statement object.
+                    String insert_stmt = "INSERT INTO  stmnt_reeng.customer_transactions (codacctno, mobilenumber, fname, lname, txndate, random1, random2, random3, random4, random5, random6, random7, random8, random9, random10, random11, random12, random13, random14, random15, random16, random17, random18, random19, random20, reftxnno, codtxnmnemonic, branch, branchcode, branchaddress, coddrcr, refchqno, txndesc, amttxn) VALUES (?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" ;
+                    preparedInsert = getCassandraClient().prepare(insert_stmt);
+                }
+                pInsertTmp = preparedInsert;
+            }
+        }
+        return pInsertTmp;
+   }
+
     private String getRandomAccountId() {
         long random_id =  start_customer_id + (long) (Math.random() * (end_customer_id - start_customer_id));
         return codacctno_prefix + random_id;
     }
 
-    
+    private long nextAccountId(int idx){
+        long nextId = currentValue + (idx * divide);
+        currentValue++;
+        return nextId;
+    }
+
+
+    // random function that generate String between int 1 to 20
+    private String random1to20(){
+        int random = (int) (Math.random() * 20) + 1;
+        return "random" + random;
+    }
+
+
+
+     @Override
+    public long doWrite(int threadIdx) {
+        BatchStatement batch = new BatchStatement();
+        long numKeysWritten = 1;
+        String startDateStr = start_date;
+        String endDateStr = end_date;
+
+        long nextId = nextAccountId(threadIdx);
+        String accountId = codacctno_prefix + nextId;
+
+        // Define the formatter and parse the dates
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        java.time.LocalDate startDate = java.time.LocalDate.parse(startDateStr, formatter);
+        java.time.LocalDate endDate = java.time.LocalDate.parse(endDateStr, formatter);
+
+        for (java.time.LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            LocalDate eventDate = LocalDate.fromYearMonthDay(date.getYear(), date.getMonthValue(), date.getDayOfMonth());
+            BigDecimal amount = new BigDecimal(100 + (int) (Math.random() * 1000));
+            batch.add(getPreparedInsert().bind(
+               accountId,
+                "+1234567890",
+                "First" + accountId,
+                "Last" + accountId,
+                eventDate,
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                random1to20(),
+                "reftxnno" + random1to20(),
+                "codtxnmnemonic",
+                "branch",
+                "branchcode",
+                "branchaddress",
+                "coddrcr",
+                "refchqno",
+                "txndesc",
+                amount
+            ));
+            numKeysWritten++;
+           
+        }
+        ResultSet rs = getCassandraClient().execute(batch);
+
+        return numKeysWritten;
+    }
 
     @Override
     public long doRead() {
