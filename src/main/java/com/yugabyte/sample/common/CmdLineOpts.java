@@ -964,6 +964,10 @@ public class CmdLineOpts {
                      "[CustomSchemaRW] The codacctno.");
     options.addOption("codacctno_prefix", true,
                       "[CustomSchemaRW] The codacctno prefix.");
+    options.addOption("start_date", true,
+                      "[CustomSchemaRW] The start date.");
+    options.addOption("end_date", true,
+                      "[CustomSchemaRW] The end date.");
 
     // First check if a "--help" argument is passed with a simple parser. Note that if we add
     // required args, then the help string would not work. See:

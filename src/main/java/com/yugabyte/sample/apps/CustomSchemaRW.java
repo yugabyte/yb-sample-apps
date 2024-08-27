@@ -66,8 +66,8 @@ public class CustomSchemaRW extends AppBase {
     // where codacctno =  ? and txndate >= '%s' and txndate < '%s';
 
 
-    private static final String DEFAULT_START_DATE = "2023-01-01";
-    private static String END_DATE = null;
+    private static String start_date = null;
+    private static String end_date = null;
 
 
 
@@ -83,8 +83,15 @@ public class CustomSchemaRW extends AppBase {
         }
         if (cmd.hasOption("num_days_to_read")) {
          int num_days_to_read = Integer.parseInt(cmd.getOptionValue("num_days_to_read"));
-         updateEndDare(num_days_to_read);
+        //  updateEndDare(num_days_to_read);
         }
+         if (cmd.hasOption("start_date")) {
+            start_date = cmd.getOptionValue("start_date");
+        }
+        if (cmd.hasOption("end_date")) {
+            end_date = cmd.getOptionValue("end_date");
+        }
+
         if (cmd.hasOption("codacctno")) {
             codacctno = cmd.getOptionValue("codacctno");
         }else if(cmd.hasOption("codacctno_prefix")){
@@ -93,15 +100,15 @@ public class CustomSchemaRW extends AppBase {
     }
 
 
-    private void updateEndDare(int num_days_to_read){
+    // private void updateEndDare(int num_days_to_read){
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        LocalDate startDate = LocalDate.parse(DEFAULT_START_DATE, formatter);
-        LocalDate newDate = startDate.plusDays(num_days_to_read);
-        String newDateStr = newDate.format(formatter);
-        END_DATE = newDateStr;
+    //     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    //     LocalDate startDate = LocalDate.parse(DEFAULT_START_DATE, formatter);
+    //     LocalDate newDate = startDate.plusDays(num_days_to_read);
+    //     String newDateStr = newDate.format(formatter);
+    //     END_DATE = newDateStr;
 
-    }
+    // }
 
 
     protected PreparedStatement getPreparedSelect()  {
@@ -114,9 +121,10 @@ public class CustomSchemaRW extends AppBase {
                 }else{
                     selectQuery = DEFAULT_SELECT_QUERY + " where codacctno = ? " ;
                 }
-                if(END_DATE != null){
-                    selectQuery = selectQuery + String.format(" and txndate >= '%s' and txndate < '%s' ", DEFAULT_START_DATE, END_DATE);
-                }                
+                if(start_date != null && end_date != null){
+                    selectQuery = selectQuery + String.format(" and txndate >= '%s' and txndate < '%s' ", start_date, end_date);
+                } 
+                System.out.println("Select Query : " + selectQuery);               
                 preparedSelect = getCassandraClient().prepare(selectQuery);
                 preparedSelectLocal = preparedSelect;
             }
