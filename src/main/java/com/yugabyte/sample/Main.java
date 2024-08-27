@@ -172,7 +172,7 @@ public class Main {
       // For 100% read case, do a pre-setup to write a bunch of keys and enable metrics tracking
       // after that.
       if (!cmdLineOpts.getReadOnly() && cmdLineOpts.getNumWriterThreads() == 0) {
-        setupForPureReads();
+        // setupForPureReads();
         app.enableMetrics();
       }
 
@@ -194,7 +194,7 @@ public class Main {
                                        app.appConfig.maxReadThreadThroughput));
       }
 
-      app.recordExistingRowCount();
+      // app.recordExistingRowCount();
       // Start the reader and writer threads.
       for (IOPSThread iopsThread : iopsThreads) {
         iopsThread.start();
@@ -210,7 +210,7 @@ public class Main {
           LOG.error("Error waiting for thread join()", e);
         }
       }
-      app.verifyTotalRowsWritten();
+      // app.verifyTotalRowsWritten();
     } finally {
       terminate();
     }

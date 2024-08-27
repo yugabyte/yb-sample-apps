@@ -32,8 +32,9 @@ public class CustomSchemaRW extends AppBase {
     private static final Logger LOG = Logger.getLogger(CustomSchemaRW.class);
 
     static{
-
+        appConfig.readIOPSPercentage = -1;
         appConfig.numWriterThreads = 0;
+        appConfig.numReaderThreads = 1;
    
         appConfig.numKeysToWrite = -1;
         appConfig.numKeysToRead = -1;
@@ -41,14 +42,14 @@ public class CustomSchemaRW extends AppBase {
 
         // appConfig.numKeysToWrite = 0;
         // appConfig.numKeysToRead = 30;        
-        appConfig.skipDDL = true;
+        // appConfig.skipDDL = true;
        
     }
 
     // Start customer Id
-    private static int start_customer_id = 1;
+    private static long start_customer_id = 1;
     // End customer Id
-    private static int end_customer_id = 10;
+    private static long end_customer_id = 10;
     // Static codacctno 
     private static String codacctno = null ;
     // Static codacctno prefix 
@@ -75,10 +76,10 @@ public class CustomSchemaRW extends AppBase {
         super.initialize(configuration);
         CommandLine cmd = configuration.getCommandLine();
         if (cmd.hasOption("start_customer_id")) {
-         start_customer_id = Integer.parseInt(cmd.getOptionValue("start_customer_id"));
+         start_customer_id =  Long.parseLong(cmd.getOptionValue("start_customer_id"));
         }
         if (cmd.hasOption("end_customer_id")) {
-         end_customer_id = Integer.parseInt(cmd.getOptionValue("end_customer_id"));
+         end_customer_id = Long.parseLong(cmd.getOptionValue("end_customer_id"));
         }
         if (cmd.hasOption("num_days_to_read")) {
          int num_days_to_read = Integer.parseInt(cmd.getOptionValue("num_days_to_read"));
@@ -124,7 +125,7 @@ public class CustomSchemaRW extends AppBase {
     }
 
     private String getRandomAccountId() {
-        int random_id =  start_customer_id + (int) (Math.random() * (end_customer_id - start_customer_id));
+        long random_id =  start_customer_id + (long) (Math.random() * (end_customer_id - start_customer_id));
         return codacctno_prefix + random_id;
     }
 
