@@ -89,6 +89,7 @@ public class CustomSchemaRW extends AppBase {
         CommandLine cmd = configuration.getCommandLine();
         if (cmd.hasOption("start_customer_id")) {
          start_customer_id =  Long.parseLong(cmd.getOptionValue("start_customer_id"));
+         currentValue = start_customer_id;
         }
         if (cmd.hasOption("end_customer_id")) {
          end_customer_id = Long.parseLong(cmd.getOptionValue("end_customer_id"));
