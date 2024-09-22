@@ -34,7 +34,7 @@ public class PromMetrics {
         promContactPoints = new ArrayList<>();
         for (InetSocketAddress node : nodes) {
             promContactPoints.add(String.format(
-                "https://%s:9000/prometheus-metrics", node.getHostString()));
+                "http://%s:9000/prometheus-metrics", node.getHostString()));
         }
         disableSSLVerification();
     }
