@@ -218,7 +218,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         String connectStr = String.format("%s//%s:%d/%s", url, contactPoint.getHost(),
                 contactPoint.getPort(),
                 database);
-        if (!username.equalsIgnoreCase("yugabyte") || !username.equalsIgnoreCase("postgres")){
+        if (!username.equalsIgnoreCase("yugabyte") && !username.equalsIgnoreCase("postgres")){
           Properties newProps = new Properties();
           newProps.setProperty("user", "yugabyte");
           Connection controlConnection = DriverManager.getConnection(connectStr, newProps);
