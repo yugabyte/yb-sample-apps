@@ -224,6 +224,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
           Connection controlConnection = DriverManager.getConnection(connectStr, newProps);
           Statement st = controlConnection.createStatement();
           String grantPermission = String.format("grant create on schema public to %s with grant option;", username);
+          LOG.info("Granted create permission to user: " + username);
           st.execute(grantPermission);
           controlConnection.close();
         }
