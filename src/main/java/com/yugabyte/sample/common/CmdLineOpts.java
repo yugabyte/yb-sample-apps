@@ -350,6 +350,9 @@ public class CmdLineOpts {
       }
       AppBase.appConfig.dbPassword = commandLine.getOptionValue("password");
     }
+    if (commandLine.hasOption("yugabyte_password")) {
+      AppBase.appConfig.ybPassword = commandLine.getOptionValue("yugabyte_password");
+    }
     if (commandLine.hasOption("load_balance")) {
       AppBase.appConfig.loadBalance = Boolean.valueOf(commandLine.getOptionValue("load_balance"));
     }
@@ -792,6 +795,9 @@ public class CmdLineOpts {
     options.addOption("password", true,
         "The password to use when connecting to the database. " +
             "If this option is set, the --username option is required.");
+    options.addOption("yugabyte_password", true,
+            "The password to use when connecting to the database with user yugabyte. " +
+                    "This option is set when the --username is different from yugabyte or postgres");
     options.addOption("load_balance", true,
             "Set up YugabyteDB JDBC driver with in-built load balancing capability.");
     options.addOption("topology_keys", true,

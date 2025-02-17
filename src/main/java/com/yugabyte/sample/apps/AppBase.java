@@ -221,6 +221,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         if (!username.equalsIgnoreCase("yugabyte") && !username.equalsIgnoreCase("postgres")){
           Properties newProps = new Properties();
           newProps.setProperty("user", "yugabyte");
+          newProps.setProperty("password", appConfig.ybPassword);
           Connection controlConnection = DriverManager.getConnection(connectStr, newProps);
           Statement st = controlConnection.createStatement();
           String grantPermission = String.format("grant create on schema public to %s with grant option;", username);
