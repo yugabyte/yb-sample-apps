@@ -218,14 +218,22 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
         String connectStr = String.format("%s//%s:%d/%s", url, contactPoint.getHost(),
                 contactPoint.getPort(),
                 database);
-        if (!username.equalsIgnoreCase("yugabyte") || !username.equalsIgnoreCase("postgres")){
+        if (!username.equalsIgnoreCase("yugabyte") && !username.equalsIgnoreCase("postgres")){
           Properties newProps = new Properties();
           newProps.setProperty("user", "yugabyte");
-          Connection controlConnection = DriverManager.getConnection(connectStr, newProps);
-          Statement st = controlConnection.createStatement();
-          String grantPermission = String.format("grant create on schema public to %s with grant option;", username);
-          st.execute(grantPermission);
-          controlConnection.close();
+          newProps.setProperty("password", appConfig.ybPassword);
+          Connection controlConnection = null;
+          try {
+            controlConnection = DriverManager.getConnection(connectStr, newProps);
+            Statement st = controlConnection.createStatement();
+            String grantPermission = String.format("grant create on schema public to %s with grant option;", username);
+            LOG.info("Granted create permission to user: " + username);
+            st.execute(grantPermission);
+          } finally {
+            if (controlConnection != null) {
+              controlConnection.close();
+            }
+          }
         }
         Connection connection = DriverManager.getConnection(connectStr, props);
         return connection;

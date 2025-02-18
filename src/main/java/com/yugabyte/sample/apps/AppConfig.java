@@ -172,6 +172,9 @@ public class AppConfig {
   // Password to connect to the DB.
   public String dbPassword = null;
 
+  // Password to connect to the DB using yugabyte user.
+  public String ybPassword = "yugabyte";
+
   // The number of client connections to establish to each host in the YugaByte DB cluster.
   public int concurrentClients = 4;
 
