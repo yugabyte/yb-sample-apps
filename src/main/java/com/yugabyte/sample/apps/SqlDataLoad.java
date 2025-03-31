@@ -28,7 +28,7 @@ import com.yugabyte.sample.common.SimpleLoadGenerator.Key;
  * Then runs a write workload to load data into the target table.
  */
 public class SqlDataLoad extends AppBase {
-    private static final Logger LOG = Logger.getLogger(SqlInserts.class);
+    private static final Logger LOG = Logger.getLogger(SqlDataLoad.class);
 
     // Static initialization of this workload's config. These are good defaults for getting a decent
     // read dominated workload on a reasonably powered machine. Exact IOPS will of course vary
