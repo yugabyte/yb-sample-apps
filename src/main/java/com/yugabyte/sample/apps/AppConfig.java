@@ -229,4 +229,7 @@ public class AppConfig {
 
   // Flag to report restart read requests.
   public boolean restartReadsReported = false;
+
+  // Flag to use timestamptz data type.
+  public boolean useTimestamptz = false;
 }

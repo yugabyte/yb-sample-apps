@@ -100,7 +100,7 @@ public class IOPSThread extends Thread {
   @Override
   public void run() {
     try {
-      LOG.debug("Starting " + ioType.toString() + " IOPS thread #" + threadIdx);
+      LOG.info("Starting " + ioType.toString() + " IOPS thread #" + threadIdx);
       int numConsecutiveExceptions = 0;
       while (!app.hasFinished()) {
         if (concurrencyDisabled) {
