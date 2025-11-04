@@ -1,4 +1,4 @@
-FROM openjdk:8-jre-alpine
+FROM eclipse-temurin:8u462-b08-jre-alpine-3.21
 MAINTAINER YugaByte
 ENV container=yb-sample-apps
 
