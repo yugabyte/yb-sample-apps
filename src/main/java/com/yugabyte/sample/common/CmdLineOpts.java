@@ -656,6 +656,11 @@ public class CmdLineOpts {
       AppBase.appConfig.numUniqueKeysToWrite =
           Long.parseLong(cmd.getOptionValue("num_unique_keys"));
     }
+    if(AppBase.appConfig.numKeysToWrite != AppBase.appConfig.numUniqueKeysToWrite){
+      AppBase.appConfig.numUniqueKeysToWrite = AppBase.appConfig.numKeysToWrite;
+      LOG.warn(String.format("Setting number of numUniqueKeysToWrite equal to the numKeysToWrite, num_unique_keys = %d",AppBase.appConfig.numUniqueKeysToWrite));
+    }
+
     AppBase.appConfig.maxWrittenKey = Long.parseLong(cmd.getOptionValue("max_written_key",
         String.valueOf(AppBase.appConfig.maxWrittenKey)));
     if (cmd.hasOption("value_size")) {
