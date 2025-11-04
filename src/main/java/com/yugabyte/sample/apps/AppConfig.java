@@ -126,10 +126,10 @@ public class AppConfig {
   public String tableName = null;
 
   // Name of the default database for postgres.
-  public String defaultPostgresDatabase = "postgres";
+  public String defaultPostgresDatabase = "yugabyte";
 
   // Name of the default username for postgres.
-  public String defaultPostgresUsername = "postgres";
+  public String defaultPostgresUsername = "yugabyte";
 
   // Should we drop / truncate table.
   public AppBase.TableOp tableOp = TableOp.NoOp;
