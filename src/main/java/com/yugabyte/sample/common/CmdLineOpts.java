@@ -1115,7 +1115,17 @@ public class CmdLineOpts {
         footer.append(" ]\n");
       }
     }
+
+    List<String> optionalConnectionArgs = workload.getConnectionOptionalArguments();
+    footer.append("\n\t\tOther connection options (with default values):\n");
+
+    for (String line : optionalConnectionArgs) {
+      footer.append(optsPrefix + "[ ");
+      footer.append(line);
+      footer.append(" ]\n");
+    }
     footer.append("\n");
+
     System.out.println(footer.toString());
     System.exit(0);
   }
