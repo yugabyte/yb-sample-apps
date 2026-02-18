@@ -56,7 +56,8 @@ public class AppConfig {
   // no data has yet to be written.
   public long numKeysToRead;
 
-  // The size of primary key hash component common for all generated rows, 0 means use default key generation.
+  // The size of randomly generated common (per write thread) primary key hash component, 0 means use default key
+  // generation.
   public int commonHashKeySize = 0;
   // The size of the value to be written.
   public int valueSize;

@@ -790,7 +790,8 @@ public class CmdLineOpts {
                       "How long (in ms) to wait for a response from jedis.");
     options.addOption("cql_connect_timeout_ms", true, "Connection timeout for cql in millisecs");
     options.addOption("cql_read_timeout_ms", true, "Read timeout for cql in millisecs");
-    options.addOption("common_hash_key_size", true, "Size of randomly generated primary key hash component (ASCII) common for all generated rows.");
+    options.addOption("common_hash_key_size", true, "Size of randomly generated common (per write thread) primary key" +
+            " hash component (ASCII).");
     options.addOption("value_size", true, "Size in bytes of the value. " +
         "The bytes are random. Value size should be more than 5 (9) bytes for binary (ascii) " +
         "values in order to have checksum for read verification. First byte is used as a " +
