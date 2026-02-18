@@ -488,11 +488,11 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
       final int ASCII_START = 32;
       final int ASCII_RANGE_SIZE = 95;
       while (i < size) {
-        long r = (long) (random.nextInt() & 0xffffffff);
+        long r = (long) (random.nextInt()) & 0xFFFFFFFFL;
+        long coverageLeft = 0xFFFFFFFFL;
         // Hack to minimize number of calls to random.nextInt() in order to reduce CPU load.
         // This makes distribution non-uniform, but should be OK for load tests.
-        for (int n = Math.min(Integer.BYTES, size - i); n > 0;
-             r /= ASCII_RANGE_SIZE, n--) {
+        for (; coverageLeft > 0 && i < size; r /= ASCII_RANGE_SIZE, coverageLeft /= ASCII_RANGE_SIZE) {
           outBuffer[i++] = (byte) (ASCII_START + r % ASCII_RANGE_SIZE);
         }
       }
