@@ -16,6 +16,7 @@ package com.yugabyte.sample.apps;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.log4j.Logger;
 
@@ -41,11 +42,33 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL;
   }
   private long initialRowCount = 0;
+  private String commonHashKey;
+  private ThreadLocal<PreparedStatement> preparedInsert;
+
+  public CassandraKeyValue() {
+    int commonHashKeySize = AppBase.appConfig.commonHashKeySize;
+    if (commonHashKeySize > 0) {
+      byte[] buffer = new byte[commonHashKeySize];
+      AppBase.GenerateRandomString(ThreadLocalRandom.current(), 0, commonHashKeySize, buffer, true);
+      commonHashKey = new String(buffer);
+    } else {
+      commonHashKey = "";
+    }
+    preparedInsert = new ThreadLocal<PreparedStatement>() {
+      @Override
+      protected PreparedStatement initialValue() {
+        return getPreparedInsert(String.format("INSERT INTO %s " +
+                (commonHashKey.isEmpty() ? "(k, v) VALUES (?, ?);" : "(hash_k, k, v) VALUES (?, ?, ?);"),
+                getTableName()));
+      }
+    };
+  }
 
   @Override
   public List<String> getCreateTableStatements() {
-    String create_stmt = String.format(
-      "CREATE TABLE IF NOT EXISTS %s (k varchar, v blob, primary key (k))", getTableName());
+    String schema = commonHashKey.isEmpty() ? "k varchar, v blob, primary key (k)"
+            : "hash_k varchar, k varchar, v blob, primary key ((hash_k), k)";
+    String create_stmt = String.format("CREATE TABLE IF NOT EXISTS %s (%s)", getTableName(), schema);
 
     if (appConfig.tableTTLSeconds > 0) {
       create_stmt += " WITH default_time_to_live = " + appConfig.tableTTLSeconds;
@@ -60,7 +83,7 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
    }
 
   protected PreparedStatement getPreparedInsert() {
-    return getPreparedInsert(String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
+    return preparedInsert.get();
   }
 
   @Override
@@ -72,7 +95,11 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
 
   @Override
   protected BoundStatement bindInsert(String key, ByteBuffer value)  {
-    return getPreparedInsert().bind(key, value);
+    if (commonHashKey.isEmpty()) {
+      return getPreparedInsert().bind(key, value);
+    } else {
+      return getPreparedInsert().bind(commonHashKey, key, value);
+    }
   }
 
   @Override

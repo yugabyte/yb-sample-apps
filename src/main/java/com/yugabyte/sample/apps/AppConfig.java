@@ -56,6 +56,8 @@ public class AppConfig {
   // no data has yet to be written.
   public long numKeysToRead;
 
+  // The size of primary key hash component common for all generated rows, 0 means use default key generation.
+  public int common_hash_key_size = 0;
   // The size of the value to be written.
   public int valueSize;
   // The amount of time to wait before starting the next pipeline to the
