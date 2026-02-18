@@ -43,7 +43,7 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
   }
   private long initialRowCount = 0;
   private String commonHashKey;
-  private ThreadLocal<PreparedStatement> preparedInsert;
+  private PreparedStatement preparedInsert;
 
   public CassandraKeyValue() {
     int commonHashKeySize = AppBase.appConfig.commonHashKeySize;
@@ -54,14 +54,9 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
     } else {
       commonHashKey = "";
     }
-    preparedInsert = new ThreadLocal<PreparedStatement>() {
-      @Override
-      protected PreparedStatement initialValue() {
-        return getPreparedInsert(String.format("INSERT INTO %s " +
-                (commonHashKey.isEmpty() ? "(k, v) VALUES (?, ?);" : "(hash_k, k, v) VALUES (?, ?, ?);"),
-                getTableName()));
-      }
-    };
+    preparedInsert = getPreparedInsert(String.format("INSERT INTO %s " +
+                    (commonHashKey.isEmpty() ? "(k, v) VALUES (?, ?);" : "(hash_k, k, v) VALUES (?, ?, ?);"),
+            getTableName()));
   }
 
   @Override
@@ -83,7 +78,7 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
    }
 
   protected PreparedStatement getPreparedInsert() {
-    return preparedInsert.get();
+    return preparedInsert;
   }
 
   @Override
