@@ -659,7 +659,7 @@ public class CmdLineOpts {
     AppBase.appConfig.maxWrittenKey = Long.parseLong(cmd.getOptionValue("max_written_key",
         String.valueOf(AppBase.appConfig.maxWrittenKey)));
     if (cmd.hasOption("common_hash_key_size")) {
-      AppBase.appConfig.common_hash_key_size = Integer.parseInt(cmd.getOptionValue("common_hash_key_size"));
+      AppBase.appConfig.commonHashKeySize = Integer.parseInt(cmd.getOptionValue("common_hash_key_size"));
     }
     if (cmd.hasOption("value_size")) {
       AppBase.appConfig.valueSize = Integer.parseInt(cmd.getOptionValue("value_size"));
