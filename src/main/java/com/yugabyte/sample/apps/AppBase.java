@@ -483,7 +483,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 	  getRandomValue(keyValueBytes, valueSize, outBuffer);
   }
 
-  static public void GenerateRandomString(Random random, int i, int size, byte[] outBuffer, boolean restrictToAscii) {
+  public static void generateRandomString(Random random, int i, int size, byte[] outBuffer, boolean restrictToAscii) {
     if (restrictToAscii) {
       final int ASCII_START = 32;
       final int ASCII_RANGE_SIZE = 95;
@@ -523,7 +523,7 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     }
 
     // Generate randomly the rest of payload leaving space for checksum.
-    GenerateRandomString(random, i, contentSize, outBuffer, appConfig.restrictValuesToAscii);
+    generateRandomString(random, i, contentSize, outBuffer, appConfig.restrictValuesToAscii);
     i = contentSize;
 
     if (isUseChecksum) {

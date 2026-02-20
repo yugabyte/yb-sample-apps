@@ -46,16 +46,15 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
   private String insertStatement;
 
   public CassandraKeyValue() {
-    int commonHashKeySize = AppBase.appConfig.commonHashKeySize;
-    if (commonHashKeySize > 0) {
-      byte[] buffer = new byte[commonHashKeySize];
-      AppBase.GenerateRandomString(ThreadLocalRandom.current(), 0, commonHashKeySize, buffer, true);
+    if (AppBase.appConfig.commonHashKeySize > 0) {
+      byte[] buffer = new byte[AppBase.appConfig.commonHashKeySize];
+      AppBase.generateRandomString(ThreadLocalRandom.current(), 0, AppBase.appConfig.commonHashKeySize, buffer, true);
       commonHashKey = new String(buffer);
     } else {
       commonHashKey = "";
     }
-    insertStatement = String.format("INSERT INTO %s " +
-            (commonHashKey.isEmpty() ? "(k, v) VALUES (?, ?);" : "(hash_k, k, v) VALUES (?, ?, ?);"), getTableName());
+    insertStatement = String.format("INSERT INTO %s %s;", getTableName(),
+            commonHashKey.isEmpty() ? "(k, v) VALUES (?, ?)" : "(hash_k, k, v) VALUES (?, ?, ?)");
   }
 
   @Override
