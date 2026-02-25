@@ -483,6 +483,29 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
 	  getRandomValue(keyValueBytes, valueSize, outBuffer);
   }
 
+  public static void generateRandomString(Random random, int i, int size, byte[] outBuffer, boolean restrictToAscii) {
+    if (restrictToAscii) {
+      final int ASCII_START = 32;
+      final int ASCII_RANGE_SIZE = 95;
+      while (i < size) {
+        long r = (long) (random.nextInt()) & 0xFFFFFFFFL;
+        long coverageLeft = 0xFFFFFFFFL;
+        // Hack to minimize number of calls to random.nextInt() in order to reduce CPU load.
+        // This makes distribution non-uniform, but should be OK for load tests.
+        for (; coverageLeft > 0 && i < size; r /= ASCII_RANGE_SIZE, coverageLeft /= ASCII_RANGE_SIZE) {
+          outBuffer[i++] = (byte) (ASCII_START + r % ASCII_RANGE_SIZE);
+        }
+      }
+      return;
+    }
+
+    while (i < size) {
+      for (int r = random.nextInt(), n = Math.min(Integer.BYTES, size - i); n > 0;
+           r >>= Byte.SIZE, n--)
+        outBuffer[i++] = (byte) r;
+    }
+  }
+
   protected void getRandomValue(byte[] keyValueBytes, int valueSize, byte[] outBuffer) {
     outBuffer[0] = appConfig.restrictValuesToAscii ? ASCII_MARKER : BINARY_MARKER;
     final int checksumSize = appConfig.restrictValuesToAscii ? CHECKSUM_ASCII_SIZE : CHECKSUM_SIZE;
@@ -500,25 +523,8 @@ public abstract class AppBase implements MetricsTracker.StatusMessageAppender {
     }
 
     // Generate randomly the rest of payload leaving space for checksum.
-    if (appConfig.restrictValuesToAscii) {
-      final int ASCII_START = 32;
-      final int ASCII_RANGE_SIZE = 95;
-      while (i < contentSize) {
-        long r = (long) (random.nextInt() & 0xffffffff);
-        // Hack to minimize number of calls to random.nextInt() in order to reduce CPU load.
-        // This makes distribution non-uniform, but should be OK for load tests.
-        for (int n = Math.min(Integer.BYTES, contentSize - i); n > 0;
-          r /= ASCII_RANGE_SIZE, n--) {
-          outBuffer[i++] = (byte) (ASCII_START + r % ASCII_RANGE_SIZE);
-        }
-      }
-    } else {
-      while (i < contentSize) {
-        for (int r = random.nextInt(), n = Math.min(Integer.BYTES, contentSize - i); n > 0;
-             r >>= Byte.SIZE, n--)
-            outBuffer[i++] = (byte) r;
-      }
-    }
+    generateRandomString(random, i, contentSize, outBuffer, appConfig.restrictValuesToAscii);
+    i = contentSize;
 
     if (isUseChecksum) {
       checksum.reset();

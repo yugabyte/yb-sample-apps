@@ -16,6 +16,7 @@ package com.yugabyte.sample.apps;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.log4j.Logger;
 
@@ -41,11 +42,26 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
     appConfig.numUniqueKeysToWrite = NUM_UNIQUE_KEYS_FOR_YSQL_AND_YCQL;
   }
   private long initialRowCount = 0;
+  private String commonHashKey;
+  private String insertStatement;
+
+  public CassandraKeyValue() {
+    if (AppBase.appConfig.commonHashKeySize > 0) {
+      byte[] buffer = new byte[AppBase.appConfig.commonHashKeySize];
+      AppBase.generateRandomString(ThreadLocalRandom.current(), 0, AppBase.appConfig.commonHashKeySize, buffer, true);
+      commonHashKey = new String(buffer);
+    } else {
+      commonHashKey = "";
+    }
+    insertStatement = String.format("INSERT INTO %s %s;", getTableName(),
+            commonHashKey.isEmpty() ? "(k, v) VALUES (?, ?)" : "(hash_k, k, v) VALUES (?, ?, ?)");
+  }
 
   @Override
   public List<String> getCreateTableStatements() {
-    String create_stmt = String.format(
-      "CREATE TABLE IF NOT EXISTS %s (k varchar, v blob, primary key (k))", getTableName());
+    String schema = commonHashKey.isEmpty() ? "k varchar, v blob, primary key (k)"
+            : "hash_k varchar, k varchar, v blob, primary key ((hash_k), k)";
+    String create_stmt = String.format("CREATE TABLE IF NOT EXISTS %s (%s)", getTableName(), schema);
 
     if (appConfig.tableTTLSeconds > 0) {
       create_stmt += " WITH default_time_to_live = " + appConfig.tableTTLSeconds;
@@ -60,7 +76,7 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
    }
 
   protected PreparedStatement getPreparedInsert() {
-    return getPreparedInsert(String.format("INSERT INTO %s (k, v) VALUES (?, ?);", getTableName()));
+    return getPreparedInsert(insertStatement);
   }
 
   @Override
@@ -72,7 +88,11 @@ public class CassandraKeyValue extends CassandraKeyValueBase {
 
   @Override
   protected BoundStatement bindInsert(String key, ByteBuffer value)  {
-    return getPreparedInsert().bind(key, value);
+    if (commonHashKey.isEmpty()) {
+      return getPreparedInsert().bind(key, value);
+    } else {
+      return getPreparedInsert().bind(commonHashKey, key, value);
+    }
   }
 
   @Override
